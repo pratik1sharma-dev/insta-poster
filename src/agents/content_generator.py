@@ -115,12 +115,16 @@ Respond with ONLY the JSON, no other text.
         response = self.model.generate_content(prompt)
         slides_data = self._parse_json_response(response.text)
 
+        purpose_map = {"call-to-action": "cta", "call_to_action": "cta"}
+
         slides = []
         for slide_data in slides_data.get("slides", []):
+            purpose = slide_data["purpose"]
+            purpose = purpose_map.get(purpose.lower(), purpose)
             slides.append(
                 CarouselSlide(
                     slide_number=slide_data["slide_number"],
-                    purpose=SlidePurpose(slide_data["purpose"]),
+                    purpose=SlidePurpose(purpose),
                     text_overlay=slide_data["text_overlay"],
                     image_prompt=slide_data["image_prompt"],
                     design_notes=slide_data.get("design_notes"),
