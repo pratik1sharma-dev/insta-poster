@@ -17,7 +17,7 @@ class ImageGenerator:
         """Initialize the Image Generator with Gemini API."""
         genai.configure(api_key=settings.gemini_api_key)
         # Use Imagen model for image generation
-        self.model = genai.GenerativeModel("gemini-1.5-pro")
+        self.model = genai.GenerativeModel(settings.gemini_model)
 
     def generate_carousel(
         self,

@@ -20,7 +20,7 @@ class ContentGenerator:
     def __init__(self):
         """Initialize the Content Generator with Gemini API."""
         genai.configure(api_key=settings.gemini_api_key)
-        self.model = genai.GenerativeModel("gemini-1.5-pro")
+        self.model = genai.GenerativeModel(settings.gemini_model)
 
     def generate_content(
         self, strategy: ContentStrategy, channel_config: ChannelConfig

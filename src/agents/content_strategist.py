@@ -15,7 +15,7 @@ class ContentStrategist:
     def __init__(self):
         """Initialize the Content Strategist with Gemini API."""
         genai.configure(api_key=settings.gemini_api_key)
-        self.model = genai.GenerativeModel("gemini-1.5-pro")
+        self.model = genai.GenerativeModel(settings.gemini_model)
 
     def plan_content(
         self, channel_config: ChannelConfig, topic_hint: Optional[str] = None

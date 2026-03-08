@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     # Google Gemini API
     gemini_api_key: str
+    gemini_model: str = "gemini-2.5-flash"
 
     # Postiz Configuration
     postiz_api_url: str = "http://localhost:3000/api"
