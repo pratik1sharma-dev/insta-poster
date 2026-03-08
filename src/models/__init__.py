@@ -4,6 +4,8 @@ from .content_models import (
     GeneratedContent,
     CarouselSlide,
     PostResult,
+    HookType,
+    VisualStyle,
 )
 
 __all__ = [
@@ -12,4 +14,6 @@ __all__ = [
     "GeneratedContent",
     "CarouselSlide",
     "PostResult",
+    "HookType",
+    "VisualStyle",
 ]
