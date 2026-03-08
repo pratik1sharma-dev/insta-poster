@@ -6,6 +6,7 @@ from .content_models import (
     PostResult,
     HookType,
     VisualStyle,
+    SlidePurpose,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "PostResult",
     "HookType",
     "VisualStyle",
+    "SlidePurpose",
 ]
