@@ -80,7 +80,7 @@ class PostizClient:
 
             # Create post
             response = requests.post(
-                f"{self.api_url}/posts",
+                f"{self.api_url}/public/v1/posts",
                 headers=self.headers,
                 json=post_data,
                 timeout=30,
@@ -139,7 +139,7 @@ class PostizClient:
                 files = {"file": (image_path.name, f, "image/png")}
 
                 response = requests.post(
-                    f"{self.api_url}/media/upload",
+                    f"{self.api_url}/public/v1/upload",
                     headers={"Authorization": f"Bearer {self.api_key}"},
                     files=files,
                     timeout=30,
