@@ -1,0 +1,45 @@
+book_summaries:
+  name: "book_summaries"
+  theme: "Book summaries and key insights for busy professionals"
+  target_audience: "Young professionals (25-35), self-improvement seekers, lifelong learners"
+  posting_schedule: "2-3x daily"
+  tone: "engaging, actionable, inspiring"
+  style_guidelines: "Clear, readable text overlays with modern design. Focus on actionable insights."
+
+  curated_topics:
+    # Self-improvement classics
+    - "Atomic Habits by James Clear"
+    - "Deep Work by Cal Newport"
+    - "The Power of Habit by Charles Duhigg"
+    - "Thinking, Fast and Slow by Daniel Kahneman"
+    - "Mindset by Carol Dweck"
+
+    # Business & Leadership
+    - "Good to Great by Jim Collins"
+    - "The Lean Startup by Eric Ries"
+    - "Zero to One by Peter Thiel"
+    - "The Hard Thing About Hard Things by Ben Horowitz"
+    - "High Output Management by Andy Grove"
+
+    # Psychology & Behavior
+    - "Influence by Robert Cialdini"
+    - "Predictably Irrational by Dan Ariely"
+    - "Man's Search for Meaning by Viktor Frankl"
+    - "Emotional Intelligence by Daniel Goleman"
+    - "The Happiness Hypothesis by Jonathan Haidt"
+
+    # Productivity & Focus
+    - "Getting Things Done by David Allen"
+    - "Essentialism by Greg McKeown"
+    - "Make Time by Jake Knapp and John Zeratsky"
+    - "The 4-Hour Workweek by Tim Ferriss"
+    - "Indistractable by Nir Eyal"
+
+  allow_ai_discovery: true
+
+  visual_preferences:
+    - "Modern gradient backgrounds"
+    - "Bold, readable typography"
+    - "Minimal but impactful"
+    - "Professional color schemes"
+    - "Book cover references (subtle)"
