@@ -7,6 +7,7 @@ from typing import List, Optional
 import os
 from dotenv import load_dotenv
 import requests
+import json
 from src.models import GeneratedContent, ContentStrategy, PostResult
 from src.config import settings
 
@@ -98,6 +99,10 @@ class PostizClient:
             post_data = self._prepare_post_data(content, strategy, uploaded_image_objects, channel, integration_id)
 
             # Create post
+            print(f"DEBUG: Scheduling post to {self.api_url}/public/v1/posts")
+            print(f"DEBUG: Request headers for post scheduling: {{'Authorization': '**********', 'Content-Type': 'application/json'}}")
+            print(f"DEBUG: Request body for post scheduling: {json.dumps(post_data, indent=2)}")
+
             response = requests.post(
                 f"{self.api_url}/public/v1/posts",
                 headers=self.headers,
@@ -107,7 +112,6 @@ class PostizClient:
 
             if response.status_code in [200, 201]:
                 result_data = response.json()
-                print(f"Postiz Publish Post Success Response: {result_data}") # Add for debugging
                 # Assuming result_data is a list with one dictionary as confirmed by debug output
                 post_info = result_data[0] # Get the first (and only) dictionary
                 return PostResult(
@@ -159,6 +163,9 @@ class PostizClient:
         for image_path in images:
             with open(image_path, "rb") as f:
                 files = {"file": (image_path.name, f, "image/png")}
+                print(f"DEBUG: Uploading image '{image_path.name}' to {self.api_url}/public/v1/upload")
+                print(f"DEBUG: Request headers for upload: {{'Authorization': '**********'}}")
+                # print(f"DEBUG: Request files for upload: {files}") # This can be very verbose, only enable if needed
 
                 response = requests.post(
                     f"{self.api_url}/public/v1/upload",
@@ -166,17 +173,19 @@ class PostizClient:
                     files=files,
                     timeout=30,
                 )
+                print(f"DEBUG: Upload response status: {response.status_code}")
+                print(f"DEBUG: Upload response body: {response.text}")
 
                 if response.status_code in [200, 201]:
                     result = response.json()
                     media_id = result.get("id")
                     media_name = result.get("name")
-                    media_url = f"{self.r2_base_url}/{media_name}" # Construct full URL
+                    media_path_from_response = result.get("path") # Get path directly from response
 
                     image_object = {
                         "id": media_id,
                         "name": media_name,
-                        "path": media_url,
+                        "path": media_path_from_response, # Use path from response
                         "thumbnail": None,
                         "alt": None,
                     }
@@ -193,24 +202,29 @@ class PostizClient:
         Retrieves the Instagram integration ID from Postiz.
         """
         try:
+            print(f"DEBUG: Retrieving Instagram integrations from {self.api_url}/public/v1/integrations")
+            print(f"DEBUG: Request headers for integrations: {{'Authorization': '**********'}}")
             response = requests.get(
                 f"{self.api_url}/public/v1/integrations",
                 headers=self.headers,
                 timeout=10,
             )
+            print(f"DEBUG: Integrations response status: {response.status_code}")
+            print(f"DEBUG: Integrations response body: {response.text}")
 
             if response.status_code == 200:
                 integrations = response.json()
                 for integration in integrations:
                     if integration.get("identifier") == "instagram":
+                        print(f"DEBUG: Found Instagram integration ID: {integration.get('id')}")
                         return integration.get("id")
-                print("No Instagram integration found.")
+                print("DEBUG: No Instagram integration found in response.")
                 return None
             else:
-                print(f"Failed to get integrations: HTTP {response.status_code}: {response.text}")
+                print(f"ERROR: Failed to get integrations: HTTP {response.status_code}: {response.text}")
                 return None
         except Exception as e:
-            print(f"Error getting integrations: {e}")
+            print(f"ERROR: Error getting integrations: {e}")
             return None
 
     def _prepare_post_data(
