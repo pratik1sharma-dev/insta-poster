@@ -1,10 +1,11 @@
 """
-Image Generator Agent - Creates carousel images using Gemini Imagen.
+Image Generator Agent - Creates carousel images using Gemini.
 """
 from pathlib import Path
 from typing import List
 import logging
-import google.generativeai as genai
+from google import genai as genai_client
+from google.genai import types
 from PIL import Image
 import io
 from src.models import ContentStrategy, GeneratedContent, VisualStyle
@@ -19,9 +20,8 @@ class ImageGenerator:
 
     def __init__(self):
         """Initialize the Image Generator with Gemini API."""
-        genai.configure(api_key=settings.gemini_api_key)
-        # Use Imagen model for image generation
-        self.model = genai.GenerativeModel(settings.gemini_model)
+        self.client = genai_client.Client(api_key=settings.gemini_api_key)
+        self.image_model = settings.gemini_model
 
     def generate_carousel(
         self,
@@ -42,15 +42,51 @@ class ImageGenerator:
         """
         image_paths = []
 
+        # Create a single chat session so the model keeps context across slides
+        chat = self.client.chats.create(
+            model=self.image_model,
+            config=types.GenerateContentConfig(
+                response_modalities=["Text", "Image"],
+            ),
+        )
+
+        # Global style / goal brief for this carousel
+        style_brief = f"""You are designing all images for a single Instagram carousel post.
+
+Topic: {strategy.topic}
+Visual style: {strategy.visual_style}
+Total slides: {len(content.slides)}
+
+Goal:
+- Create visually consistent, scroll-stopping images that match the text content.
+- Help grow followers and engagement (saves, shares, comments, follows).
+
+Global rules:
+- All slides must clearly look like one cohesive series.
+- Use a consistent color palette and typography across slides.
+- Keep overall layout structure and style coherent across slides.
+"""
+
+        # Prime the chat with the shared brief
+        chat.send_message(style_brief)
+
         for slide in content.slides:
             # Enhance image prompt with style guidelines
             enhanced_prompt = self._enhance_prompt(
                 slide.image_prompt, slide.text_overlay, strategy.visual_style
             )
 
-            # Generate image
+            logger.info(
+                "Generating image for slide %s with prompt:\n%s",
+                slide.slide_number,
+                enhanced_prompt,
+            )
+
+            # Generate image in the shared chat session
+            response = chat.send_message(enhanced_prompt)
+
             image_path = self._generate_single_image(
-                enhanced_prompt, slide.slide_number, output_dir
+                response, slide.slide_number, output_dir
             )
 
             if image_path:
@@ -106,13 +142,13 @@ The text overlay should be integrated into the design, not just placed on top.
         return enhanced
 
     def _generate_single_image(
-        self, prompt: str, slide_number: int, output_dir: Path
+        self, response, slide_number: int, output_dir: Path
     ) -> Path:
         """
-        Generate a single image using Gemini.
+        Save a single image from a Gemini chat response.
 
         Args:
-            prompt: Enhanced image prompt
+            response: Chat response containing image data
             slide_number: Slide number for filename
             output_dir: Directory to save image
 
@@ -122,32 +158,34 @@ The text overlay should be integrated into the design, not just placed on top.
         Raises:
             RuntimeError if the model does not return valid image bytes.
         """
-        logger.info(
-            "Generating image for slide %s with prompt:\n%s",
-            slide_number,
-            prompt,
-        )
-
-        try:
-            response = self.model.generate_content(prompt)
-        except Exception as e:
-            logger.error("Gemini generate_content failed for slide %s: %s", slide_number, e)
-            raise
-
         image_bytes = None
+
+        # First try the chat-style server_content structure
         try:
-            # Look for inline image data in the first candidate
-            candidate = response.candidates[0]
-            content = getattr(candidate, "content", None)
-            parts = getattr(content, "parts", []) if content is not None else []
+            server_content = getattr(response, "server_content", None)
+            model_turn = getattr(server_content, "model_turn", None) if server_content else None
+            parts = getattr(model_turn, "parts", []) if model_turn else []
             for part in parts:
                 inline = getattr(part, "inline_data", None)
                 if inline and getattr(inline, "data", None):
                     image_bytes = inline.data
                     break
         except Exception as e:
-            logger.error("Failed to extract image data for slide %s: %s", slide_number, e)
-            raise
+            logger.error("Failed to extract image data (server_content) for slide %s: %s", slide_number, e)
+
+        # Fallback to candidate/content.parts shape if needed
+        if not image_bytes:
+            try:
+                candidate = response.candidates[0]
+                content = getattr(candidate, "content", None)
+                parts = getattr(content, "parts", []) if content is not None else []
+                for part in parts:
+                    inline = getattr(part, "inline_data", None)
+                    if inline and getattr(inline, "data", None):
+                        image_bytes = inline.data
+                        break
+            except Exception as e:
+                logger.error("Failed to extract image data (candidates) for slide %s: %s", slide_number, e)
 
         if not image_bytes:
             msg = f"No image data returned from Gemini for slide {slide_number}"

@@ -22,6 +22,34 @@ class ContentGenerator:
         genai.configure(api_key=settings.gemini_api_key)
         self.model = genai.GenerativeModel(settings.gemini_model)
 
+    def _build_session_brief(
+        self, strategy: ContentStrategy, channel_config: ChannelConfig
+    ) -> str:
+        """
+        Shared high-level brief for this specific Instagram carousel post.
+        """
+        return f"""You are helping create a single Instagram carousel post.
+
+Channel:
+- Theme: {channel_config.theme}
+- Target audience: {channel_config.target_audience}
+- Tone: {channel_config.tone}
+
+Post:
+- Topic: {strategy.topic}
+- Hook type: {strategy.hook_type}
+- Visual style: {strategy.visual_style}
+- Carousel length: {strategy.carousel_length} slides
+
+Goal:
+- Create engaging, saveable content that grows followers and encourages interactions (saves, shares, comments, follows).
+
+Global rules:
+- All slides must clearly look like one cohesive series.
+- Use a consistent color palette and typography across slides.
+- Keep overall layout structure broadly consistent across slides.
+"""
+
     def generate_content(
         self, strategy: ContentStrategy, channel_config: ChannelConfig
     ) -> GeneratedContent:
@@ -67,7 +95,11 @@ class ContentGenerator:
         Returns:
             List of CarouselSlide objects
         """
-        prompt = f"""You are creating an Instagram carousel post about: {strategy.topic}
+        session_brief = self._build_session_brief(strategy, channel_config)
+
+        prompt = f"""{session_brief}
+
+You are creating an Instagram carousel post about: {strategy.topic}
 
 **Strategy:**
 - Hook Type: {strategy.hook_type}
@@ -150,11 +182,15 @@ Respond with ONLY the JSON, no other text.
         Returns:
             Instagram caption
         """
+        session_brief = self._build_session_brief(strategy, channel_config)
+
         slides_summary = "\n".join(
             f"Slide {s.slide_number}: {s.text_overlay}" for s in slides[:3]
         )
 
-        prompt = f"""You are writing an Instagram caption for a carousel post about: {strategy.topic}
+        prompt = f"""{session_brief}
+
+You are writing an Instagram caption for a carousel post about: {strategy.topic}
 
 **First 3 Slides:**
 {slides_summary}
@@ -197,7 +233,11 @@ Write the caption now (no JSON, just the caption text):
         Returns:
             List of hashtags
         """
-        prompt = f"""Generate Instagram hashtags for a post about: {strategy.topic}
+        session_brief = self._build_session_brief(strategy, channel_config)
+
+        prompt = f"""{session_brief}
+
+Generate Instagram hashtags for a post about: {strategy.topic}
 
 **Channel Theme:** {channel_config.theme}
 **Target Audience:** {channel_config.target_audience}
