@@ -3,11 +3,15 @@ Image Generator Agent - Creates carousel images using Gemini Imagen.
 """
 from pathlib import Path
 from typing import List
+import logging
 import google.generativeai as genai
 from PIL import Image
 import io
 from src.models import ContentStrategy, GeneratedContent, VisualStyle
 from src.config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class ImageGenerator:
@@ -113,48 +117,53 @@ The text overlay should be integrated into the design, not just placed on top.
             output_dir: Directory to save image
 
         Returns:
-            Path to saved image, or None if generation fails
+            Path to saved image.
+
+        Raises:
+            RuntimeError if the model does not return valid image bytes.
         """
+        logger.info(
+            "Generating image for slide %s with prompt:\n%s",
+            slide_number,
+            prompt,
+        )
+
         try:
-            # Try to generate an image using the configured Gemini model.
             response = self.model.generate_content(prompt)
-
-            image_bytes = None
-            try:
-                # Look for inline image data in the first candidate
-                candidate = response.candidates[0]
-                content = getattr(candidate, "content", None)
-                parts = getattr(content, "parts", []) if content is not None else []
-                for part in parts:
-                    inline = getattr(part, "inline_data", None)
-                    if inline and getattr(inline, "data", None):
-                        image_bytes = inline.data
-                        break
-            except Exception:
-                image_bytes = None
-
-            if image_bytes:
-                try:
-                    image = Image.open(io.BytesIO(image_bytes))
-                except Exception:
-                    image = self._create_placeholder_image(prompt, slide_number)
-            else:
-                image = self._create_placeholder_image(prompt, slide_number)
-
-            image_path = output_dir / f"slide_{slide_number:02d}.png"
-            image.save(image_path, "PNG")
-            return image_path
-
         except Exception as e:
-            print(f"Error generating image for slide {slide_number}: {e}")
-            try:
-                image = self._create_placeholder_image(prompt, slide_number)
-                image_path = output_dir / f"slide_{slide_number:02d}.png"
-                image.save(image_path, "PNG")
-                return image_path
-            except Exception as inner_e:
-                print(f"Error saving placeholder image for slide {slide_number}: {inner_e}")
-                return None
+            logger.error("Gemini generate_content failed for slide %s: %s", slide_number, e)
+            raise
+
+        image_bytes = None
+        try:
+            # Look for inline image data in the first candidate
+            candidate = response.candidates[0]
+            content = getattr(candidate, "content", None)
+            parts = getattr(content, "parts", []) if content is not None else []
+            for part in parts:
+                inline = getattr(part, "inline_data", None)
+                if inline and getattr(inline, "data", None):
+                    image_bytes = inline.data
+                    break
+        except Exception as e:
+            logger.error("Failed to extract image data for slide %s: %s", slide_number, e)
+            raise
+
+        if not image_bytes:
+            msg = f"No image data returned from Gemini for slide {slide_number}"
+            logger.error(msg)
+            raise RuntimeError(msg)
+
+        try:
+            image = Image.open(io.BytesIO(image_bytes))
+        except Exception as e:
+            logger.error("Failed to decode image bytes for slide %s: %s", slide_number, e)
+            raise
+
+        image_path = output_dir / f"slide_{slide_number:02d}.png"
+        image.save(image_path, "PNG")
+        logger.info("Saved image for slide %s to %s", slide_number, image_path)
+        return image_path
 
     def _create_placeholder_image(self, prompt: str, slide_number: int) -> Image.Image:
         """
