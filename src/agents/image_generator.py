@@ -46,7 +46,7 @@ class ImageGenerator:
         chat = self.client.chats.create(
             model=self.image_model,
             config=types.GenerateContentConfig(
-                response_modalities=["Text", "Image"],
+                response_modalities=["Image"],
             ),
         )
 
