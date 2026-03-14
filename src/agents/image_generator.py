@@ -116,27 +116,45 @@ The text overlay should be integrated into the design, not just placed on top.
             Path to saved image, or None if generation fails
         """
         try:
-            # Note: As of early 2025, Gemini's image generation API might have specific requirements
-            # This is a placeholder implementation that would need to be adjusted based on
-            # the actual Gemini Imagen API availability and interface
+            # Try to generate an image using the configured Gemini model.
+            response = self.model.generate_content(prompt)
 
-            # Generate image using Gemini
-            # TODO: Replace with actual Gemini Imagen API call when available
-            # For now, this is a placeholder that would need the proper API method
+            image_bytes = None
+            try:
+                # Look for inline image data in the first candidate
+                candidate = response.candidates[0]
+                content = getattr(candidate, "content", None)
+                parts = getattr(content, "parts", []) if content is not None else []
+                for part in parts:
+                    inline = getattr(part, "inline_data", None)
+                    if inline and getattr(inline, "data", None):
+                        image_bytes = inline.data
+                        break
+            except Exception:
+                image_bytes = None
 
-            # Placeholder: Create a simple colored image with text
-            # In production, this would be replaced with actual Gemini Imagen API call
-            image = self._create_placeholder_image(prompt, slide_number)
+            if image_bytes:
+                try:
+                    image = Image.open(io.BytesIO(image_bytes))
+                except Exception:
+                    image = self._create_placeholder_image(prompt, slide_number)
+            else:
+                image = self._create_placeholder_image(prompt, slide_number)
 
-            # Save image
             image_path = output_dir / f"slide_{slide_number:02d}.png"
             image.save(image_path, "PNG")
-
             return image_path
 
         except Exception as e:
             print(f"Error generating image for slide {slide_number}: {e}")
-            return None
+            try:
+                image = self._create_placeholder_image(prompt, slide_number)
+                image_path = output_dir / f"slide_{slide_number:02d}.png"
+                image.save(image_path, "PNG")
+                return image_path
+            except Exception as inner_e:
+                print(f"Error saving placeholder image for slide {slide_number}: {inner_e}")
+                return None
 
     def _create_placeholder_image(self, prompt: str, slide_number: int) -> Image.Image:
         """
