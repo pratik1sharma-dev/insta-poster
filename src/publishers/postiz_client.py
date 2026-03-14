@@ -81,8 +81,8 @@ class PostizClient:
             # Upload images first - now returns a list of dictionaries with image metadata
             uploaded_image_objects = self._upload_images(images)
 
-            # Get Instagram integration ID
-            integration_id = self._get_instagram_integration_id()
+            # Get Instagram integration ID for this logical channel
+            integration_id = self._get_instagram_integration_id(channel)
             if not integration_id:
                 return PostResult(
                     post_id=None,
@@ -197,9 +197,13 @@ class PostizClient:
 
         return uploaded_image_objects
 
-    def _get_instagram_integration_id(self) -> Optional[str]:
+    def _get_instagram_integration_id(self, channel: str) -> Optional[str]:
         """
         Retrieves the Instagram integration ID from Postiz.
+
+        Preference:
+        - Match integration where identifier == "instagram" AND profile matches channel (case-insensitive).
+        - If no such integration exists, return None and skip posting.
         """
         try:
             print(f"DEBUG: Retrieving Instagram integrations from {self.api_url}/public/v1/integrations")
@@ -214,11 +218,24 @@ class PostizClient:
 
             if response.status_code == 200:
                 integrations = response.json()
+
+                # Try profile match (case-insensitive) for this channel
+                channel_lc = (channel or "").lower()
                 for integration in integrations:
-                    if integration.get("identifier") == "instagram":
-                        print(f"DEBUG: Found Instagram integration ID: {integration.get('id')}")
+                    if integration.get("identifier") != "instagram":
+                        continue
+                    profile = (integration.get("profile") or "").lower()
+                    if profile == channel_lc:
+                        print(
+                            f"DEBUG: Found Instagram integration for channel '{channel}' "
+                            f"with profile '{integration.get('profile')}' and ID: {integration.get('id')}"
+                        )
                         return integration.get("id")
-                print("DEBUG: No Instagram integration found in response.")
+
+                print(
+                    f"DEBUG: No Instagram integration found matching profile '{channel}' "
+                    "(case-insensitive). No post will be created."
+                )
                 return None
             else:
                 print(f"ERROR: Failed to get integrations: HTTP {response.status_code}: {response.text}")

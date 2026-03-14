@@ -51,8 +51,11 @@ class ContentLogger:
         file_handler.setFormatter(formatter)
         console_handler.setFormatter(formatter)
 
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
+        # Attach handlers to root logger so all module loggers share them
+        root_logger = logging.getLogger()
+        root_logger.setLevel(getattr(logging, settings.log_level.upper()))
+        root_logger.addHandler(file_handler)
+        root_logger.addHandler(console_handler)
 
         self.logger.info(f"Initialized content pipeline for channel: {channel_name}")
 

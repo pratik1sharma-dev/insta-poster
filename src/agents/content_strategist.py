@@ -3,10 +3,14 @@ Content Strategist Agent - Determines topic, hook strategy, and carousel structu
 """
 import json
 import random
+import logging
 from typing import Optional
 import google.generativeai as genai
 from src.models import ChannelConfig, ContentStrategy, HookType, VisualStyle
 from src.config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class ContentStrategist:
@@ -42,7 +46,9 @@ class ContentStrategist:
 
         # Use Gemini to determine optimal strategy
         prompt = self._build_strategy_prompt(channel_config, topic)
+        logger.debug("Strategy prompt:\n%s", prompt)
         response = self.model.generate_content(prompt)
+        logger.debug("Strategy raw response:\n%s", getattr(response, "text", response))
 
         # Parse strategy from response
         strategy = self._parse_strategy_response(response.text, topic)
@@ -77,7 +83,9 @@ The topic should be:
 Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name").
 """
 
+        logger.debug("Topic discovery prompt:\n%s", prompt)
         response = self.model.generate_content(prompt)
+        logger.debug("Topic discovery raw response:\n%s", getattr(response, "text", response))
         return response.text.strip().strip('"').strip("'")
 
     def _build_strategy_prompt(self, channel_config: ChannelConfig, topic: str) -> str:

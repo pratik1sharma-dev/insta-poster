@@ -2,6 +2,7 @@
 Content Generator Agent - Creates captions, hashtags, and slide text.
 """
 import json
+import logging
 from typing import List
 import google.generativeai as genai
 from src.models import (
@@ -12,6 +13,9 @@ from src.models import (
     SlidePurpose,
 )
 from src.config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class ContentGenerator:
@@ -144,7 +148,9 @@ Create {strategy.carousel_length} slides with text overlays and image prompts.
 Respond with ONLY the JSON, no other text.
 """
 
+        logger.debug("Slides prompt:\n%s", prompt)
         response = self.model.generate_content(prompt)
+        logger.debug("Slides raw response:\n%s", getattr(response, "text", response))
         slides_data = self._parse_json_response(response.text)
 
         purpose_map = {"call-to-action": "cta", "call_to_action": "cta"}
@@ -217,7 +223,9 @@ You are writing an Instagram caption for a carousel post about: {strategy.topic}
 Write the caption now (no JSON, just the caption text):
 """
 
+        logger.debug("Caption prompt:\n%s", prompt)
         response = self.model.generate_content(prompt)
+        logger.debug("Caption raw response:\n%s", getattr(response, "text", response))
         return response.text.strip()
 
     def _generate_hashtags(
@@ -262,7 +270,9 @@ Note: Include hashtags WITHOUT the # symbol.
 Respond with ONLY the JSON, no other text.
 """
 
+        logger.debug("Hashtags prompt:\n%s", prompt)
         response = self.model.generate_content(prompt)
+        logger.debug("Hashtags raw response:\n%s", getattr(response, "text", response))
         hashtags_data = self._parse_json_response(response.text)
 
         return ["#" + tag.lstrip("#") for tag in hashtags_data.get("hashtags", [])]
