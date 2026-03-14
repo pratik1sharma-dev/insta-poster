@@ -153,12 +153,29 @@ Respond with ONLY the JSON, no other text.
         logger.debug("Slides raw response:\n%s", getattr(response, "text", response))
         slides_data = self._parse_json_response(response.text)
 
-        purpose_map = {"call-to-action": "cta", "call_to_action": "cta"}
+        purpose_map = {
+            "call-to-action": "cta",
+            "call_to_action": "cta",
+            "cta": "cta",
+            "hook": "hook",
+            "content": "content",
+        }
 
         slides = []
         for slide_data in slides_data.get("slides", []):
-            purpose = slide_data["purpose"]
-            purpose = purpose_map.get(purpose.lower(), purpose)
+            purpose_raw = str(slide_data.get("purpose", "")).strip().lower()
+
+            # Normalize common variants
+            if purpose_raw in purpose_map:
+                purpose = purpose_map[purpose_raw]
+            elif purpose_raw.startswith("content"):
+                purpose = "content"
+            elif purpose_raw.startswith("hook"):
+                purpose = "hook"
+            elif "call" in purpose_raw and ("action" in purpose_raw or "cta" in purpose_raw):
+                purpose = "cta"
+            else:
+                purpose = purpose_raw
             slides.append(
                 CarouselSlide(
                     slide_number=slide_data["slide_number"],
