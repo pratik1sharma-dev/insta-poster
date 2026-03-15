@@ -43,8 +43,6 @@ class ImageGenerator:
                 slide.image_prompt,
                 slide.text_overlay,
                 slide.slide_number,
-                len(content.slides),
-                strategy.visual_metaphor,
                 style_context,
             )
 
@@ -82,13 +80,15 @@ You are a creative director designing a cohesive Instagram carousel.
 - Topic: {strategy.topic}
 - Angle: {strategy.angle}
 - Visual Metaphor: {strategy.visual_metaphor}
-- Visual Style: {strategy.visual_style}
+- Color Palette: {strategy.color_palette}
+- Typography Style: {strategy.typography_style}
 - Total Slides: {total_slides}
 
 **Design System Rules:**
 - **One Metaphor:** Every slide MUST be a visual variation of the single core **Visual Metaphor**.
 - **Cohesive Story:** The slides must tell a clear visual story, progressing from one to the next.
-- **Consistent Style:** Use the same colors, typography, and layout as defined in the **Visual Style**.
+- **Consistent Style:** Use the same colors and typography as defined above.
+- **Aesthetic:** Clean, modern, and professional. Avoid garish, overly saturated, or "loud" colors.
 - **Readability:** Ensure text is clean, modern, and highly readable on mobile.
 """
 
@@ -97,20 +97,16 @@ You are a creative director designing a cohesive Instagram carousel.
         base_prompt: str,
         text_overlay: str,
         slide_number: int,
-        total_slides: int,
-        visual_metaphor: str,
         style_context: str,
     ) -> str:
 
         return f"""
 {style_context}
 
-**This is Slide {slide_number} of {total_slides}.**
+**This is Slide {slide_number}.**
 
 **Your Task:**
 Create an image for this slide that is a clear and creative execution of the core **Visual Metaphor**.
-
-**Visual Metaphor to use:** "{visual_metaphor}"
 
 **Text Overlay for this slide:**
 "{text_overlay}"

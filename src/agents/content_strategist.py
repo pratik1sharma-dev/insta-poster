@@ -112,7 +112,9 @@ Devise a content strategy with a strong, unique angle.
     - `question`: Ask a question that challenges a common belief.
 3.  **Determine Carousel Length:** How many slides (3-10) are needed to effectively argue for your angle?
 4.  **Define a Visual Metaphor:** Invent a single, powerful visual metaphor that represents the post's Angle. This metaphor must be used across all slides to create a cohesive visual story. For example, for an angle about "focus," a visual metaphor could be "a laser beam vs. a floodlight."
-5.  **Select a Visual Style:** Based on the metaphor, describe the visual style (e.g., "High-contrast, minimalist, with a black and yellow color scheme").
+5.  **Define the Visuals:** Based on the metaphor, define the creative direction.
+    - `color_palette`: Describe a sophisticated and engaging color palette. Think in terms of a primary, secondary, and accent color. (e.g., "A palette of dark slate grey, off-white, and a vibrant but not overpowering electric blue accent").
+    - `typography_style`: Describe the desired font style. (e.g., "A clean, modern sans-serif font like 'Inter', using bold for headers and regular for body text to create clear hierarchy").
 6.  **Identify the Core Insight:** What specific pain point or desire does this angle tap into for the target audience?
 
 **Output Format (JSON):**
@@ -121,7 +123,8 @@ Devise a content strategy with a strong, unique angle.
   "hook_type": "one of the hook types above",
   "carousel_length": <number between 3-10>,
   "visual_metaphor": "The single, unifying visual metaphor for the entire carousel.",
-  "visual_style": "A description of the visual style based on the metaphor.",
+  "color_palette": "A description of the color palette.",
+  "typography_style": "A description of the typography style.",
   "target_audience_insight": "The specific insight this angle addresses.",
   "reasoning": "Explain WHY this strategy is compelling and will drive engagement."
 }}
@@ -159,7 +162,8 @@ Respond with ONLY the JSON, no other text.
                 hook_type=HookType.VALUE_PROPOSITION,
                 carousel_length=7,
                 visual_metaphor="No visual metaphor due to parsing error.",
-                visual_style="mixed",
+                color_palette="A default color palette.",
+                typography_style="A default typography style.",
                 target_audience_insight="Seeking actionable insights",
                 reasoning="Default strategy due to parsing error",
             )
@@ -171,7 +175,8 @@ Respond with ONLY the JSON, no other text.
             hook_type=HookType(data["hook_type"]),
             carousel_length=max(3, min(10, data["carousel_length"])),
             visual_metaphor=data["visual_metaphor"],
-            visual_style=data["visual_style"],
+            color_palette=data["color_palette"],
+            typography_style=data["typography_style"],
             target_audience_insight=data["target_audience_insight"],
             reasoning=data.get("reasoning"), # Now optional
         )
