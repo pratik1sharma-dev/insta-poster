@@ -5,7 +5,6 @@ from .content_models import (
     CarouselSlide,
     PostResult,
     HookType,
-    VisualStyle,
     SlidePurpose,
 )
 
@@ -16,6 +15,5 @@ __all__ = [
     "CarouselSlide",
     "PostResult",
     "HookType",
-    "VisualStyle",
     "SlidePurpose",
 ]
