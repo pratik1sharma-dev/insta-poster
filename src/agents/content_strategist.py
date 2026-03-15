@@ -89,58 +89,39 @@ Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name"
         return response.text.strip().strip('"').strip("'")
 
     def _build_strategy_prompt(self, channel_config: ChannelConfig, topic: str) -> str:
-        """
-        Build prompt for strategy determination.
-
-        Args:
-            channel_config: Channel configuration
-            topic: Selected topic
-
-        Returns:
-            Strategy prompt
-        """
-        return f"""You are a content strategist for Instagram. Plan a carousel post strategy.
+        """Build prompt for strategy determination."""
+        return f"""You are a world-class Instagram growth strategist who is an expert at creating content that sparks conversation.
+Your primary goal is to develop a "spiky point of view" for each post that will make people stop, think, and engage. Avoid generic, boring content at all costs.
 
 **Channel Context:**
 - Theme: {channel_config.theme}
 - Target Audience: {channel_config.target_audience}
 - Tone: {channel_config.tone}
-- Style Guidelines: {channel_config.style_guidelines}
 
-**Topic:** {topic}
+**Today's Topic:** {topic}
 
 **Your Task:**
-Plan the strategy for this carousel post. Think through:
+Devise a content strategy with a strong, unique angle.
 
-1. **Hook Strategy**: What type of opening will stop the scroll?
-   - curiosity: Intriguing question or mystery
-   - value_proposition: Clear benefit upfront
-   - controversy: Bold or contrarian take
-   - relatability: "You're not alone" moment
-   - question: Thought-provoking question
-   - stat_shock: Surprising statistic
-
-2. **Carousel Length**: How many slides (3-10) would best convey this content?
-   - Consider topic complexity
-   - Keep audience attention span in mind
-   - Each slide should add value
-
-3. **Visual Style**: What visual approach fits this topic?
-   - quote_based: Focus on key quotes/phrases
-   - infographic: Data-driven visualizations
-   - mixed: Combination of styles
-   - minimalist: Clean, simple designs
-   - bold_text: Large, impactful typography
-
-4. **Audience Insight**: What specific pain point or desire does this address?
+1.  **Find the "Spiky" Angle:** What is a surprising, controversial, counter-intuitive, or highly relatable "big idea" related to this topic? Don't just summarize. Take a stand. What's a take that most people haven't considered?
+2.  **Choose a Hook Strategy:** Based on your angle, what is the best hook to grab attention?
+    - `curiosity`: Hint at the surprising angle.
+    - `controversy`: State the controversial opinion directly.
+    - `relatability`: Frame the angle as a shared, unspoken truth.
+    - `value_proposition`: Clearly state the benefit of understanding this new angle.
+    - `question`: Ask a question that challenges a common belief.
+3.  **Determine Carousel Length:** How many slides (3-10) are needed to effectively argue for your angle?
+4.  **Select a Visual Style:** What visual style will best amplify the "spiky" angle of the post?
+5.  **Identify the Core Insight:** What specific pain point or desire does this angle tap into for the target audience?
 
 **Output Format (JSON):**
 {{
+  "angle": "The unique, spiky angle for this post. This is the most important field.",
   "hook_type": "one of the hook types above",
   "carousel_length": <number between 3-10>,
   "visual_style": "one of the visual styles above",
-  "target_audience_insight": "specific insight about what audience wants",
-  "reasoning": "brief explanation of your strategy choices"
+  "target_audience_insight": "The specific insight this angle addresses.",
+  "reasoning": "Explain WHY this angle is compelling and will drive engagement."
 }}
 
 Respond with ONLY the JSON, no other text.
@@ -172,6 +153,7 @@ Respond with ONLY the JSON, no other text.
             # Fallback to sensible defaults if parsing fails
             return ContentStrategy(
                 topic=topic,
+                angle="A default angle because the LLM response was not valid JSON.",
                 hook_type=HookType.VALUE_PROPOSITION,
                 carousel_length=7,
                 visual_style=VisualStyle.MIXED,
@@ -182,9 +164,10 @@ Respond with ONLY the JSON, no other text.
         # Create ContentStrategy
         return ContentStrategy(
             topic=topic,
+            angle=data["angle"],
             hook_type=HookType(data["hook_type"]),
             carousel_length=max(3, min(10, data["carousel_length"])),
             visual_style=VisualStyle(data["visual_style"]),
             target_audience_insight=data["target_audience_insight"],
-            reasoning=data["reasoning"],
+            reasoning=data.get("reasoning"), # Now optional
         )

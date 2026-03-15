@@ -52,11 +52,12 @@ class ChannelConfig(BaseModel):
 class ContentStrategy(BaseModel):
     """Strategy for a single post, determined by AI."""
     topic: str
+    angle: str  # The "spiky" angle or big idea for the post
     hook_type: HookType
     carousel_length: int = Field(ge=3, le=10)
     visual_style: VisualStyle
     target_audience_insight: str
-    reasoning: str  # Why this strategy was chosen
+    reasoning: Optional[str] = None  # Why this strategy was chosen
 
     class Config:
         frozen = False

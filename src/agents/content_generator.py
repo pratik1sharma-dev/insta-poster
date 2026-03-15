@@ -41,6 +41,7 @@ Channel:
 
 Post:
 - Topic: {strategy.topic}
+- Angle: {strategy.angle}
 - Hook type: {strategy.hook_type}
 - Visual style: {strategy.visual_style}
 - Carousel length: {strategy.carousel_length} slides
@@ -77,7 +78,7 @@ Global rules:
         hashtags = self._generate_hashtags(strategy, channel_config)
 
         # Generate call-to-action
-        cta = self._generate_cta(strategy, channel_config)
+        cta = self._generate_smart_cta(strategy, channel_config, slides)
 
         return GeneratedContent(
             caption=caption,
@@ -103,7 +104,11 @@ Global rules:
 
         prompt = f"""{session_brief}
 
-You are creating an Instagram carousel post about: {strategy.topic}
+You are creating an Instagram carousel post.
+
+**Core Idea:**
+- Topic: {strategy.topic}
+- Angle: {strategy.angle}
 
 **Strategy:**
 - Hook Type: {strategy.hook_type}
@@ -111,25 +116,20 @@ You are creating an Instagram carousel post about: {strategy.topic}
 - Visual Style: {strategy.visual_style}
 - Audience Insight: {strategy.target_audience_insight}
 
-**Channel Context:**
-- Theme: {channel_config.theme}
-- Target Audience: {channel_config.target_audience}
-- Tone: {channel_config.tone}
-
 **Your Task:**
-Create {strategy.carousel_length} slides with text overlays and image prompts.
+Create {strategy.carousel_length} slides with text overlays and image prompts that argue for the post's unique **Angle**.
 
 **Slide Breakdown:**
-- Slide 1: HOOK - Must stop the scroll using {strategy.hook_type} approach
-- Slides 2-{strategy.carousel_length - 1}: CONTENT - Key insights, one per slide
-- Slide {strategy.carousel_length}: CTA - Call-to-action, encourage engagement
+- Slide 1: HOOK - Introduce the Angle using a {strategy.hook_type} approach.
+- Slides 2-{strategy.carousel_length - 1}: CONTENT - Each slide must provide a point, fact, or example that supports the Angle.
+- Slide {strategy.carousel_length}: CTA - A call-to-action related to the Angle.
 
 **Guidelines:**
-1. Text overlays should be SHORT and PUNCHY (max 10-15 words)
-2. Each slide should be self-contained but build on previous ones
-3. Use emojis sparingly (only where they add value)
-4. Image prompts should describe the visual style in detail
-5. Maintain consistent visual theme across all slides
+1. Text overlays should be SHORT and PUNCHY (max 10-15 words).
+2. Every slide MUST relate back to and reinforce the core **Angle**.
+3. Use emojis sparingly (only where they add value).
+4. Image prompts should describe the visual style in detail.
+5. Maintain a consistent visual theme across all slides.
 
 **Output Format (JSON):**
 {{
@@ -137,8 +137,8 @@ Create {strategy.carousel_length} slides with text overlays and image prompts.
     {{
       "slide_number": 1,
       "purpose": "hook",
-      "text_overlay": "The hook text here",
-      "image_prompt": "Detailed description for image generation: style, colors, layout, mood",
+      "text_overlay": "The hook text here, introducing the angle.",
+      "image_prompt": "Detailed description for image generation that matches the angle and hook.",
       "design_notes": "Optional notes about design choices"
     }},
     ...
@@ -213,29 +213,30 @@ Respond with ONLY the JSON, no other text.
 
         prompt = f"""{session_brief}
 
-You are writing an Instagram caption for a carousel post about: {strategy.topic}
+You are writing an Instagram caption. Your goal is to be engaging and spark conversation.
 
-**First 3 Slides:**
-{slides_summary}
+**Post Context:**
+- Topic: {strategy.topic}
+- Angle: {strategy.angle}
+- First 3 Slides: {slides_summary}
 
 **Channel Context:**
 - Target Audience: {channel_config.target_audience}
 - Tone: {channel_config.tone}
-- Theme: {channel_config.theme}
 
 **Caption Requirements:**
-1. **Hook (first 125 characters)**: Must stop the scroll - use {strategy.hook_type} approach
-2. **Value**: Clearly state what they'll learn/gain
-3. **Engagement**: End with a question or prompt to engage
-4. **Length**: 150-300 characters (Instagram favors concise captions)
-5. **Line breaks**: Use for readability (double line break between sections)
-6. **Emojis**: Use 1-3 relevant emojis maximum
-7. **No hashtags**: Those go separately
+1. **Hook (first 125 characters)**: Grab attention by introducing the post's unique **Angle**.
+2. **Value**: Briefly explain the value of understanding this angle.
+3. **Engagement**: End with a specific, open-ended question related to the Angle (this will be added later, so you don't need to write it).
+4. **Length**: 150-300 characters.
+5. **Readability**: Use line breaks to make it easy to read.
+6. **Emojis**: Use 1-3 relevant emojis.
+7. **No Hashtags**: Do not include hashtags in the caption.
 
 **Style:**
-- Conversational but professional
-- Action-oriented
-- Benefit-focused
+- Conversational and authentic.
+- Opinionated, reflecting the post's Angle.
+- Benefit-focused.
 
 Write the caption now (no JSON, just the caption text):
 """
@@ -294,32 +295,43 @@ Respond with ONLY the JSON, no other text.
 
         return ["#" + tag.lstrip("#") for tag in hashtags_data.get("hashtags", [])]
 
-    def _generate_cta(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig
+    def _generate_smart_cta(
+        self,
+        strategy: ContentStrategy,
+        channel_config: ChannelConfig,
+        slides: List[CarouselSlide],
     ) -> str:
-        """
-        Generate call-to-action.
+        """Generate a content-specific, engaging CTA."""
 
-        Args:
-            strategy: Content strategy
-            channel_config: Channel configuration
+        slides_summary = "\n".join(
+            f"Slide {s.slide_number}: {s.text_overlay}" for s in slides
+        )
 
-        Returns:
-            Call-to-action text
-        """
-        cta_options = [
-            "Save this for later!",
-            "Share with someone who needs this",
-            "Double tap if you agree",
-            "Follow for more insights",
-            "What's your take? Comment below",
-            "Tag someone who should see this",
-        ]
+        prompt = f"""You are an expert Instagram copywriter. Your goal is to write a Call-to-Action (CTA) that sparks conversation and builds community.
 
-        # For now, use a random CTA - could be made smarter with AI
-        import random
+**Channel Context:**
+- Tone: {channel_config.tone}
+- Audience: {channel_config.target_audience}
 
-        return random.choice(cta_options)
+**Post Context:**
+- Topic: {strategy.topic}
+- Angle: {strategy.angle}
+- Post Summary: {slides_summary}
+
+**The WORST CTAs are generic (e.g., "like this post," "follow for more"). DO NOT use them.**
+
+**Your Task:**
+Write a single, compelling, open-ended question that directly relates to the post's content. The question should encourage users to share their own experiences, opinions, or plans in the comments.
+
+**Examples of GOOD CTAs:**
+- For a post on productivity: "What's one productivity hack you swear by? Share it below!"
+- For a post on a travel destination: "If you could go tomorrow, what's the first thing you would do in Tokyo? 🗼"
+- For a post on a book summary: "What was your biggest takeaway from this book? Did you agree with the author's main point?"
+
+Now, write the perfect CTA for THIS post. Respond with ONLY the CTA text.
+"""
+        response = self.model.generate_content(prompt)
+        return response.text.strip()
 
     def _parse_json_response(self, response_text: str) -> dict:
         """
