@@ -5,7 +5,7 @@ import json
 import random
 import logging
 from typing import Optional
-import google.generativeai as genai
+from google import genai
 from src.models import ChannelConfig, ContentStrategy, HookType
 from src.config import settings
 
@@ -18,8 +18,7 @@ class ContentStrategist:
 
     def __init__(self):
         """Initialize the Content Strategist with Gemini API."""
-        genai.configure(api_key=settings.gemini_api_key)
-        self.model = genai.GenerativeModel(settings.gemini_model)
+        self.client = genai.Client()
 
     def plan_content(
         self, channel_config: ChannelConfig, topic_hint: Optional[str] = None
@@ -47,7 +46,7 @@ class ContentStrategist:
         # Use Gemini to determine optimal strategy
         prompt = self._build_strategy_prompt(channel_config, topic)
         logger.debug("Strategy prompt:\n%s", prompt)
-        response = self.model.generate_content(prompt)
+        response = self.client.models.generate_content(model=settings.gemini_model, contents=prompt)
         logger.debug("Strategy raw response:\n%s", getattr(response, "text", response))
 
         # Parse strategy from response
@@ -84,7 +83,7 @@ Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name"
 """
 
         logger.debug("Topic discovery prompt:\n%s", prompt)
-        response = self.model.generate_content(prompt)
+        response = self.client.models.generate_content(model=settings.gemini_model, contents=prompt)
         logger.debug("Topic discovery raw response:\n%s", getattr(response, "text", response))
         return response.text.strip().strip('"').strip("'")
 

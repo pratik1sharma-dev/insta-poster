@@ -45,7 +45,7 @@ def check_channels_config():
 def check_imports():
     """Check if all required packages are installed."""
     try:
-        import google.generativeai
+        from google import genai
         import pydantic
         import yaml
         import requests
@@ -81,11 +81,11 @@ def check_postiz_connection():
 def check_gemini_api():
     """Check if Gemini API key is valid."""
     try:
-        import google.generativeai as genai
+        from google import genai
         from src.config import settings
 
-        genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel(settings.gemini_model)
+        client = genai.Client()
+        model = client.models.get(settings.gemini_model)
 
         # Simple test
         response = model.generate_content("Say 'OK' if you can read this")

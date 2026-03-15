@@ -75,7 +75,8 @@ class ContentLogger:
         self.logger.info(f"Strategy: {strategy.topic}")
         self.logger.info(f"Hook Type: {strategy.hook_type}")
         self.logger.info(f"Carousel Length: {strategy.carousel_length}")
-        self.logger.info(f"Visual Style: {strategy.visual_style}")
+        self.logger.info(f"Color Palette: {strategy.color_palette}")
+        self.logger.info(f"Typography Style: {strategy.typography_style}")
         self.logger.debug(f"Reasoning: {strategy.reasoning}")
 
     def log_content(self, content: GeneratedContent) -> None:
