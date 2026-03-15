@@ -11,7 +11,7 @@ from google import genai as genai_client
 from google.genai import types
 from PIL import Image
 
-from src.models import ContentStrategy, GeneratedContent, VisualStyle
+from src.models import ContentStrategy, GeneratedContent
 from src.config import settings
 
 
@@ -96,22 +96,9 @@ Design system rules:
         text_overlay: str,
         slide_number: int,
         total_slides: int,
-        visual_style: VisualStyle,
+        visual_style: str,
         style_context: str,
     ) -> str:
-
-        style_guidelines = {
-            VisualStyle.QUOTE_BASED: "clean background, elegant typography, minimal distractions",
-            VisualStyle.INFOGRAPHIC: "data visualization style, icons, simple charts",
-            VisualStyle.MIXED: "combination of illustration and text",
-            VisualStyle.MINIMALIST: "lots of whitespace, simple layout",
-            VisualStyle.BOLD_TEXT: "large impactful typography, strong contrast",
-        }
-
-        style_guide = style_guidelines.get(
-            visual_style,
-            "modern Instagram design",
-        )
 
         return f"""
 {style_context}
@@ -119,7 +106,7 @@ Design system rules:
 Slide {slide_number} of {total_slides}
 
 Visual style guidance:
-{style_guide}
+{visual_style}
 
 Text overlay:
 "{text_overlay}"

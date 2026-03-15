@@ -17,15 +17,6 @@ class HookType(str, Enum):
     STAT_SHOCK = "stat_shock"
 
 
-class VisualStyle(str, Enum):
-    """Visual styles for carousel images."""
-    QUOTE_BASED = "quote_based"
-    INFOGRAPHIC = "infographic"
-    MIXED = "mixed"
-    MINIMALIST = "minimalist"
-    BOLD_TEXT = "bold_text"
-
-
 class SlidePurpose(str, Enum):
     """Purpose of each slide in the carousel."""
     HOOK = "hook"
@@ -55,7 +46,7 @@ class ContentStrategy(BaseModel):
     angle: str  # The "spiky" angle or big idea for the post
     hook_type: HookType
     carousel_length: int = Field(ge=3, le=10)
-    visual_style: VisualStyle
+    visual_style: str
     target_audience_insight: str
     reasoning: Optional[str] = None  # Why this strategy was chosen
 

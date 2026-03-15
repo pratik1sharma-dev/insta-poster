@@ -6,7 +6,7 @@ import random
 import logging
 from typing import Optional
 import google.generativeai as genai
-from src.models import ChannelConfig, ContentStrategy, HookType, VisualStyle
+from src.models import ChannelConfig, ContentStrategy, HookType
 from src.config import settings
 
 
@@ -156,7 +156,7 @@ Respond with ONLY the JSON, no other text.
                 angle="A default angle because the LLM response was not valid JSON.",
                 hook_type=HookType.VALUE_PROPOSITION,
                 carousel_length=7,
-                visual_style=VisualStyle.MIXED,
+                visual_style="mixed",
                 target_audience_insight="Seeking actionable insights",
                 reasoning="Default strategy due to parsing error",
             )
@@ -167,7 +167,7 @@ Respond with ONLY the JSON, no other text.
             angle=data["angle"],
             hook_type=HookType(data["hook_type"]),
             carousel_length=max(3, min(10, data["carousel_length"])),
-            visual_style=VisualStyle(data["visual_style"]),
+            visual_style=data["visual_style"],
             target_audience_insight=data["target_audience_insight"],
             reasoning=data.get("reasoning"), # Now optional
         )
