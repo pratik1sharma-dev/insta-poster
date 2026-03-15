@@ -18,7 +18,7 @@ class ContentStrategist:
 
     def __init__(self):
         """Initialize the Content Strategist with Gemini API."""
-        self.client = genai.Client()
+        self.client = genai.Client(api_key=settings.gemini_api_key)
 
     def plan_content(
         self, channel_config: ChannelConfig, topic_hint: Optional[str] = None
@@ -95,6 +95,7 @@ Your primary goal is to develop a "spiky point of view" for each post that will 
 **Channel Context:**
 - Theme: {channel_config.theme}
 - Target Audience: {channel_config.target_audience}
+- Cultural Context: {channel_config.cultural_context}
 - Tone: {channel_config.tone}
 
 **Today's Topic:** {topic}

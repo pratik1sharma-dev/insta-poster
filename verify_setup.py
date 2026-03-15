@@ -84,7 +84,7 @@ def check_gemini_api():
         from google import genai
         from src.config import settings
 
-        client = genai.Client()
+        client = genai.Client(api_key=settings.gemini_api_key)
         model = client.models.get(settings.gemini_model)
 
         # Simple test

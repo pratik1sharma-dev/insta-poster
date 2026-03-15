@@ -29,6 +29,7 @@ class ChannelConfig(BaseModel):
     name: str
     theme: str
     target_audience: str
+    cultural_context: Optional[str] = None
     posting_schedule: str
     curated_topics: List[str]
     allow_ai_discovery: bool = True

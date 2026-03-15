@@ -184,7 +184,8 @@ mindcapsules:
 startupcapsules:
   name: "StartupCapsules"
   theme: "Startup lessons, growth strategies, and founder insights explained simply"
-  target_audience: "Entrepreneurs, startup enthusiasts, builders, and professionals interested in startups (22-40)"
+  target_audience: "Entrepreneurs, startup enthusiasts, builders, and professionals interested in startups (22-40) in India"
+  cultural_context: "Use examples and analogies relevant to the Indian startup ecosystem. Reference local companies (e.g., Flipkart, Zomato, Zerodha), investors, and market trends. Use Hinglish phrases occasionally if it feels natural."
   posting_schedule: "1-2x daily"
   tone: "practical, insightful, entrepreneurial, inspiring"
   style_guidelines: "Minimal modern carousel design with clear and actionable startup insights. Focus on real-world strategies, frameworks, and lessons from successful startups."

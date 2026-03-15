@@ -23,7 +23,7 @@ class ContentGenerator:
 
     def __init__(self):
         """Initialize the Content Generator with Gemini API."""
-        self.client = genai.Client()
+        self.client = genai.Client(api_key=settings.gemini_api_key)
 
     def _build_session_brief(
         self, strategy: ContentStrategy, channel_config: ChannelConfig
@@ -36,6 +36,7 @@ class ContentGenerator:
 Channel:
 - Theme: {channel_config.theme}
 - Target audience: {channel_config.target_audience}
+- Cultural Context: {channel_config.cultural_context}
 - Tone: {channel_config.tone}
 
 Post:
@@ -128,9 +129,10 @@ Create {strategy.carousel_length} slides with text overlays and image prompts th
 **Guidelines:**
 1. Text overlays should be SHORT and PUNCHY (max 10-15 words).
 2. Every slide MUST relate back to and reinforce the core **Angle**.
-3. Use emojis sparingly (only where they add value).
-4. Image prompts should describe the visual style in detail.
-5. Maintain a consistent visual theme across all slides.
+3. Where appropriate, use examples or analogies relevant to the **Cultural Context** to make the content more relatable.
+4. Use emojis sparingly (only where they add value).
+5. Image prompts should describe the visual style in detail.
+6. Maintain a consistent visual theme across all slides.
 
 **Output Format (JSON):**
 {{
@@ -223,6 +225,7 @@ You are writing an Instagram caption. Your goal is to be engaging and spark conv
 
 **Channel Context:**
 - Target Audience: {channel_config.target_audience}
+- Cultural Context: {channel_config.cultural_context}
 - Tone: {channel_config.tone}
 
 **Caption Requirements:**
@@ -238,6 +241,7 @@ You are writing an Instagram caption. Your goal is to be engaging and spark conv
 - Conversational and authentic.
 - Opinionated, reflecting the post's Angle.
 - Benefit-focused.
+- If the Cultural Context is provided, use relevant examples, analogies, or phrases to make the content more relatable.
 
 Write the caption now (no JSON, just the caption text):
 """
