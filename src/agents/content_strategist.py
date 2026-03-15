@@ -111,17 +111,19 @@ Devise a content strategy with a strong, unique angle.
     - `value_proposition`: Clearly state the benefit of understanding this new angle.
     - `question`: Ask a question that challenges a common belief.
 3.  **Determine Carousel Length:** How many slides (3-10) are needed to effectively argue for your angle?
-4.  **Select a Visual Style:** What visual style will best amplify the "spiky" angle of the post?
-5.  **Identify the Core Insight:** What specific pain point or desire does this angle tap into for the target audience?
+4.  **Define a Visual Metaphor:** Invent a single, powerful visual metaphor that represents the post's Angle. This metaphor must be used across all slides to create a cohesive visual story. For example, for an angle about "focus," a visual metaphor could be "a laser beam vs. a floodlight."
+5.  **Select a Visual Style:** Based on the metaphor, describe the visual style (e.g., "High-contrast, minimalist, with a black and yellow color scheme").
+6.  **Identify the Core Insight:** What specific pain point or desire does this angle tap into for the target audience?
 
 **Output Format (JSON):**
 {{
   "angle": "The unique, spiky angle for this post. This is the most important field.",
   "hook_type": "one of the hook types above",
   "carousel_length": <number between 3-10>,
-  "visual_style": "one of the visual styles above",
+  "visual_metaphor": "The single, unifying visual metaphor for the entire carousel.",
+  "visual_style": "A description of the visual style based on the metaphor.",
   "target_audience_insight": "The specific insight this angle addresses.",
-  "reasoning": "Explain WHY this angle is compelling and will drive engagement."
+  "reasoning": "Explain WHY this strategy is compelling and will drive engagement."
 }}
 
 Respond with ONLY the JSON, no other text.
@@ -156,6 +158,7 @@ Respond with ONLY the JSON, no other text.
                 angle="A default angle because the LLM response was not valid JSON.",
                 hook_type=HookType.VALUE_PROPOSITION,
                 carousel_length=7,
+                visual_metaphor="No visual metaphor due to parsing error.",
                 visual_style="mixed",
                 target_audience_insight="Seeking actionable insights",
                 reasoning="Default strategy due to parsing error",
@@ -167,6 +170,7 @@ Respond with ONLY the JSON, no other text.
             angle=data["angle"],
             hook_type=HookType(data["hook_type"]),
             carousel_length=max(3, min(10, data["carousel_length"])),
+            visual_metaphor=data["visual_metaphor"],
             visual_style=data["visual_style"],
             target_audience_insight=data["target_audience_insight"],
             reasoning=data.get("reasoning"), # Now optional

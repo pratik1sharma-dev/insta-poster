@@ -44,7 +44,7 @@ class ImageGenerator:
                 slide.text_overlay,
                 slide.slide_number,
                 len(content.slides),
-                strategy.visual_style,
+                strategy.visual_metaphor,
                 style_context,
             )
 
@@ -76,18 +76,20 @@ class ImageGenerator:
         """Create shared design system for the carousel."""
 
         return f"""
-You are designing an Instagram carousel post.
+You are a creative director designing a cohesive Instagram carousel.
 
-Topic: {strategy.topic}
-Visual style: {strategy.visual_style}
-Total slides: {total_slides}
+**Core Creative:**
+- Topic: {strategy.topic}
+- Angle: {strategy.angle}
+- Visual Metaphor: {strategy.visual_metaphor}
+- Visual Style: {strategy.visual_style}
+- Total Slides: {total_slides}
 
-Design system rules:
-- All slides must look like part of the SAME carousel
-- Use consistent colors, typography and layout
-- Maintain the same visual theme across slides
-- Clean modern Instagram design
-- Highly readable for mobile
+**Design System Rules:**
+- **One Metaphor:** Every slide MUST be a visual variation of the single core **Visual Metaphor**.
+- **Cohesive Story:** The slides must tell a clear visual story, progressing from one to the next.
+- **Consistent Style:** Use the same colors, typography, and layout as defined in the **Visual Style**.
+- **Readability:** Ensure text is clean, modern, and highly readable on mobile.
 """
 
     def _build_slide_prompt(
@@ -96,32 +98,32 @@ Design system rules:
         text_overlay: str,
         slide_number: int,
         total_slides: int,
-        visual_style: str,
+        visual_metaphor: str,
         style_context: str,
     ) -> str:
 
         return f"""
 {style_context}
 
-Slide {slide_number} of {total_slides}
+**This is Slide {slide_number} of {total_slides}.**
 
-Visual style guidance:
-{visual_style}
+**Your Task:**
+Create an image for this slide that is a clear and creative execution of the core **Visual Metaphor**.
 
-Text overlay:
+**Visual Metaphor to use:** "{visual_metaphor}"
+
+**Text Overlay for this slide:**
 "{text_overlay}"
 
-Design direction:
+**Specific design direction for this slide (build on the metaphor):**
 {base_prompt}
 
-Technical requirements:
-- 1080x1080 square Instagram post
-- High contrast
-- Mobile readable
-- Clean modern layout
+**Technical Requirements:**
+- 1080x1080 square Instagram post.
+- High contrast and mobile readable.
+- Adhere to the visual style described in the design system.
 
-Return ONLY an image.
-Do not return text.
+Return ONLY an image. Do not return text.
 """
 
     def _save_image(

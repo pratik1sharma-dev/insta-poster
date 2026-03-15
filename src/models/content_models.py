@@ -46,6 +46,7 @@ class ContentStrategy(BaseModel):
     angle: str  # The "spiky" angle or big idea for the post
     hook_type: HookType
     carousel_length: int = Field(ge=3, le=10)
+    visual_metaphor: str  # The unifying visual theme for the carousel
     visual_style: str
     target_audience_insight: str
     reasoning: Optional[str] = None  # Why this strategy was chosen
