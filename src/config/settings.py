@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # Replicate API
     replicate_api_token: str = ""
     replicate_model: str = "black-forest-labs/flux-schnell"
-    replicate_llm_model: str = "meta/meta-llama-3.1-70b-instruct"
+    replicate_llm_model: str = "meta/meta-llama-3-70b-instruct"
 
 
     # Content Generation

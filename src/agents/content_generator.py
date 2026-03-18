@@ -44,8 +44,6 @@ class ContentGenerator:
                 self.model,
                 input={
                     "prompt": prompt,
-                    "max_new_tokens": 2048,
-                    "temperature": 0.7,
                 }
             )
             return "".join(output)

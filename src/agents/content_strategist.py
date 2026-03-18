@@ -39,8 +39,6 @@ class ContentStrategist:
                 self.model,
                 input={
                     "prompt": prompt,
-                    "max_new_tokens": 1024,
-                    "temperature": 0.7,
                 }
             )
             return "".join(output)
