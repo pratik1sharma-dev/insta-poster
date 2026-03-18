@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Replicate API
     replicate_api_token: str = ""
-    replicate_model: str = "black-forest-labs/flux-schnell"
+    replicate_model: str = "black-forest-labs/flux-1.1-pro"
     replicate_llm_model: str = "meta/meta-llama-3-70b-instruct"
 
 

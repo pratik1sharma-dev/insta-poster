@@ -168,6 +168,7 @@ Create an image for this slide that is a clear and creative execution of the cor
 - 1080x1080 square Instagram post.
 - High contrast and mobile readable.
 - Adhere to the visual style described in the design system.
+- **CRITICAL:** The text overlay MUST be spelled perfectly. Pay extreme attention to the typography and spelling of every single word.
 
 Return ONLY an image. Do not return text.
 """
