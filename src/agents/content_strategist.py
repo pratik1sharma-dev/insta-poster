@@ -181,39 +181,51 @@ Respond with ONLY the JSON, no other text.
 
     def _parse_strategy_response(self, response_text: str, topic: str) -> ContentStrategy:
         """
-        Parse Gemini's strategy response into ContentStrategy model.
+        Parse LLM's strategy response into ContentStrategy model.
 
         Args:
-            response_text: Raw response from Gemini
+            response_text: Raw response from LLM
             topic: Topic being planned
 
         Returns:
             ContentStrategy instance
         """
-        # Clean response (remove markdown code blocks if present)
-        cleaned = response_text.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("```")[1]
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:]
-        cleaned = cleaned.strip()
+        if not response_text:
+            return self._get_default_strategy(topic)
 
-        # Parse JSON
-        try:
-            data = json.loads(cleaned)
-        except json.JSONDecodeError:
-            # Fallback to sensible defaults if parsing fails
-            return ContentStrategy(
-                topic=topic,
-                angle="A default angle because the LLM response was not valid JSON.",
-                hook_type=HookType.VALUE_PROPOSITION,
-                carousel_length=7,
-                visual_metaphor="No visual metaphor due to parsing error.",
-                color_palette="A default color palette.",
-                typography_style="A default typography style.",
-                target_audience_insight="Seeking actionable insights",
-                reasoning="Default strategy due to parsing error",
-            )
+        # 1. Try to find content within markdown code blocks
+        import re
+        data = None
+        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response_text, re.DOTALL)
+        if json_match:
+            try:
+                data = json.loads(json_match.group(1))
+            except json.JSONDecodeError:
+                pass
+
+        # 2. Try to find anything that looks like a JSON object
+        if not data:
+            json_match = re.search(r"(\{.*\})", response_text, re.DOTALL)
+            if json_match:
+                try:
+                    data = json.loads(json_match.group(1))
+                except json.JSONDecodeError:
+                    pass
+
+        # 3. Last ditch: clean the whole string
+        if not data:
+            cleaned = response_text.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("```")[1]
+                if cleaned.startswith("json"):
+                    cleaned = cleaned[4:]
+            cleaned = cleaned.strip()
+
+            try:
+                data = json.loads(cleaned)
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse strategy JSON: {response_text[:200]}...")
+                return self._get_default_strategy(topic)
 
         # Create ContentStrategy
         return ContentStrategy(
@@ -225,5 +237,19 @@ Respond with ONLY the JSON, no other text.
             color_palette=data["color_palette"],
             typography_style=data["typography_style"],
             target_audience_insight=data["target_audience_insight"],
-            reasoning=data.get("reasoning"), # Now optional
+            reasoning=data.get("reasoning"),
+        )
+
+    def _get_default_strategy(self, topic: str) -> ContentStrategy:
+        """Return a fallback strategy if LLM fails."""
+        return ContentStrategy(
+            topic=topic,
+            angle="A default angle because the LLM response was not valid JSON.",
+            hook_type=HookType.VALUE_PROPOSITION,
+            carousel_length=7,
+            visual_metaphor="No visual metaphor due to parsing error.",
+            color_palette="A default color palette.",
+            typography_style="A default typography style.",
+            target_audience_insight="Seeking actionable insights",
+            reasoning="Default strategy due to parsing error",
         )

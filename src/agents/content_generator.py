@@ -200,6 +200,11 @@ Respond with ONLY the JSON, no other text.
         logger.debug("Slides prompt:\n%s", prompt)
         response_text = self._generate_text(prompt)
         logger.debug("Slides raw response:\n%s", response_text)
+        
+        # Save raw response for debugging if it seems empty or short
+        if not response_text or len(response_text) < 100:
+            logger.warning(f"Short or empty response from LLM: {response_text}")
+
         slides_data = self._parse_json_response(response_text)
 
         purpose_map = {
@@ -386,7 +391,8 @@ Now, write the perfect CTA for THIS post. Respond with ONLY the CTA text.
 
     def _parse_json_response(self, response_text: str) -> dict:
         """
-        Parse JSON from Gemini response.
+        Parse JSON from LLM response.
+        Handles markdown blocks and tries to find JSON even if surrounded by text.
 
         Args:
             response_text: Raw response text
@@ -394,7 +400,27 @@ Now, write the perfect CTA for THIS post. Respond with ONLY the CTA text.
         Returns:
             Parsed JSON dictionary
         """
-        # Clean response (remove markdown code blocks if present)
+        if not response_text:
+            return {}
+
+        # 1. Try to find content within markdown code blocks
+        import re
+        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response_text, re.DOTALL)
+        if json_match:
+            try:
+                return json.loads(json_match.group(1))
+            except json.JSONDecodeError:
+                pass
+
+        # 2. Try to find anything that looks like a JSON object
+        json_match = re.search(r"(\{.*\})", response_text, re.DOTALL)
+        if json_match:
+            try:
+                return json.loads(json_match.group(1))
+            except json.JSONDecodeError:
+                pass
+
+        # 3. Last ditch: clean the whole string
         cleaned = response_text.strip()
         if cleaned.startswith("```"):
             cleaned = cleaned.split("```")[1]
@@ -405,4 +431,5 @@ Now, write the perfect CTA for THIS post. Respond with ONLY the CTA text.
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError:
+            logger.error(f"Failed to parse JSON from response: {response_text[:200]}...")
             return {}
