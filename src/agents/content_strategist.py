@@ -4,9 +4,11 @@ Content Strategist Agent - Determines topic, hook strategy, and carousel structu
 import json
 import random
 import logging
+import time
 from typing import Optional
 from google import genai
 import replicate
+from replicate.exceptions import ReplicateError
 from src.models import ChannelConfig, ContentStrategy, HookType
 from src.config import settings
 
@@ -30,18 +32,38 @@ class ContentStrategist:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
 
     def _generate_text(self, prompt: str) -> str:
-        """Utility to generate text from the configured provider."""
-        if self.provider == "gemini":
-            response = self.client.models.generate_content(model=self.model, contents=prompt)
-            return response.text
-        elif self.provider == "replicate":
-            output = replicate.run(
-                self.model,
-                input={
-                    "prompt": prompt,
-                }
-            )
-            return "".join(output)
+        """Utility to generate text from the configured provider with retry logic."""
+        max_retries = 3
+        retry_delay = 5  # seconds
+
+        for attempt in range(max_retries):
+            try:
+                if self.provider == "gemini":
+                    response = self.client.models.generate_content(model=self.model, contents=prompt)
+                    return response.text
+                elif self.provider == "replicate":
+                    output = replicate.run(
+                        self.model,
+                        input={
+                            "prompt": prompt,
+                        }
+                    )
+                    return "".join(output)
+            except Exception as e:
+                # Check if it's a rate limit error (429)
+                is_rate_limit = False
+                if self.provider == "replicate" and isinstance(e, ReplicateError):
+                    if "429" in str(e) or "throttled" in str(e).lower():
+                        is_rate_limit = True
+                
+                if is_rate_limit and attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)
+                    logger.warning(f"Rate limited by Replicate. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+                
+                # If not a rate limit or we've exhausted retries, re-raise
+                raise e
         return ""
 
     def plan_content(
