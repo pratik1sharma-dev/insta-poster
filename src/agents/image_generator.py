@@ -56,6 +56,7 @@ class ImageGenerator:
                 slide.text_overlay,
                 slide.slide_number,
                 style_context,
+                strategy,
             )
 
             logger.info(
@@ -124,22 +125,18 @@ class ImageGenerator:
         """Create shared design system for the carousel."""
 
         return f"""
-You are a creative director designing a cohesive Instagram carousel.
+You are a senior graphic designer creating a single, high-impact Instagram post.
 
-**Core Creative:**
-- Topic: {strategy.topic}
-- Angle: {strategy.angle}
-- Visual Metaphor: {strategy.visual_metaphor}
+**Brand DNA:**
 - Color Palette: {strategy.color_palette}
 - Typography Style: {strategy.typography_style}
-- Total Slides: {total_slides}
+- Aesthetic: Clean, modern, professional, and minimalist.
 
-**Design System Rules:**
-- **One Metaphor:** Every slide MUST be a visual variation of the single core **Visual Metaphor**.
-- **Cohesive Story:** The slides must tell a clear visual story, progressing from one to the next.
-- **Consistent Style:** Use the same colors and typography as defined above.
-- **Aesthetic:** Clean, modern, and professional. Avoid garish, overly saturated, or "loud" colors.
-- **Readability:** Ensure text is clean, modern, and highly readable on mobile.
+**Strict Composition Rules:**
+- **Single Image Only:** Create one unified, focused composition. 
+- **No Collages:** Do not use sub-images, grids, or multi-image layouts. 
+- **Negative Space:** Ensure there is enough clean space for the text to be easily readable.
+- **Readability:** Text must be bold, sharp, and highly readable on mobile screens.
 """
 
     def _build_slide_prompt(
@@ -148,27 +145,25 @@ You are a creative director designing a cohesive Instagram carousel.
         text_overlay: str,
         slide_number: int,
         style_context: str,
+        strategy: ContentStrategy,
     ) -> str:
 
         return f"""
 {style_context}
 
-**This is Slide {slide_number}.**
+**Visual Theme:** {strategy.visual_metaphor}
 
-**Your Task:**
-Create an image for this slide that is a clear and creative execution of the core **Visual Metaphor**.
+**Slide Content:**
+- Visual: {base_prompt}
+- Text Overlay: "{text_overlay}"
 
-**Text Overlay for this slide:**
-"{text_overlay}"
-
-**Specific design direction for this slide (build on the metaphor):**
-{base_prompt}
+**Instruction:**
+Combine the Visual and the Text Overlay into one powerful, single-image composition.
 
 **Technical Requirements:**
-- 1080x1080 square Instagram post.
-- High contrast and mobile readable.
-- Adhere to the visual style described in the design system.
-- **CRITICAL:** The text overlay MUST be spelled perfectly. Pay extreme attention to the typography and spelling of every single word.
+- 1080x1080 square.
+- CRITICAL: Perfect spelling for every word in the text overlay. 
+- Professional typography placement and layout.
 
 Return ONLY an image. Do not return text.
 """
