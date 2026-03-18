@@ -31,23 +31,38 @@ class ContentStrategist:
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
 
-    def _generate_text(self, prompt: str) -> str:
-        """Utility to generate text from the configured provider with retry logic."""
+    def _generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """Utility to generate text from the configured provider with retry logic and system instructions."""
         max_retries = 3
         retry_delay = 5  # seconds
 
         for attempt in range(max_retries):
             try:
                 if self.provider == "gemini":
-                    response = self.client.models.generate_content(model=self.model, contents=prompt)
+                    # For Gemini, system instructions are set at client or model level
+                    # But we can also pass them in the content generation config
+                    from google.genai import types
+                    config = None
+                    if system_prompt:
+                        config = types.GenerateContentConfig(system_instruction=system_prompt)
+                    
+                    response = self.client.models.generate_content(
+                        model=self.model, 
+                        contents=prompt,
+                        config=config
+                    )
                     return response.text
                 elif self.provider == "replicate":
+                    input_data = {
+                        "prompt": prompt,
+                        "max_new_tokens": 4096,
+                    }
+                    if system_prompt:
+                        input_data["system_prompt"] = system_prompt
+                        
                     output = replicate.run(
                         self.model,
-                        input={
-                            "prompt": prompt,
-                            "max_new_tokens": 4096,
-                        }
+                        input=input_data
                     )
                     return "".join(output)
             except Exception as e:
@@ -91,10 +106,22 @@ class ContentStrategist:
             topic = random.choice(channel_config.curated_topics)
 
         # Use LLM to determine optimal strategy
+        system_prompt = f"""You are a world-class Instagram growth strategist who is an expert at creating content that sparks conversation.
+Your primary goal is to develop a "spiky point of view" for each post that will make people stop, think, and engage. 
+Avoid generic, boring content at all costs.
+
+**Channel Context:**
+- Theme: {channel_config.theme}
+- Target Audience: {channel_config.target_audience}
+- Cultural Context: {channel_config.cultural_context}
+- Tone: {channel_config.tone}
+
+ALWAYS respond in valid JSON format.
+"""
         prompt = self._build_strategy_prompt(channel_config, topic)
         logger.debug("Strategy prompt:\n%s", prompt)
         
-        response_text = self._generate_text(prompt)
+        response_text = self._generate_text(prompt, system_prompt=system_prompt)
         logger.debug("Strategy raw response:\n%s", response_text)
 
         # Parse strategy from response
@@ -112,12 +139,11 @@ class ContentStrategist:
         Returns:
             New topic suggestion
         """
-        prompt = f"""You are a content strategist for an Instagram channel about:
-{channel_config.theme}
-
+        system_prompt = f"""You are a content strategist for an Instagram channel about: {channel_config.theme}.
 Target audience: {channel_config.target_audience}
+Your goal is to find timely, relevant, and engaging topics that have high viral potential."""
 
-Current curated topics:
+        prompt = f"""Current curated topics:
 {chr(10).join(f"- {topic}" for topic in channel_config.curated_topics[:10])}
 
 Suggest ONE new, trending topic that would resonate with this audience.
@@ -131,7 +157,7 @@ Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name"
 """
 
         logger.debug("Topic discovery prompt:\n%s", prompt)
-        response_text = self._generate_text(prompt)
+        response_text = self._generate_text(prompt, system_prompt=system_prompt)
         logger.debug("Topic discovery raw response:\n%s", response_text)
         return response_text.strip().strip('"').strip("'")
 

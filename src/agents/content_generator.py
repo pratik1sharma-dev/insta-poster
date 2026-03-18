@@ -36,23 +36,36 @@ class ContentGenerator:
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
 
-    def _generate_text(self, prompt: str) -> str:
-        """Utility to generate text from the configured provider with retry logic."""
+    def _generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """Utility to generate text from the configured provider with retry logic and system instructions."""
         max_retries = 3
         retry_delay = 5  # seconds
 
         for attempt in range(max_retries):
             try:
                 if self.provider == "gemini":
-                    response = self.client.models.generate_content(model=self.model, contents=prompt)
+                    from google.genai import types
+                    config = None
+                    if system_prompt:
+                        config = types.GenerateContentConfig(system_instruction=system_prompt)
+                    
+                    response = self.client.models.generate_content(
+                        model=self.model, 
+                        contents=prompt,
+                        config=config
+                    )
                     return response.text
                 elif self.provider == "replicate":
+                    input_data = {
+                        "prompt": prompt,
+                        "max_new_tokens": 4096,
+                    }
+                    if system_prompt:
+                        input_data["system_prompt"] = system_prompt
+                        
                     output = replicate.run(
                         self.model,
-                        input={
-                            "prompt": prompt,
-                            "max_new_tokens": 4096,
-                        }
+                        input=input_data
                     )
                     return "".join(output)
             except Exception as e:
@@ -116,17 +129,27 @@ Global rules:
         Returns:
             GeneratedContent with caption, hashtags, and slides
         """
+        system_prompt = f"""You are an expert Instagram content creator.
+Your goal is to create engaging, saveable content that grows followers and encourages interactions.
+
+Channel: {channel_config.theme}
+Tone: {channel_config.tone}
+Audience: {channel_config.target_audience}
+Cultural Context: {channel_config.cultural_context}
+
+ALWAYS maintain a consistent voice and follow the strategic angle provided."""
+
         # Generate slides with text overlays
-        slides = self._generate_slides(strategy, channel_config)
+        slides = self._generate_slides(strategy, channel_config, system_prompt)
 
         # Generate caption
-        caption = self._generate_caption(strategy, channel_config, slides)
+        caption = self._generate_caption(strategy, channel_config, slides, system_prompt)
 
         # Generate hashtags
-        hashtags = self._generate_hashtags(strategy, channel_config)
+        hashtags = self._generate_hashtags(strategy, channel_config, system_prompt)
 
         # Generate call-to-action
-        cta = self._generate_smart_cta(strategy, channel_config, slides)
+        cta = self._generate_smart_cta(strategy, channel_config, slides, system_prompt)
 
         return GeneratedContent(
             caption=caption,
@@ -136,7 +159,7 @@ Global rules:
         )
 
     def _generate_slides(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig
+        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str
     ) -> List[CarouselSlide]:
         """
         Generate text and image prompts for each slide.
@@ -199,7 +222,7 @@ Respond with ONLY the JSON, no other text.
 """
 
         logger.debug("Slides prompt:\n%s", prompt)
-        response_text = self._generate_text(prompt)
+        response_text = self._generate_text(prompt, system_prompt=system_prompt)
         logger.debug("Slides raw response:\n%s", response_text)
         
         # Save raw response for debugging if it seems empty or short
@@ -248,6 +271,7 @@ Respond with ONLY the JSON, no other text.
         strategy: ContentStrategy,
         channel_config: ChannelConfig,
         slides: List[CarouselSlide],
+        system_prompt: str,
     ) -> str:
         """
         Generate Instagram caption.
@@ -299,12 +323,12 @@ Write the caption now (no JSON, just the caption text):
 """
 
         logger.debug("Caption prompt:\n%s", prompt)
-        response_text = self._generate_text(prompt)
+        response_text = self._generate_text(prompt, system_prompt=system_prompt)
         logger.debug("Caption raw response:\n%s", response_text)
         return response_text.strip()
 
     def _generate_hashtags(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig
+        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str
     ) -> List[str]:
         """
         Generate relevant hashtags.
@@ -346,7 +370,7 @@ Respond with ONLY the JSON, no other text.
 """
 
         logger.debug("Hashtags prompt:\n%s", prompt)
-        response_text = self._generate_text(prompt)
+        response_text = self._generate_text(prompt, system_prompt=system_prompt)
         logger.debug("Hashtags raw response:\n%s", response_text)
         hashtags_data = self._parse_json_response(response_text)
 
@@ -357,6 +381,7 @@ Respond with ONLY the JSON, no other text.
         strategy: ContentStrategy,
         channel_config: ChannelConfig,
         slides: List[CarouselSlide],
+        system_prompt: str,
     ) -> str:
         """Generate a content-specific, engaging CTA."""
 
@@ -387,7 +412,7 @@ Write a single, compelling, open-ended question that directly relates to the pos
 
 Now, write the perfect CTA for THIS post. Respond with ONLY the CTA text.
 """
-        response_text = self._generate_text(prompt)
+        response_text = self._generate_text(prompt, system_prompt=system_prompt)
         return response_text.strip()
 
     def _parse_json_response(self, response_text: str) -> dict:
