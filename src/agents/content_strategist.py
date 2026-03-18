@@ -6,6 +6,7 @@ import random
 import logging
 from typing import Optional
 from google import genai
+import replicate
 from src.models import ChannelConfig, ContentStrategy, HookType
 from src.config import settings
 
@@ -17,8 +18,33 @@ class ContentStrategist:
     """AI agent that plans content strategy for Instagram posts."""
 
     def __init__(self):
-        """Initialize the Content Strategist with Gemini API."""
-        self.client = genai.Client(api_key=settings.gemini_api_key)
+        """Initialize the Content Strategist with the requested provider."""
+        self.provider = settings.llm_provider.lower()
+        
+        if self.provider == "gemini":
+            self.client = genai.Client(api_key=settings.gemini_api_key)
+            self.model = settings.gemini_model
+        elif self.provider == "replicate":
+            self.model = settings.replicate_llm_model
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.provider}")
+
+    def _generate_text(self, prompt: str) -> str:
+        """Utility to generate text from the configured provider."""
+        if self.provider == "gemini":
+            response = self.client.models.generate_content(model=self.model, contents=prompt)
+            return response.text
+        elif self.provider == "replicate":
+            output = replicate.run(
+                self.model,
+                input={
+                    "prompt": prompt,
+                    "max_new_tokens": 1024,
+                    "temperature": 0.7,
+                }
+            )
+            return "".join(output)
+        return ""
 
     def plan_content(
         self, channel_config: ChannelConfig, topic_hint: Optional[str] = None
@@ -43,14 +69,15 @@ class ContentStrategist:
             # Select from curated list
             topic = random.choice(channel_config.curated_topics)
 
-        # Use Gemini to determine optimal strategy
+        # Use LLM to determine optimal strategy
         prompt = self._build_strategy_prompt(channel_config, topic)
         logger.debug("Strategy prompt:\n%s", prompt)
-        response = self.client.models.generate_content(model=settings.gemini_model, contents=prompt)
-        logger.debug("Strategy raw response:\n%s", getattr(response, "text", response))
+        
+        response_text = self._generate_text(prompt)
+        logger.debug("Strategy raw response:\n%s", response_text)
 
         # Parse strategy from response
-        strategy = self._parse_strategy_response(response.text, topic)
+        strategy = self._parse_strategy_response(response_text, topic)
 
         return strategy
 
@@ -83,9 +110,9 @@ Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name"
 """
 
         logger.debug("Topic discovery prompt:\n%s", prompt)
-        response = self.client.models.generate_content(model=settings.gemini_model, contents=prompt)
-        logger.debug("Topic discovery raw response:\n%s", getattr(response, "text", response))
-        return response.text.strip().strip('"').strip("'")
+        response_text = self._generate_text(prompt)
+        logger.debug("Topic discovery raw response:\n%s", response_text)
+        return response_text.strip().strip('"').strip("'")
 
     def _build_strategy_prompt(self, channel_config: ChannelConfig, topic: str) -> str:
         """Build prompt for strategy determination."""

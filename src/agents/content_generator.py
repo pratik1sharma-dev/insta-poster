@@ -5,6 +5,7 @@ import json
 import logging
 from typing import List
 from google import genai
+import replicate
 from src.models import (
     ChannelConfig,
     ContentStrategy,
@@ -22,8 +23,33 @@ class ContentGenerator:
     """AI agent that generates text content for Instagram posts."""
 
     def __init__(self):
-        """Initialize the Content Generator with Gemini API."""
-        self.client = genai.Client(api_key=settings.gemini_api_key)
+        """Initialize the Content Generator with the requested provider."""
+        self.provider = settings.llm_provider.lower()
+        
+        if self.provider == "gemini":
+            self.client = genai.Client(api_key=settings.gemini_api_key)
+            self.model = settings.gemini_model
+        elif self.provider == "replicate":
+            self.model = settings.replicate_llm_model
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.provider}")
+
+    def _generate_text(self, prompt: str) -> str:
+        """Utility to generate text from the configured provider."""
+        if self.provider == "gemini":
+            response = self.client.models.generate_content(model=self.model, contents=prompt)
+            return response.text
+        elif self.provider == "replicate":
+            output = replicate.run(
+                self.model,
+                input={
+                    "prompt": prompt,
+                    "max_new_tokens": 2048,
+                    "temperature": 0.7,
+                }
+            )
+            return "".join(output)
+        return ""
 
     def _build_session_brief(
         self, strategy: ContentStrategy, channel_config: ChannelConfig
@@ -152,9 +178,9 @@ Respond with ONLY the JSON, no other text.
 """
 
         logger.debug("Slides prompt:\n%s", prompt)
-        response = self.client.models.generate_content(model=settings.gemini_model, contents=prompt)
-        logger.debug("Slides raw response:\n%s", getattr(response, "text", response))
-        slides_data = self._parse_json_response(response.text)
+        response_text = self._generate_text(prompt)
+        logger.debug("Slides raw response:\n%s", response_text)
+        slides_data = self._parse_json_response(response_text)
 
         purpose_map = {
             "call-to-action": "cta",
@@ -247,9 +273,9 @@ Write the caption now (no JSON, just the caption text):
 """
 
         logger.debug("Caption prompt:\n%s", prompt)
-        response = self.client.models.generate_content(model=settings.gemini_model, contents=prompt)
-        logger.debug("Caption raw response:\n%s", getattr(response, "text", response))
-        return response.text.strip()
+        response_text = self._generate_text(prompt)
+        logger.debug("Caption raw response:\n%s", response_text)
+        return response_text.strip()
 
     def _generate_hashtags(
         self, strategy: ContentStrategy, channel_config: ChannelConfig
@@ -294,9 +320,9 @@ Respond with ONLY the JSON, no other text.
 """
 
         logger.debug("Hashtags prompt:\n%s", prompt)
-        response = self.client.models.generate_content(model=settings.gemini_model, contents=prompt)
-        logger.debug("Hashtags raw response:\n%s", getattr(response, "text", response))
-        hashtags_data = self._parse_json_response(response.text)
+        response_text = self._generate_text(prompt)
+        logger.debug("Hashtags raw response:\n%s", response_text)
+        hashtags_data = self._parse_json_response(response_text)
 
         return ["#" + tag.lstrip("#") for tag in hashtags_data.get("hashtags", [])]
 
@@ -335,8 +361,8 @@ Write a single, compelling, open-ended question that directly relates to the pos
 
 Now, write the perfect CTA for THIS post. Respond with ONLY the CTA text.
 """
-        response = self.client.models.generate_content(model=settings.gemini_model, contents=prompt)
-        return response.text.strip()
+        response_text = self._generate_text(prompt)
+        return response_text.strip()
 
     def _parse_json_response(self, response_text: str) -> dict:
         """
