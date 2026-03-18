@@ -6,11 +6,13 @@ from pathlib import Path
 from typing import List
 import logging
 import io
+import time
 import requests
 
 from google import genai as genai_client
 from google.genai import types
 import replicate
+from replicate.exceptions import ReplicateError
 from PIL import Image
 
 from src.models import ContentStrategy, GeneratedContent
@@ -75,14 +77,37 @@ class ImageGenerator:
                     image_path = self._save_gemini_image(response, slide.slide_number, output_dir)
                 
                 elif self.provider == "replicate":
-                    output = replicate.run(
-                        self.model,
-                        input={
-                            "prompt": prompt,
-                            "aspect_ratio": "1:1",
-                            "output_format": "png",
-                        }
-                    )
+                    # Add retry logic for image generation
+                    max_retries = 3
+                    retry_delay = 10  # seconds (images take longer and have tighter limits)
+                    
+                    output = None
+                    for attempt in range(max_retries):
+                        try:
+                            output = replicate.run(
+                                self.model,
+                                input={
+                                    "prompt": prompt,
+                                    "aspect_ratio": "1:1",
+                                    "output_format": "png",
+                                }
+                            )
+                            break
+                        except Exception as e:
+                            is_rate_limit = False
+                            if isinstance(e, ReplicateError) and ("429" in str(e) or "throttled" in str(e).lower()):
+                                is_rate_limit = True
+                            
+                            if is_rate_limit and attempt < max_retries - 1:
+                                wait_time = retry_delay * (2 ** attempt)
+                                logger.warning(f"Image rate limit hit. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
+                                time.sleep(wait_time)
+                                continue
+                            raise e
+
+                    if not output:
+                        raise RuntimeError(f"Failed to generate image for slide {slide.slide_number} after retries")
+
                     # Replicate returns a list of File objects or URLs
                     image_url = output[0] if isinstance(output, list) else str(output)
                     image_path = self._save_replicate_image(image_url, slide.slide_number, output_dir)
