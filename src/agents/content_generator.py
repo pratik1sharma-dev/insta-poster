@@ -51,6 +51,7 @@ class ContentGenerator:
                         self.model,
                         input={
                             "prompt": prompt,
+                            "max_new_tokens": 4096,
                         }
                     )
                     return "".join(output)
