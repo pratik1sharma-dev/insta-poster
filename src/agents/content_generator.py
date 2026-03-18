@@ -4,7 +4,7 @@ Content Generator Agent - Creates captions, hashtags, and slide text.
 import json
 import logging
 import time
-from typing import List
+from typing import List, Optional
 from google import genai
 import replicate
 from replicate.exceptions import ReplicateError
