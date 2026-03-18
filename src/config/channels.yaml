@@ -320,3 +320,43 @@ worldinranks:
     - "Clean carousel layouts"
     - "Simple icons and country flags"
     - "Clear data hierarchy"
+
+
+fertilitycapsules:
+  name: "FertilityCapsules"
+  theme: "Demystifying fertility, busting IVF myths, and providing evidence-based reproductive health education"
+  target_audience: "Individuals and couples planning families, and anyone curious about reproductive health (25-45)"
+  posting_schedule: "1-2x daily"
+  tone: "empathetic, scientific, transparent, empowering"
+  style_guidelines: "Use soft, calming visuals combined with clear, jargon-free medical facts. Balance technical accuracy with emotional intelligence."
+
+  curated_topics:
+    # IVF & Myths
+    - "IVF is not a 100% guarantee: Understanding success rates"
+    - "The physical toll of IVF: What nobody tells you"
+    - "Common IVF myths vs reality"
+    - "Egg freezing: Timing, costs, and realistic expectations"
+    - "The emotional rollercoaster of fertility treatments"
+
+    # General Fertility Education
+    - "Understanding the biological clock: Facts vs fearmongering"
+    - "Male fertility: The often ignored 50% of the equation"
+    - "How stress actually impacts fertility (and how it doesn't)"
+    - "PCOS and Endometriosis: Navigating the common hurdles"
+    - "The role of nutrition and lifestyle in reproductive health"
+
+    # Knowledge Building
+    - "Tracking ovulation: Beyond the apps"
+    - "When to see a fertility specialist"
+    - "Decoding fertility tests: AMH, FSH, and Semen Analysis"
+    - "Secondary infertility: The silent struggle"
+    - "Environmental factors and reproductive health"
+
+  allow_ai_discovery: true
+
+  visual_preferences:
+    - "Soft, calming color palettes (muted teals, sage, warm neutrals)"
+    - "Clean, minimal typography"
+    - "Scientific yet approachable diagrams"
+    - "Empathetic lifestyle imagery"
+    - "Clear 'Myth vs Fact' layouts"

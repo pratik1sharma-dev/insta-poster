@@ -9,7 +9,14 @@ class Settings(BaseSettings):
 
     # Google Gemini API
     gemini_api_key: str
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-2.0-flash"
+
+    # Replicate API
+    replicate_api_token: str = ""
+    replicate_model: str = "black-forest-labs/flux-schnell"
+
+    # Content Generation
+    image_provider: str = "gemini"  # 'gemini' or 'replicate'
 
     # Postiz Configuration
     postiz_api_url: str = "http://localhost:3000/api"

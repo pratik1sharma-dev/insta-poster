@@ -1,14 +1,16 @@
 """
-Image Generator Agent - Creates carousel images using Gemini.
+Image Generator Agent - Creates carousel images using Gemini or Replicate.
 """
 
 from pathlib import Path
 from typing import List
 import logging
 import io
+import requests
 
 from google import genai as genai_client
 from google.genai import types
+import replicate
 from PIL import Image
 
 from src.models import ContentStrategy, GeneratedContent
@@ -22,9 +24,17 @@ class ImageGenerator:
     """AI agent that generates carousel images."""
 
     def __init__(self):
-        """Initialize Gemini client."""
-        self.client = genai_client.Client(api_key=settings.gemini_api_key)
-        self.image_model = settings.gemini_model
+        """Initialize the requested provider."""
+        self.provider = settings.image_provider.lower()
+        
+        if self.provider == "gemini":
+            self.client = genai_client.Client(api_key=settings.gemini_api_key)
+            self.model = settings.gemini_model
+        elif self.provider == "replicate":
+            # REPLICATE_API_TOKEN is handled by the replicate library if in environment
+            self.model = settings.replicate_model
+        else:
+            raise ValueError(f"Unsupported image provider: {self.provider}")
 
     def generate_carousel(
         self,
@@ -47,26 +57,41 @@ class ImageGenerator:
             )
 
             logger.info(
-                "Generating image for slide %s with prompt:\n%s",
+                "Generating image (%s) for slide %s with prompt:\n%s",
+                self.provider,
                 slide.slide_number,
                 prompt,
             )
 
-            response = self.client.models.generate_content(
-                model=self.image_model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_modalities=["IMAGE"]
-                ),
-            )
+            try:
+                if self.provider == "gemini":
+                    response = self.client.models.generate_content(
+                        model=self.model,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_modalities=["IMAGE"]
+                        ),
+                    )
+                    image_path = self._save_gemini_image(response, slide.slide_number, output_dir)
+                
+                elif self.provider == "replicate":
+                    output = replicate.run(
+                        self.model,
+                        input={
+                            "prompt": prompt,
+                            "aspect_ratio": "1:1",
+                            "output_format": "png",
+                        }
+                    )
+                    # Replicate returns a list of File objects or URLs
+                    image_url = output[0] if isinstance(output, list) else str(output)
+                    image_path = self._save_replicate_image(image_url, slide.slide_number, output_dir)
 
-            image_path = self._save_image(
-                response,
-                slide.slide_number,
-                output_dir,
-            )
-
-            image_paths.append(image_path)
+                image_paths.append(image_path)
+            
+            except Exception as e:
+                logger.error("Failed to generate image for slide %s: %s", slide.slide_number, e)
+                # We could implement a retry or fallback here if needed
 
         return image_paths
 
@@ -122,7 +147,7 @@ Create an image for this slide that is a clear and creative execution of the cor
 Return ONLY an image. Do not return text.
 """
 
-    def _save_image(
+    def _save_gemini_image(
         self,
         response,
         slide_number: int,
@@ -137,16 +162,33 @@ Return ONLY an image. Do not return text.
                     image_bytes = part.inline_data.data
                     break
         except Exception as e:
-            logger.error("Failed to extract image for slide %s: %s", slide_number, e)
+            logger.error("Failed to extract Gemini image for slide %s: %s", slide_number, e)
 
         if not image_bytes:
             raise RuntimeError(f"No image returned for slide {slide_number}")
 
         image = Image.open(io.BytesIO(image_bytes))
-
         image_path = output_dir / f"slide_{slide_number:02d}.png"
         image.save(image_path, "PNG")
 
-        logger.info("Saved image for slide %s to %s", slide_number, image_path)
+        logger.info("Saved Gemini image for slide %s to %s", slide_number, image_path)
+        return image_path
 
+    def _save_replicate_image(
+        self,
+        url: str,
+        slide_number: int,
+        output_dir: Path,
+    ) -> Path:
+        """Download and save image from Replicate URL."""
+        
+        response = requests.get(url)
+        if response.status_code != 200:
+            raise RuntimeError(f"Failed to download image from {url}")
+
+        image = Image.open(io.BytesIO(response.content))
+        image_path = output_dir / f"slide_{slide_number:02d}.png"
+        image.save(image_path, "PNG")
+
+        logger.info("Saved Replicate image for slide %s to %s", slide_number, image_path)
         return image_path
