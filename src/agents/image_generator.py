@@ -90,13 +90,19 @@ class ImageGenerator:
                     output = None
                     for attempt in range(max_retries):
                         try:
+                            # Ideogram v2 input schema
+                            input_params = {
+                                "prompt": prompt,
+                                "aspect_ratio": "1:1",
+                            }
+                            
+                            # If using flux models, they might need output_format
+                            if "flux" in self.model:
+                                input_params["output_format"] = "png"
+
                             output = replicate.run(
                                 self.model,
-                                input={
-                                    "prompt": prompt,
-                                    "aspect_ratio": "1:1",
-                                    "output_format": "png",
-                                }
+                                input=input_params
                             )
                             break
                         except Exception as e:
@@ -161,18 +167,19 @@ You are a senior graphic designer creating a single, high-impact Instagram post.
 **Visual Theme:** {strategy.visual_metaphor}
 
 **Slide Design Mission:**
-You must create a single image that artfully combines a visual scene with a text overlay.
+You must create a single, clean image that combines a visual background with a specific text overlay.
 
-1. **The Visual Scene:** {base_prompt}
-2. **The Text Overlay:** "{text_overlay}"
+1. **The Background Scene:** {base_prompt}
+2. **The ONLY Text Allowed:** "{text_overlay}"
 
-**Placement Directive:**
-- Integrate the text overlay into the scene in a professional, cinematic way.
-- Use areas of negative space or center the text for maximum impact.
-- The text must be large, bold, and high-contrast against the background.
-- **CRITICAL:** Every word in "{text_overlay}" must be spelled perfectly.
+**Strict Visual Rules:**
+- **No Background Text:** Do not include any labels, numbers, data legends, or random characters in the background. 
+- **No Charts/Grids:** Avoid drawing literal charts or data tables that contain text. Represent data through abstract shapes instead.
+- **Single Focal Point:** The ONLY readable words in the entire image must be: "{text_overlay}".
+- **Placement:** Position "{text_overlay}" in a clear area of negative space using bold, professional typography.
 
-Return ONLY the single 1080x1080 image file. Do not include conversational text or explanation.
+**Final Directive:**
+Generate a single 1080x1080 image. Ensure zero typos in the text. Do not return conversational text. Return ONLY the image.
 """
 
     def _save_gemini_image(
