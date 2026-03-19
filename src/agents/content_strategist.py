@@ -25,7 +25,7 @@ class ContentStrategist:
         
         if self.provider == "gemini":
             self.client = genai.Client(api_key=settings.gemini_api_key)
-            self.model = settings.gemini_model
+            self.model = settings.gemini_strategist_model
         elif self.provider == "replicate":
             self.model = settings.replicate_llm_model
         else:
@@ -106,15 +106,11 @@ class ContentStrategist:
             topic = random.choice(channel_config.curated_topics)
 
         # Use LLM to determine optimal strategy
-        system_prompt = f"""You are a world-class Instagram growth strategist who is an expert at creating content that sparks conversation.
-Your primary goal is to develop a "spiky point of view" for each post that will make people stop, think, and engage. 
-Avoid generic, boring content at all costs.
+        system_prompt = f"""You are an Instagram content expert.
+Your goal is to create content that stops the scroll and engages the audience.
 
-**Channel Context:**
-- Theme: {channel_config.theme}
-- Target Audience: {channel_config.target_audience}
-- Cultural Context: {channel_config.cultural_context}
-- Tone: {channel_config.tone}
+**Channel:** {channel_config.theme}
+**Target Audience:** {channel_config.target_audience}
 
 ALWAYS respond in valid JSON format.
 """
@@ -163,47 +159,31 @@ Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name"
 
     def _build_strategy_prompt(self, channel_config: ChannelConfig, topic: str) -> str:
         """Build prompt for strategy determination."""
-        return f"""You are a world-class Instagram growth strategist who is an expert at creating content that sparks conversation.
-Your primary goal is to develop a "spiky point of view" for each post that will make people stop, think, and engage. Avoid generic, boring content at all costs.
+        return f"""You are an Instagram content expert. 
+Create a clear and engaging strategy for a post about: "{topic}"
 
-**Channel Context:**
-- Theme: {channel_config.theme}
-- Target Audience: {channel_config.target_audience}
-- Cultural Context: {channel_config.cultural_context}
-- Tone: {channel_config.tone}
-
-**Today's Topic:** {topic}
+**Channel:** {channel_config.theme}
+**Audience:** {channel_config.target_audience}
 
 **Your Task:**
-Devise a content strategy with a strong, unique angle.
-
-1.  **Find the "Spiky" Angle:** What is a surprising, controversial, counter-intuitive, or highly relatable "big idea" related to this topic? Don't just summarize. Take a stand. What's a take that most people haven't considered?
-2.  **Choose a Hook Strategy:** Based on your angle, what is the best hook to grab attention?
-    - `curiosity`: Hint at the surprising angle.
-    - `controversy`: State the controversial opinion directly.
-    - `relatability`: Frame the angle as a shared, unspoken truth.
-    - `value_proposition`: Clearly state the benefit of understanding this new angle.
-    - `question`: Ask a question that challenges a common belief.
-3.  **Determine Carousel Length:** How many slides (3-10) are needed to effectively argue for your angle?
-4.  **Define a Visual Metaphor:** Invent a single, powerful visual metaphor that represents the post's Angle. This metaphor must be used across all slides to create a cohesive visual story. For example, for an angle about "focus," a visual metaphor could be "a laser beam vs. a floodlight."
-5.  **Define the Visuals:** Based on the metaphor, define the creative direction.
-    - `color_palette`: Describe a sophisticated and engaging color palette. Think in terms of a primary, secondary, and accent color. (e.g., "A palette of dark slate grey, off-white, and a vibrant but not overpowering electric blue accent").
-    - `typography_style`: Describe the desired font style. (e.g., "A clean, modern sans-serif font like 'Inter', using bold for headers and regular for body text to create clear hierarchy").
-6.  **Identify the Core Insight:** What specific pain point or desire does this angle tap into for the target audience?
+1. Decide on a unique angle for this topic.
+2. Choose a hook to grab attention.
+3. Define a visual theme/metaphor for the slides.
+4. Choose a professional color palette.
 
 **Output Format (JSON):**
 {{
-  "angle": "The unique, spiky angle for this post. This is the most important field.",
-  "hook_type": "one of the hook types above",
-  "carousel_length": <number between 3-10>,
-  "visual_metaphor": "The single, unifying visual metaphor for the entire carousel.",
-  "color_palette": "A description of the color palette.",
-  "typography_style": "A description of the typography style.",
-  "target_audience_insight": "The specific insight this angle addresses.",
-  "reasoning": "Explain WHY this strategy is compelling and will drive engagement."
+  "angle": "The core idea or perspective of the post.",
+  "hook_type": "curiosity | controversy | relatability | value_proposition | question",
+  "carousel_length": 5-8,
+  "visual_metaphor": "The visual theme for the images.",
+  "color_palette": "Background, Primary, and Accent colors.",
+  "typography_style": "Font style and weights.",
+  "target_audience_insight": "Why the audience will care.",
+  "reasoning": "Brief explanation of this strategy."
 }}
 
-Respond with ONLY the JSON, no other text.
+Respond with ONLY JSON.
 """
 
     def _parse_strategy_response(self, response_text: str, topic: str) -> ContentStrategy:

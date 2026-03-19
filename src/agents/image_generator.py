@@ -31,7 +31,7 @@ class ImageGenerator:
         
         if self.provider == "gemini":
             self.client = genai_client.Client(api_key=settings.gemini_api_key)
-            self.model = settings.gemini_model
+            self.model = settings.gemini_generator_model
         elif self.provider == "replicate":
             # REPLICATE_API_TOKEN is handled by the replicate library if in environment
             self.model = settings.replicate_model
@@ -68,6 +68,11 @@ class ImageGenerator:
 
             try:
                 if self.provider == "gemini":
+                    # Add delay to avoid 2-images-per-minute free tier limit
+                    if slide.slide_number > 1:
+                        logger.info("Waiting 35s to respect Gemini free tier image rate limits...")
+                        time.sleep(35)
+
                     response = self.client.models.generate_content(
                         model=self.model,
                         contents=prompt,
@@ -128,12 +133,14 @@ class ImageGenerator:
 You are a senior graphic designer creating a single, high-impact Instagram post.
 
 **Brand DNA:**
+- Topic: {strategy.topic}
+- Angle: {strategy.angle}
 - Color Palette: {strategy.color_palette}
 - Typography Style: {strategy.typography_style}
 - Aesthetic: Clean, modern, professional, and minimalist.
 
 **Strict Composition Rules:**
-- **Single Image Only:** Create one unified, focused composition. 
+- **Single Image Only:** Create one unified, focused composition for this specific slide.
 - **No Collages:** Do not use sub-images, grids, or multi-image layouts. 
 - **Negative Space:** Ensure there is enough clean space for the text to be easily readable.
 - **Readability:** Text must be bold, sharp, and highly readable on mobile screens.
@@ -153,19 +160,19 @@ You are a senior graphic designer creating a single, high-impact Instagram post.
 
 **Visual Theme:** {strategy.visual_metaphor}
 
-**Slide Content:**
-- Visual: {base_prompt}
-- Text Overlay: "{text_overlay}"
+**Slide Design Mission:**
+You must create a single image that artfully combines a visual scene with a text overlay.
 
-**Instruction:**
-Combine the Visual and the Text Overlay into one powerful, single-image composition.
+1. **The Visual Scene:** {base_prompt}
+2. **The Text Overlay:** "{text_overlay}"
 
-**Technical Requirements:**
-- 1080x1080 square.
-- CRITICAL: Perfect spelling for every word in the text overlay. 
-- Professional typography placement and layout.
+**Placement Directive:**
+- Integrate the text overlay into the scene in a professional, cinematic way.
+- Use areas of negative space or center the text for maximum impact.
+- The text must be large, bold, and high-contrast against the background.
+- **CRITICAL:** Every word in "{text_overlay}" must be spelled perfectly.
 
-Return ONLY an image. Do not return text.
+Return ONLY the single 1080x1080 image file. Do not include conversational text or explanation.
 """
 
     def _save_gemini_image(

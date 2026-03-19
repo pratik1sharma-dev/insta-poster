@@ -9,7 +9,9 @@ class Settings(BaseSettings):
 
     # Google Gemini API
     gemini_api_key: str
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_strategist_model: str = "gemini-2.0-flash"
+    gemini_generator_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-2.0-flash" # Default/Fallback
 
     # Replicate API
     replicate_api_token: str = ""
@@ -18,8 +20,8 @@ class Settings(BaseSettings):
 
 
     # Content Generation
-    image_provider: str = "gemini"  # 'gemini' or 'replicate'
-    llm_provider: str = "gemini"    # 'gemini' or 'replicate'
+    image_provider: str = "replicate"  # 'gemini' or 'replicate'
+    llm_provider: str = "replicate"    # 'gemini' or 'replicate'
 
     # Postiz Configuration
     postiz_api_url: str = "http://localhost:3000/api"

@@ -28,6 +28,7 @@ class ChannelConfig(BaseModel):
     """Configuration for an Instagram channel."""
     name: str
     theme: str
+    brand_mission: Optional[str] = None
     target_audience: str
     cultural_context: Optional[str] = None
     posting_schedule: str

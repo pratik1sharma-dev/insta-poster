@@ -30,7 +30,7 @@ class ContentGenerator:
         
         if self.provider == "gemini":
             self.client = genai.Client(api_key=settings.gemini_api_key)
-            self.model = settings.gemini_model
+            self.model = settings.gemini_generator_model
         elif self.provider == "replicate":
             self.model = settings.replicate_llm_model
         else:
