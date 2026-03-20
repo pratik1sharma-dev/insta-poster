@@ -71,9 +71,20 @@ class ImageGenerator:
             return "#4c1d95"
         return "#111827" # Default Dark Gray/Black
 
-    def _extract_text_color(self, bg_color: str) -> str:
-        """Return white or black text depending on background."""
-        return "#ffffff"
+    def _get_contrast_color(self, hex_color: str) -> str:
+        """Calculate whether white or black text has better contrast with the background."""
+        hex_color = hex_color.lstrip('#')
+        if len(hex_color) == 3:
+            hex_color = ''.join([c*2 for c in hex_color])
+        
+        # Convert hex to RGB
+        r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+        
+        # Calculate luminance (standard formula)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        
+        # If background is light (luminance > 0.5), use black text. Otherwise white.
+        return "#000000" if luminance > 0.5 else "#ffffff"
 
     def generate_carousel(
         self,
@@ -88,7 +99,7 @@ class ImageGenerator:
         
         # Determine brand colors for templates
         bg_color = self._extract_primary_color(strategy.color_palette)
-        text_color = self._extract_text_color(bg_color)
+        text_color = self._get_contrast_color(bg_color)
 
         style_context = self._build_style_context(strategy, total_slides)
         
