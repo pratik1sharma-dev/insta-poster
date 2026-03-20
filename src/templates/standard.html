@@ -9,20 +9,34 @@
             font-family: 'Montserrat', sans-serif; background-color: {{ bg_color }}; color: {{ text_color }};
             position: relative; overflow: hidden;
         }
-        .bg-image {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;
+        /* Grainy Texture Overlay */
+        body::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.05; contrast: 120%; brightness: 100%; pointer-events: none; z-index: 2;
         }
+        /* Subtle Grid */
         .overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 3;
+            background-image: radial-gradient(circle, {{ text_color }} 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.05;
             {% if bg_style == 'gradient' %}
             background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, transparent 100%);
             {% endif %}
         }
         .content {
             width: 85%; text-align: center; z-index: 3;
-            font-size: 80px; font-weight: 800; line-height: 1.2; text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            /* Use a slightly smaller base size and flex-shrink behavior */
+            font-size: 70px; font-weight: 800; line-height: 1.2; 
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            word-wrap: break-word;
         }
-        .brand { position: absolute; top: 60px; font-size: 28px; font-weight: 700; text-transform: uppercase; z-index: 3; opacity: 0.8; }
+        .brand { 
+            position: absolute; top: 40px; right: 40px; 
+            font-size: 22px; font-weight: 400; text-transform: uppercase; 
+            z-index: 3; opacity: 0.4; letter-spacing: 0.1em;
+        }
         .footer { position: absolute; bottom: 60px; font-size: 32px; font-weight: 700; z-index: 3; opacity: 0.6; }
     </style>
 </head>
@@ -31,6 +45,5 @@
     <div class="overlay"></div>
     <div class="brand">{{ channel_name }}</div>
     <div class="content">{{ text_overlay }}</div>
-    <div class="footer">{{ current_slide }} / {{ total_slides }}</div>
 </body>
 </html>

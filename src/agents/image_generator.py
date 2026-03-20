@@ -50,6 +50,12 @@ class ImageGenerator:
 
     def _extract_primary_color(self, color_palette: str) -> str:
         """Attempt to extract a primary hex or CSS color from the strategy text."""
+        # Try to find a hex code (e.g., #FFFFFF or #FFF)
+        hex_match = re.search(r'#(?:[0-9a-fA-F]{3}){1,2}', color_palette)
+        if hex_match:
+            return hex_match.group(0)
+
+        # Fallback to keyword matching
         if "blue" in color_palette.lower():
             return "#0f172a" # Deep Slate Blue
         elif "green" in color_palette.lower():
