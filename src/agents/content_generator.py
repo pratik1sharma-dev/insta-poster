@@ -189,24 +189,23 @@ You are creating an Instagram carousel post.
 - Audience Insight: {strategy.target_audience_insight}
 
 **Your Task:**
-Craft a compelling 6-10 slide narrative journey for this topic. 
-You must use the **Visual Metaphor** ({strategy.visual_metaphor}) as the "soul" of your writing. The text and the visuals must feel like they were created by the same mind.
+You are the Creative Director and Lead Researcher. Your goal is to create a 6-10 slide carousel that tells a complete, high-value story.
 
-**Narrative Strategy:**
-1. **The Hook (Slide 1):** Stop the scroll by introducing the visual metaphor and the "Spiky Angle."
-2. **The Journey (Slides 2-5):** Do not just list facts. Build a story. Elaborate on the visual metaphor. If Slide 1 introduces a "Race," Slide 2 should talk about the "Starting Line," and Slide 3 about the "Unexpected Obstacle."
-3. **The Connection:** Every text overlay must feel like a caption for the *specific* image being generated.
-4. **The Climax/Aha! Moment:** Slide 5 should be the most impactful insight, surprising truth, or shocking revelation that perfectly embodies the **Channel Theme**. This is the peak of your narrative journey.
-5. **The Resolution (Slide 6):** Bring the metaphor to a close and call for action.
+**The "Master Brief" for this Post:**
+1. **The Journey:** Use the Visual Metaphor ({strategy.visual_metaphor}) to take the reader from a curiosity-driven Hook to a high-impact conclusion.
+2. **Value Density (CRITICAL):** Do not be vague. Use your internal knowledge to provide specific names, numbers, and facts. If the topic is "The Top 5...", name all 5. Every slide must teach the reader something they didn't know.
+3. **The Balance:** Balance the storytelling (narrative flow) with the raw information. The slides should feel connected, like turning the pages of a well-researched book.
+4. **Visual Choice:** You have full judge-like authority to select the **Template** and **Background Style** that best delivers the message of each slide.
 
-**Visual & Layout Freedom:**
-- You have full control over which **Template** and **Background Style** to use for each slide. 
-- Match the template to the "weight" of the words. (e.g., Use `big_fact` for the punchline).
+**Formatting Rules:**
+- `big_fact`: Use `KEY STAT: Brief context` (The part before the colon is massive).
+- `split_comparison`: Use `A vs B`.
+- `standard`: Conversational sentences under 15 words.
 
 **Guidelines:**
-- Text overlays should be punchy and conversational.
-- Reference the visual metaphor in your word choices (e.g., if the metaphor is "Growth", use words like "roots," "bloom," "soil").
-- Ensure the transition between slides feels like turning pages in a book.
+- Be punchy and professional.
+- Reference the visual metaphor in your writing.
+- Every slide must reinforce the Angle: "{strategy.angle}".
 
 **Output Format (JSON):**
 {{

@@ -174,7 +174,8 @@ class ImageGenerator:
                 template_name = slide.template_name if slide.template_name else "standard"
                 bg_style = slide.background_style if slide.background_style else "solid"
                 
-                logger.info(f"[Slide {slide.slide_number}] Rendering text '{slide.text_overlay[:30]}...' into '{template_name}' template with '{bg_style}' background")
+                logger.info(f"[Slide {slide.slide_number}] Rendering into '{template_name}' template with '{bg_style}' background")
+                logger.info(f"Text Overlay: {slide.text_overlay}")
                 
                 try:
                     # Load template
