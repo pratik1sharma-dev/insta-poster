@@ -4,7 +4,7 @@ Image Generator Agent - Creates carousel images using Gemini or Replicate.
 
 import base64
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 import logging
 import io
 import time
