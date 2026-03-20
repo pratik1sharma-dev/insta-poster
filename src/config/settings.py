@@ -9,9 +9,9 @@ class Settings(BaseSettings):
 
     # Google Gemini API
     gemini_api_key: str
-    gemini_strategist_model: str = "gemini-2.0-flash"
-    gemini_generator_model: str = "gemini-2.0-flash"
-    gemini_model: str = "gemini-2.0-flash" # Default/Fallback
+    gemini_strategist_model: str = "gemini-1.5-flash"
+    gemini_generator_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-1.5-flash" # Default/Fallback
 
     # Replicate API
     replicate_api_token: str = ""
