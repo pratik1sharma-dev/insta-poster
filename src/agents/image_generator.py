@@ -92,6 +92,7 @@ class ImageGenerator:
         strategy: ContentStrategy,
         output_dir: Path,
         channel_name: str = "Capsule",
+        skip_ai_image: bool = False,
     ) -> List[Path]:
 
         image_paths = []
@@ -109,76 +110,82 @@ class ImageGenerator:
         for slide in content.slides:
             image_path = output_dir / f"slide_{slide.slide_number:02d}.png"
 
-            # Slide 1: AI Hook Image
+            # Slide 1: AI Hook Image (or placeholder)
             if slide.slide_number == 1:
-                logger.info(f"[Slide 1] Generating AI Hook Image: {strategy.topic}")
-                
-                prompt = self._build_slide_prompt(
-                    slide.image_prompt,
-                    slide.text_overlay,
-                    slide.slide_number,
-                    style_context,
-                    strategy,
-                )
-
-                try:
-                    if self.provider == "gemini":
-                        # Add delay to avoid 2-images-per-minute free tier limit
-                        if slide.slide_number > 1:
-                            logger.info("Waiting 35s to respect Gemini free tier image rate limits...")
-                            time.sleep(35)
-
-                        response = self.client.models.generate_content(
-                            model=self.model,
-                            contents=prompt,
-                            config=types.GenerateContentConfig(
-                                response_modalities=["IMAGE"]
-                            ),
-                        )
-                        hook_image_path = self._save_gemini_image(response, slide.slide_number, output_dir)
+                if skip_ai_image:
+                    logger.info("[Slide 1] SKIP-AI-IMAGE: Generating placeholder for Slide 1")
+                    # Create a simple colored placeholder with text
+                    placeholder = Image.new('RGB', (1080, 1080), color=bg_color)
+                    placeholder.save(image_path)
+                    hook_image_path = image_path
+                else:
+                    logger.info(f"[Slide 1] Generating AI Hook Image: {strategy.topic}")
                     
-                    elif self.provider == "replicate":
-                        max_retries = 3
-                        retry_delay = 10
+                    prompt = self._build_slide_prompt(
+                        slide.image_prompt,
+                        slide.text_overlay,
+                        slide.slide_number,
+                        style_context,
+                        strategy,
+                    )
+
+                    try:
+                        if self.provider == "gemini":
+                            # Add delay to avoid 2-images-per-minute free tier limit
+                            if slide.slide_number > 1:
+                                logger.info("Waiting 35s to respect Gemini free tier image rate limits...")
+                                time.sleep(35)
+
+                            response = self.client.models.generate_content(
+                                model=self.model,
+                                contents=prompt,
+                                config=types.GenerateContentConfig(
+                                    response_modalities=["IMAGE"]
+                                ),
+                            )
+                            hook_image_path = self._save_gemini_image(response, slide.slide_number, output_dir)
                         
-                        output = None
-                        for attempt in range(max_retries):
-                            try:
-                                input_params = {
-                                    "prompt": prompt,
-                                    "aspect_ratio": "1:1",
-                                }
-                                if "flux" in self.model:
-                                    input_params["output_format"] = "png"
+                        elif self.provider == "replicate":
+                            max_retries = 3
+                            retry_delay = 10
+                            
+                            output = None
+                            for attempt in range(max_retries):
+                                try:
+                                    input_params = {
+                                        "prompt": prompt,
+                                        "aspect_ratio": "1:1",
+                                    }
+                                    if "flux" in self.model:
+                                        input_params["output_format"] = "png"
 
-                                output = replicate.run(
-                                    self.model,
-                                    input=input_params
-                                )
-                                break
-                            except Exception as e:
-                                is_rate_limit = False
-                                if isinstance(e, ReplicateError) and ("429" in str(e) or "throttled" in str(e).lower()):
-                                    is_rate_limit = True
-                                
-                                if is_rate_limit and attempt < max_retries - 1:
-                                    wait_time = retry_delay * (2 ** attempt)
-                                    logger.warning(f"Image rate limit hit. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
-                                    time.sleep(wait_time)
-                                    continue
-                                raise e
+                                    output = replicate.run(
+                                        self.model,
+                                        input=input_params
+                                    )
+                                    break
+                                except Exception as e:
+                                    is_rate_limit = False
+                                    if isinstance(e, ReplicateError) and ("429" in str(e) or "throttled" in str(e).lower()):
+                                        is_rate_limit = True
+                                    
+                                    if is_rate_limit and attempt < max_retries - 1:
+                                        wait_time = retry_delay * (2 ** attempt)
+                                        logger.warning(f"Image rate limit hit. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
+                                        time.sleep(wait_time)
+                                        continue
+                                    raise e
 
-                        if not output:
-                            raise RuntimeError(f"Failed to generate image for slide {slide.slide_number} after retries")
+                            if not output:
+                                raise RuntimeError(f"Failed to generate image for slide {slide.slide_number} after retries")
 
-                        image_url = output[0] if isinstance(output, list) else str(output)
-                        hook_image_path = self._save_replicate_image(image_url, slide.slide_number, output_dir)
+                            image_url = output[0] if isinstance(output, list) else str(output)
+                            hook_image_path = self._save_replicate_image(image_url, slide.slide_number, output_dir)
+                    except Exception as e:
+                        logger.error("Failed to generate AI image for slide %s: %s", slide.slide_number, e)
 
-                    if hook_image_path:
-                        image_paths.append(hook_image_path)
-                
-                except Exception as e:
-                    logger.error("Failed to generate AI image for slide %s: %s", slide.slide_number, e)
+                if hook_image_path:
+                    image_paths.append(hook_image_path)
 
             # Slides 2+: HTML/CSS Templated Images
             else:

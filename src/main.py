@@ -21,7 +21,7 @@ class ContentPipeline:
         self.publisher = PostizClient()
 
     def run(
-        self, channel_name: str, dry_run: bool = False, topic_hint: Optional[str] = None
+        self, channel_name: str, dry_run: bool = False, topic_hint: Optional[str] = None, skip_ai_image: bool = False
     ) -> PostResult:
         """
         Run the complete content pipeline.
@@ -60,7 +60,7 @@ class ContentPipeline:
             logger.logger.info("\n[Phase 3/4] Generating images...")
             images_dir = logger.get_images_dir()
             image_paths = self.image_generator.generate_carousel(
-                content, strategy, images_dir, channel_name
+                content, strategy, images_dir, channel_name, skip_ai_image
             )
 
             for i, image_path in enumerate(image_paths, 1):
@@ -134,6 +134,12 @@ def main():
         help="Specific topic to use (overrides AI selection)",
     )
 
+    parser.add_argument(
+        "--skip-ai-image",
+        action="store_true",
+        help="Skip expensive AI image generation and use placeholders for testing",
+    )
+
     args = parser.parse_args()
 
     # List channels if requested
@@ -163,6 +169,7 @@ def main():
             channel_name=args.channel,
             dry_run=args.dry_run,
             topic_hint=args.topic,
+            skip_ai_image=args.skip_ai_image,
         )
 
         if result.status == "success":
