@@ -190,7 +190,7 @@ You are creating an Instagram carousel post.
 - Audience Insight: {strategy.target_audience_insight}
 
 **Your Task:**
-You are the Creative Director and Lead Researcher. Your goal is to create a 6-10 slide carousel that tells a complete, high-value story.
+You are the Creative Director and Lead Researcher. Your goal is to create exactly {strategy.carousel_length} slides that tell a complete, high-value story. Do not stop early.
 
 **The "Master Brief" for this Post:**
 1. **The Journey:** Use the Visual Metaphor ({strategy.visual_metaphor}) to take the reader from a curiosity-driven Hook to a high-impact conclusion.
