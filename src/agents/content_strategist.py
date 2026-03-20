@@ -83,7 +83,7 @@ class ContentStrategist:
         return ""
 
     def plan_content(
-        self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, logger: Optional[Any] = None
+        self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, raw_output_dir: Optional[Path] = None
     ) -> ContentStrategy:
         """
         Plan content strategy for a post.
@@ -91,7 +91,7 @@ class ContentStrategist:
         Args:
             channel_config: Channel configuration
             topic_hint: Optional specific topic to use (overrides AI selection)
-            logger: Optional logger to record raw responses
+            raw_output_dir: Optional directory to save raw AI responses
 
         Returns:
             ContentStrategy with all decisions
@@ -101,7 +101,7 @@ class ContentStrategist:
             topic = topic_hint
         elif channel_config.allow_ai_discovery and random.random() < 0.3:
             # 30% chance to discover new topic
-            topic = self._discover_topic(channel_config, logger)
+            topic = self._discover_topic(channel_config, raw_output_dir)
         else:
             # Select from curated list
             topic = random.choice(channel_config.curated_topics)
@@ -117,29 +117,27 @@ ALWAYS respond in valid JSON format.
 """
         prompt = self._build_strategy_prompt(channel_config, topic)
         
-        if logger:
-            if hasattr(logger, 'logger'):
-                logger.logger.debug("Strategy prompt:\n%s", prompt)
-            else:
-                logger.debug("Strategy prompt:\n%s", prompt)
+        logger.debug(f"Strategy prompt for '{topic}':\n{prompt}")
         
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
         
-        if logger:
-            logger.log_raw_response("strategy", response_text)
+        if raw_output_dir:
+            raw_path = raw_output_dir / "strategy.txt"
+            with open(raw_path, "w") as f:
+                f.write(response_text)
 
         # Parse strategy from response
         strategy = self._parse_strategy_response(response_text, topic)
 
         return strategy
 
-    def _discover_topic(self, channel_config: ChannelConfig, logger: Optional[Any] = None) -> str:
+    def _discover_topic(self, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None) -> str:
         """
         Use AI to discover a new trending topic.
 
         Args:
             channel_config: Channel configuration
-            logger: Optional logger
+            raw_output_dir: Optional directory to save raw response
 
         Returns:
             New topic suggestion
@@ -163,8 +161,10 @@ Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name"
 
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
         
-        if logger:
-            logger.log_raw_response("discovery", response_text)
+        if raw_output_dir:
+            raw_path = raw_output_dir / "discovery.txt"
+            with open(raw_path, "w") as f:
+                f.write(response_text)
             
         return response_text.strip().strip('"').strip("'")
 

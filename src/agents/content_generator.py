@@ -117,7 +117,7 @@ Global rules:
 """
 
     def generate_content(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig, logger: Optional[Any] = None
+        self, strategy: ContentStrategy, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None
     ) -> GeneratedContent:
         """
         Generate all text content for a post.
@@ -140,16 +140,16 @@ Cultural Context: {channel_config.cultural_context}
 ALWAYS maintain a consistent voice and follow the strategic angle provided."""
 
         # Generate slides with text overlays
-        slides = self._generate_slides(strategy, channel_config, system_prompt, logger)
+        slides = self._generate_slides(strategy, channel_config, system_prompt, raw_output_dir)
 
         # Generate caption
-        caption = self._generate_caption(strategy, channel_config, slides, system_prompt, logger)
+        caption = self._generate_caption(strategy, channel_config, slides, system_prompt, raw_output_dir)
 
         # Generate hashtags
-        hashtags = self._generate_hashtags(strategy, channel_config, system_prompt, logger)
+        hashtags = self._generate_hashtags(strategy, channel_config, system_prompt, raw_output_dir)
 
         # Generate call-to-action
-        cta = self._generate_smart_cta(strategy, channel_config, slides, system_prompt, logger)
+        cta = self._generate_smart_cta(strategy, channel_config, slides, system_prompt, raw_output_dir)
 
         return GeneratedContent(
             caption=caption,
@@ -159,7 +159,7 @@ ALWAYS maintain a consistent voice and follow the strategic angle provided."""
         )
 
     def _generate_slides(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str, logger: Optional[Any] = None
+        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str, raw_output_dir: Optional[Path] = None
     ) -> List[CarouselSlide]:
         """
         Generate text and image prompts for each slide.
@@ -223,8 +223,10 @@ Respond with ONLY the JSON, no other text.
 
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
         
-        if logger and hasattr(logger, 'log_raw_response'):
-            logger.log_raw_response("slides", response_text)
+        if raw_output_dir:
+            raw_path = raw_output_dir / "slides.txt"
+            with open(raw_path, "w") as f:
+                f.write(response_text)
         
         # Save raw response for debugging if it seems empty or short
         if not response_text or len(response_text) < 100:
@@ -286,7 +288,7 @@ Respond with ONLY the JSON, no other text.
         channel_config: ChannelConfig,
         slides: List[CarouselSlide],
         system_prompt: str,
-        logger: Optional[Any] = None,
+        raw_output_dir: Optional[Path] = None,
     ) -> str:
         """
         Generate Instagram caption.
@@ -337,13 +339,17 @@ You are writing an Instagram caption. Your goal is to be engaging and spark conv
 Write the caption now (no JSON, just the caption text):
 """
 
-        logging.getLogger(__name__).debug("Caption prompt:\n%s", prompt)
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
-        logging.getLogger(__name__).debug("Caption raw response:\n%s", response_text)
+        
+        if raw_output_dir:
+            raw_path = raw_output_dir / "caption.txt"
+            with open(raw_path, "w") as f:
+                f.write(response_text)
+            
         return response_text.strip()
 
     def _generate_hashtags(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str, logger: Optional[Any] = None
+        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str, raw_output_dir: Optional[Path] = None
     ) -> List[str]:
         """
         Generate relevant hashtags.
@@ -386,8 +392,10 @@ Respond with ONLY the JSON, no other text.
 
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
         
-        if logger and hasattr(logger, 'log_raw_response'):
-            logger.log_raw_response("hashtags", response_text)
+        if raw_output_dir:
+            raw_path = raw_output_dir / "hashtags.txt"
+            with open(raw_path, "w") as f:
+                f.write(response_text)
             
         hashtags_data = self._parse_json_response(response_text)
 
@@ -399,7 +407,7 @@ Respond with ONLY the JSON, no other text.
         channel_config: ChannelConfig,
         slides: List[CarouselSlide],
         system_prompt: str,
-        logger: Optional[Any] = None,
+        raw_output_dir: Optional[Path] = None,
     ) -> str:
         """Generate a content-specific, engaging CTA."""
 
@@ -432,8 +440,10 @@ Now, write the perfect CTA for THIS post. Respond with ONLY the CTA text.
 """
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
         
-        if logger and hasattr(logger, 'log_raw_response'):
-            logger.log_raw_response("cta", response_text)
+        if raw_output_dir:
+            raw_path = raw_output_dir / "cta.txt"
+            with open(raw_path, "w") as f:
+                f.write(response_text)
             
         return response_text.strip()
 
