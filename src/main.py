@@ -48,12 +48,12 @@ class ContentPipeline:
 
             # Phase 1: Content Strategy
             logger.logger.info("\n[Phase 1/4] Determining content strategy...")
-            strategy = self.strategist.plan_content(channel_config, topic_hint)
+            strategy = self.strategist.plan_content(channel_config, topic_hint, logger)
             logger.log_strategy(strategy)
 
             # Phase 2: Content Generation
             logger.logger.info("\n[Phase 2/4] Generating content...")
-            content = self.generator.generate_content(strategy, channel_config)
+            content = self.generator.generate_content(strategy, channel_config, logger)
             logger.log_content(content)
 
             # Phase 3: Image Generation

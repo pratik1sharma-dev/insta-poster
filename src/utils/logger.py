@@ -31,6 +31,9 @@ class ContentLogger:
         self.images_dir = self.base_dir / "images"
         self.images_dir.mkdir(exist_ok=True)
 
+        self.raw_dir = self.base_dir / "ai_responses"
+        self.raw_dir.mkdir(exist_ok=True)
+
         # Setup Python logging
         self.logger = logging.getLogger(f"ContentLogger.{channel_name}")
         self.logger.setLevel(getattr(logging, settings.log_level.upper()))
@@ -104,6 +107,20 @@ class ContentLogger:
             f.write(" ".join(content.hashtags))
             f.write("\n\n")
             f.write(content.call_to_action)
+
+    def log_raw_response(self, step_name: str, response_text: str) -> None:
+        """
+        Log raw AI response for debugging.
+
+        Args:
+            step_name: Name of the generation step (e.g., 'strategy', 'slides')
+            response_text: Raw text from the LLM
+        """
+        raw_path = self.raw_dir / f"{step_name}.txt"
+        with open(raw_path, "w") as f:
+            f.write(response_text)
+
+        self.logger.debug(f"Saved raw AI response for '{step_name}' to {raw_path}")
 
     def log_image_generation(self, slide_number: int, image_path: Path) -> None:
         """

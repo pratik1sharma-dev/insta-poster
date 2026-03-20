@@ -83,7 +83,7 @@ class ContentStrategist:
         return ""
 
     def plan_content(
-        self, channel_config: ChannelConfig, topic_hint: Optional[str] = None
+        self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, logger: Optional[Any] = None
     ) -> ContentStrategy:
         """
         Plan content strategy for a post.
@@ -91,6 +91,7 @@ class ContentStrategist:
         Args:
             channel_config: Channel configuration
             topic_hint: Optional specific topic to use (overrides AI selection)
+            logger: Optional logger to record raw responses
 
         Returns:
             ContentStrategy with all decisions
@@ -100,7 +101,7 @@ class ContentStrategist:
             topic = topic_hint
         elif channel_config.allow_ai_discovery and random.random() < 0.3:
             # 30% chance to discover new topic
-            topic = self._discover_topic(channel_config)
+            topic = self._discover_topic(channel_config, logger)
         else:
             # Select from curated list
             topic = random.choice(channel_config.curated_topics)
@@ -115,22 +116,24 @@ Your goal is to create content that stops the scroll and engages the audience.
 ALWAYS respond in valid JSON format.
 """
         prompt = self._build_strategy_prompt(channel_config, topic)
-        logger.debug("Strategy prompt:\n%s", prompt)
         
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
-        logger.debug("Strategy raw response:\n%s", response_text)
+        
+        if logger:
+            logger.log_raw_response("strategy", response_text)
 
         # Parse strategy from response
         strategy = self._parse_strategy_response(response_text, topic)
 
         return strategy
 
-    def _discover_topic(self, channel_config: ChannelConfig) -> str:
+    def _discover_topic(self, channel_config: ChannelConfig, logger: Optional[Any] = None) -> str:
         """
         Use AI to discover a new trending topic.
 
         Args:
             channel_config: Channel configuration
+            logger: Optional logger
 
         Returns:
             New topic suggestion
@@ -152,9 +155,11 @@ The topic should be:
 Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name").
 """
 
-        logger.debug("Topic discovery prompt:\n%s", prompt)
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
-        logger.debug("Topic discovery raw response:\n%s", response_text)
+        
+        if logger:
+            logger.log_raw_response("discovery", response_text)
+            
         return response_text.strip().strip('"').strip("'")
 
     def _build_strategy_prompt(self, channel_config: ChannelConfig, topic: str) -> str:
