@@ -44,20 +44,9 @@
     <div class="overlay"></div>
     <div class="brand">{{ channel_name }}</div>
     <div class="content">
-        {% set parts = text_overlay.split('vs') %}
-        {% if parts|length > 1 %}
-            <div class="side">
-                <div class="side-value">{{ parts[0].strip() }}</div>
-            </div>
-            <div class="divider"></div>
-            <div class="side">
-                <div class="side-value">{{ parts[1].strip() }}</div>
-            </div>
-        {% else %}
-            <div class="side" style="width: 100%;">
-                <div class="side-value">{{ text_overlay }}</div>
-            </div>
-        {% endif %}
+        <div class="side" style="width: 100%;">
+            <div class="side-value">{{ text_overlay }}</div>
+        </div>
     </div>
 </body>
 </html>

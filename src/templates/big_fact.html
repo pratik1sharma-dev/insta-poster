@@ -40,13 +40,7 @@
     <div class="overlay"></div>
     <div class="brand">{{ channel_name }}</div>
     <div class="content">
-        {% set parts = text_overlay.split(':') %}
-        {% if parts|length > 1 %}
-            <div class="main-text">{{ parts[0] }}</div>
-            <div class="sub-text">{{ parts[1:]|join(':') }}</div>
-        {% else %}
-            <div class="main-text">{{ text_overlay }}</div>
-        {% endif %}
+        <div class="main-text">{{ text_overlay }}</div>
     </div>
 </body>
 </html>

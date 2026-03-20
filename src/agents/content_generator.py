@@ -195,17 +195,13 @@ You are the Creative Director and Lead Researcher. Your goal is to create a 6-10
 1. **The Journey:** Use the Visual Metaphor ({strategy.visual_metaphor}) to take the reader from a curiosity-driven Hook to a high-impact conclusion.
 2. **Value Density (CRITICAL):** Do not be vague. Use your internal knowledge to provide specific names, numbers, and facts. If the topic is "The Top 5...", name all 5. Every slide must teach the reader something they didn't know.
 3. **The Balance:** Balance the storytelling (narrative flow) with the raw information. The slides should feel connected, like turning the pages of a well-researched book.
-4. **Visual Choice:** You have full judge-like authority to select the **Template** and **Background Style** that best delivers the message of each slide.
-
-**Formatting Rules:**
-- `big_fact`: Use `KEY STAT: Brief context` (The part before the colon is massive).
-- `split_comparison`: Use `A vs B`.
-- `standard`: Conversational sentences under 15 words.
+4. **Visual Choice:** You have full authority to select the **Template** and **Background Style** that best delivers the message of each slide. 
 
 **Guidelines:**
-- Be punchy and professional.
-- Reference the visual metaphor in your writing.
-- Every slide must reinforce the Angle: "{strategy.angle}".
+- **Value Density:** Provide specific names, numbers, and facts. Name every item in a list.
+- **Narrative Flow:** Ensure the slides tell a connected story from start to finish.
+- **Text Only:** The `text_overlay` must contain ONLY the words for the slide—no labels or meta-text.
+- **Angle Alignment:** Every slide must reinforce the Angle: "{strategy.angle}".
 
 **Output Format (JSON):**
 {{
