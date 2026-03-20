@@ -189,30 +189,24 @@ You are creating an Instagram carousel post.
 - Audience Insight: {strategy.target_audience_insight}
 
 **Your Task:**
-Create {strategy.carousel_length} slides with text overlays and image prompts that argue for the post's unique **Angle**.
-For each slide, you must also select a **Template** and a **Background Style**.
+Craft a compelling 6-10 slide narrative journey for this topic. 
+You must use the **Visual Metaphor** ({strategy.visual_metaphor}) as the "soul" of your writing. The text and the visuals must feel like they were created by the same mind.
 
-**Available Templates:**
-- `standard`: Balanced text centered in the middle. Good for general points.
-- `big_fact`: One massive number or short phrase with a small explanatory subtext. Use this for shocking statistics or key terms.
-- `split_comparison`: A layout designed to compare two things (e.g., "This vs That").
-- `cta`: A layout specifically designed for the final call to action.
+**Narrative Strategy:**
+1. **The Hook (Slide 1):** Stop the scroll by introducing the visual metaphor and the "Spiky Angle."
+2. **The Journey (Slides 2-5):** Do not just list facts. Build a story. Elaborate on the visual metaphor. If Slide 1 introduces a "Race," Slide 2 should talk about the "Starting Line," and Slide 3 about the "Unexpected Obstacle."
+3. **The Connection:** Every text overlay must feel like a caption for the *specific* image being generated.
+4. **The Climax/Aha! Moment:** Slide 5 should be the most impactful insight, surprising truth, or shocking revelation that perfectly embodies the **Channel Theme**. This is the peak of your narrative journey.
+5. **The Resolution (Slide 6):** Bring the metaphor to a close and call for action.
 
-**Available Background Styles:**
-- `solid`: Clean, flat brand color.
-- `gradient`: A sophisticated gradient for a more premium look.
-- `blurred_hook`: Uses a blurred version of the AI art from Slide 1 as the background. Great for visual continuity.
-
-**Slide Breakdown:**
-- Slide 1: HOOK - Selection: AI image generation. Use `standard` template.
-- Slides 2-{strategy.carousel_length - 1}: CONTENT - Choose the best template for the data.
-- Slide {strategy.carousel_length}: CTA - Use the `cta` template.
+**Visual & Layout Freedom:**
+- You have full control over which **Template** and **Background Style** to use for each slide. 
+- Match the template to the "weight" of the words. (e.g., Use `big_fact` for the punchline).
 
 **Guidelines:**
-1. Text overlays should be SHORT and PUNCHY (max 10-15 words).
-2. Every slide MUST relate back to and reinforce the core **Angle**.
-3. Use emojis sparingly.
-4. Image prompts should describe the visual style in detail.
+- Text overlays should be punchy and conversational.
+- Reference the visual metaphor in your word choices (e.g., if the metaphor is "Growth", use words like "roots," "bloom," "soil").
+- Ensure the transition between slides feels like turning pages in a book.
 
 **Output Format (JSON):**
 {{
