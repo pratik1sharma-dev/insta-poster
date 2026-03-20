@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Slide</title>
+    <!-- Preconnect to Google Fonts for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Load Montserrat font (Bold for impact, Regular for subtext if needed) -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            /* Exactly Instagram square dimensions */
+            width: 1080px;
+            height: 1080px;
+            /* Dynamic background color from Python */
+            background-color: {{ bg_color }};
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Montserrat', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle gradient overlay to make it look premium */
+        .gradient-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 100% 100%, rgba(255,255,255,0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 0% 0%, rgba(255,255,255,0.08) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .content-container {
+            width: 80%; /* Leave 10% padding on sides */
+            max-height: 80%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .text-overlay {
+            /* Dynamic text color from Python */
+            color: {{ text_color }};
+            /* Responsive font sizing based on string length could be handled in python, 
+               but CSS clamp/vw is also an option. We'll use a solid default for 10-15 words. */
+            font-size: 85px; 
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            /* Optional: subtle text shadow for better contrast against lighter backgrounds */
+            text-shadow: 0px 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Slide Number Indicator (Optional but professional) */
+        .slide-indicator {
+            position: absolute;
+            bottom: 60px;
+            color: {{ text_color }};
+            font-size: 32px;
+            font-weight: 700;
+            opacity: 0.6;
+            z-index: 2;
+            letter-spacing: 0.1em;
+        }
+
+        /* Brand/Channel Name (Optional) */
+        .brand-name {
+            position: absolute;
+            top: 60px;
+            color: {{ text_color }};
+            font-size: 28px;
+            font-weight: 700;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="gradient-overlay"></div>
+    
+    <div class="brand-name">{{ channel_name }}</div>
+
+    <div class="content-container">
+        <h1 class="text-overlay">{{ text_overlay }}</h1>
+    </div>
+
+    <div class="slide-indicator">{{ current_slide }} / {{ total_slides }}</div>
+</body>
+</html>

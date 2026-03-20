@@ -60,7 +60,7 @@ class ContentPipeline:
             logger.logger.info("\n[Phase 3/4] Generating images...")
             images_dir = logger.get_images_dir()
             image_paths = self.image_generator.generate_carousel(
-                content, strategy, images_dir
+                content, strategy, images_dir, channel_name
             )
 
             for i, image_path in enumerate(image_paths, 1):
