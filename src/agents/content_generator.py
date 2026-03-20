@@ -337,9 +337,9 @@ You are writing an Instagram caption. Your goal is to be engaging and spark conv
 Write the caption now (no JSON, just the caption text):
 """
 
-        logger.debug("Caption prompt:\n%s", prompt)
+        logging.getLogger(__name__).debug("Caption prompt:\n%s", prompt)
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
-        logger.debug("Caption raw response:\n%s", response_text)
+        logging.getLogger(__name__).debug("Caption raw response:\n%s", response_text)
         return response_text.strip()
 
     def _generate_hashtags(

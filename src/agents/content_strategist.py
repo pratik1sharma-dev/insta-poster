@@ -117,6 +117,12 @@ ALWAYS respond in valid JSON format.
 """
         prompt = self._build_strategy_prompt(channel_config, topic)
         
+        if logger:
+            if hasattr(logger, 'logger'):
+                logger.logger.debug("Strategy prompt:\n%s", prompt)
+            else:
+                logger.debug("Strategy prompt:\n%s", prompt)
+        
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
         
         if logger:
