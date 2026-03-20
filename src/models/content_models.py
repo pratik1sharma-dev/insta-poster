@@ -55,7 +55,7 @@ class ContentStrategy(BaseModel):
     carousel_length: int = Field(ge=3, le=10)
     visual_metaphor: str  # The unifying visual theme for the carousel
     color_palette: Union[str, Dict[str, str]]
-    typography_style: str
+    typography_style: Union[str, Dict[str, str]]
     target_audience_insight: str
     reasoning: Optional[str] = None  # Why this strategy was chosen
 
