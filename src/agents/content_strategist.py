@@ -5,7 +5,7 @@ import json
 import random
 import logging
 import time
-from typing import Optional
+from typing import Optional, Any
 from google import genai
 import replicate
 from replicate.exceptions import ReplicateError
