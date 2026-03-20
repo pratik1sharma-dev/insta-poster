@@ -44,8 +44,8 @@ class ImageGenerator:
 
         # Initialize HTML Renderer
         self.hti = Html2Image(size=(1080, 1080))
-        # Optional: Disable sandbox if running as root on a server
-        # self.hti.browser.flags = ['--no-sandbox', '--disable-setuid-sandbox']
+        # Add flags for Linux server environment (running as root)
+        self.hti.browser.flags = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--hide-scrollbars']
 
     def _extract_primary_color(self, color_palette: str) -> str:
         """Attempt to extract a primary hex or CSS color from the strategy text."""
