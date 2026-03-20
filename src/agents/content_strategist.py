@@ -83,7 +83,7 @@ class ContentStrategist:
         return ""
 
     def plan_content(
-        self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, raw_output_dir: Optional[Path] = None
+        self, channel_config: ChannelConfig, topic_hint: Optional[str] = None
     ) -> ContentStrategy:
         """
         Plan content strategy for a post.
@@ -91,7 +91,6 @@ class ContentStrategist:
         Args:
             channel_config: Channel configuration
             topic_hint: Optional specific topic to use (overrides AI selection)
-            raw_output_dir: Optional directory to save raw AI responses
 
         Returns:
             ContentStrategy with all decisions
@@ -101,7 +100,7 @@ class ContentStrategist:
             topic = topic_hint
         elif channel_config.allow_ai_discovery and random.random() < 0.3:
             # 30% chance to discover new topic
-            topic = self._discover_topic(channel_config, raw_output_dir)
+            topic = self._discover_topic(channel_config)
         else:
             # Select from curated list
             topic = random.choice(channel_config.curated_topics)
@@ -117,27 +116,20 @@ ALWAYS respond in valid JSON format.
 """
         prompt = self._build_strategy_prompt(channel_config, topic)
         
-        logger.debug(f"Strategy prompt for '{topic}':\n{prompt}")
-        
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
-        
-        if raw_output_dir:
-            raw_path = raw_output_dir / "strategy.txt"
-            with open(raw_path, "w") as f:
-                f.write(response_text)
+        logging.getLogger(__name__).debug(f"RAW STRATEGY RESPONSE:\n{response_text}")
 
         # Parse strategy from response
         strategy = self._parse_strategy_response(response_text, topic)
 
         return strategy
 
-    def _discover_topic(self, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None) -> str:
+    def _discover_topic(self, channel_config: ChannelConfig) -> str:
         """
         Use AI to discover a new trending topic.
 
         Args:
             channel_config: Channel configuration
-            raw_output_dir: Optional directory to save raw response
 
         Returns:
             New topic suggestion
@@ -160,11 +152,7 @@ Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name"
 """
 
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
-        
-        if raw_output_dir:
-            raw_path = raw_output_dir / "discovery.txt"
-            with open(raw_path, "w") as f:
-                f.write(response_text)
+        logging.getLogger(__name__).debug(f"RAW DISCOVERY RESPONSE:\n{response_text}")
             
         return response_text.strip().strip('"').strip("'")
 
