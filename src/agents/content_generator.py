@@ -236,11 +236,17 @@ Respond with ONLY the JSON, no other text.
         slides_data = self._parse_json_response(response_text)
 
         purpose_map = {
+            "hook": "hook",
+            "intro": "intro",
+            "introduction": "intro",
+            "content": "content",
+            "journey": "journey",
+            "climax": "climax",
+            "resolution": "resolution",
+            "conclusion": "conclusion",
+            "cta": "cta",
             "call-to-action": "cta",
             "call_to_action": "cta",
-            "cta": "cta",
-            "hook": "hook",
-            "content": "content",
         }
 
         slides = []
@@ -250,14 +256,19 @@ Respond with ONLY the JSON, no other text.
             # Normalize common variants
             if purpose_raw in purpose_map:
                 purpose = purpose_map[purpose_raw]
-            elif purpose_raw.startswith("content"):
-                purpose = "content"
-            elif purpose_raw.startswith("hook"):
+            elif "hook" in purpose_raw:
                 purpose = "hook"
-            elif "call" in purpose_raw and ("action" in purpose_raw or "cta" in purpose_raw):
+            elif "intro" in purpose_raw:
+                purpose = "intro"
+            elif "content" in purpose_raw:
+                purpose = "content"
+            elif "cta" in purpose_raw or "action" in purpose_raw:
                 purpose = "cta"
+            elif "climax" in purpose_raw or "aha" in purpose_raw:
+                purpose = "climax"
             else:
-                purpose = purpose_raw
+                # Default to content if we really don't know
+                purpose = "content"
             slides.append(
                 CarouselSlide(
                     slide_number=slide_data["slide_number"],

@@ -20,10 +20,12 @@ class HookType(str, Enum):
 class SlidePurpose(str, Enum):
     """Purpose of each slide in the carousel."""
     HOOK = "hook"
+    INTRO = "intro"
     CONTENT = "content"
     JOURNEY = "journey"
     CLIMAX = "climax"
     RESOLUTION = "resolution"
+    CONCLUSION = "conclusion"
     CTA = "cta"
 
 
