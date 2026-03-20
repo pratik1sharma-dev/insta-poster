@@ -48,21 +48,26 @@ class ImageGenerator:
         # Add flags for Linux server environment (running as root)
         self.hti.browser.flags = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--hide-scrollbars']
 
-    def _extract_primary_color(self, color_palette: str) -> str:
-        """Attempt to extract a primary hex or CSS color from the strategy text."""
-        # Try to find a hex code (e.g., #FFFFFF or #FFF)
-        hex_match = re.search(r'#(?:[0-9a-fA-F]{3}){1,2}', color_palette)
+    def _extract_primary_color(self, color_palette: Union[str, dict]) -> str:
+        """Attempt to extract a primary hex or CSS color from the strategy text or dict."""
+        # If it's a dictionary, look for background or primary keys
+        if isinstance(color_palette, dict):
+            return color_palette.get('background') or color_palette.get('primary') or "#111827"
+
+        # If it's a string, try to find a hex code (e.g., #FFFFFF or #FFF)
+        hex_match = re.search(r'#(?:[0-9a-fA-F]{3}){1,2}', str(color_palette))
         if hex_match:
             return hex_match.group(0)
 
         # Fallback to keyword matching
-        if "blue" in color_palette.lower():
+        palette_str = str(color_palette).lower()
+        if "blue" in palette_str:
             return "#0f172a" # Deep Slate Blue
-        elif "green" in color_palette.lower():
+        elif "green" in palette_str:
             return "#064e3b" # Deep Emerald
-        elif "red" in color_palette.lower():
+        elif "red" in palette_str:
             return "#7f1d1d" # Deep Red
-        elif "purple" in color_palette.lower():
+        elif "purple" in palette_str:
             return "#4c1d95"
         return "#111827" # Default Dark Gray/Black
 

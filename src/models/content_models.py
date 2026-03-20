@@ -3,7 +3,7 @@ Pydantic models for content generation and publishing.
 """
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Union, Dict
 from pydantic import BaseModel, Field
 
 
@@ -52,7 +52,7 @@ class ContentStrategy(BaseModel):
     hook_type: HookType
     carousel_length: int = Field(ge=3, le=10)
     visual_metaphor: str  # The unifying visual theme for the carousel
-    color_palette: str
+    color_palette: Union[str, Dict[str, str]]
     typography_style: str
     target_audience_insight: str
     reasoning: Optional[str] = None  # Why this strategy was chosen
