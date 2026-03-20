@@ -5,6 +5,7 @@ import json
 import random
 import logging
 import time
+from pathlib import Path
 from typing import Optional, Any
 from google import genai
 import replicate
@@ -83,7 +84,7 @@ class ContentStrategist:
         return ""
 
     def plan_content(
-        self, channel_config: ChannelConfig, topic_hint: Optional[str] = None
+        self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, raw_output_dir: Optional[Path] = None
     ) -> ContentStrategy:
         """
         Plan content strategy for a post.
@@ -100,36 +101,42 @@ class ContentStrategist:
             topic = topic_hint
         elif channel_config.allow_ai_discovery and random.random() < 0.3:
             # 30% chance to discover new topic
-            topic = self._discover_topic(channel_config)
+            topic = self._discover_topic(channel_config, raw_output_dir)
         else:
             # Select from curated list
             topic = random.choice(channel_config.curated_topics)
 
         # Use LLM to determine optimal strategy
-        system_prompt = f"""You are an Instagram content expert.
-Your goal is to create content that stops the scroll and engages the audience.
+        system_prompt = f"""You are the Lead Content Strategist for '{channel_config.name}'.
+Your Mission: {channel_config.brand_mission or channel_config.theme}
+Your Audience: {channel_config.target_audience}
+Your Tone: {channel_config.tone}
 
-**Channel:** {channel_config.theme}
-**Target Audience:** {channel_config.target_audience}
-
-ALWAYS respond in valid JSON format.
+Your goal is to stop the scroll and provide massive value. ALWAYS respond in valid JSON.
 """
         prompt = self._build_strategy_prompt(channel_config, topic)
         
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
-        logging.getLogger(__name__).debug(f"RAW STRATEGY RESPONSE:\n{response_text}")
+        
+        if raw_output_dir:
+            try:
+                with open(raw_output_dir / "strategy.txt", "w") as f:
+                    f.write(response_text)
+            except Exception as e:
+                logging.getLogger(__name__).error(f"Failed to save raw strategy: {e}")
 
         # Parse strategy from response
         strategy = self._parse_strategy_response(response_text, topic)
 
         return strategy
 
-    def _discover_topic(self, channel_config: ChannelConfig) -> str:
+    def _discover_topic(self, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None) -> str:
         """
         Use AI to discover a new trending topic.
 
         Args:
             channel_config: Channel configuration
+            raw_output_dir: Optional directory to save raw response
 
         Returns:
             New topic suggestion
@@ -152,7 +159,13 @@ Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name"
 """
 
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
-        logging.getLogger(__name__).debug(f"RAW DISCOVERY RESPONSE:\n{response_text}")
+        
+        if raw_output_dir:
+            try:
+                with open(raw_output_dir / "discovery.txt", "w") as f:
+                    f.write(response_text)
+            except Exception as e:
+                logging.getLogger(__name__).error(f"Failed to save raw discovery: {e}")
             
         return response_text.strip().strip('"').strip("'")
 
