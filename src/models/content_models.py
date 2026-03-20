@@ -64,6 +64,8 @@ class CarouselSlide(BaseModel):
     purpose: SlidePurpose
     text_overlay: str
     image_prompt: str
+    template_name: str = "standard"  # e.g., standard, big_fact, split_comparison, cta
+    background_style: str = "solid"  # e.g., solid, gradient, blurred_hook
     design_notes: Optional[str] = None
 
     class Config:

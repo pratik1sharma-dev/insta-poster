@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            width: 1080px; height: 1080px; margin: 0; display: flex; justify-content: center; align-items: center;
+            font-family: 'Montserrat', sans-serif; background-color: {{ bg_color }}; color: {{ text_color }};
+            position: relative; overflow: hidden;
+        }
+        .bg-image {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;
+        }
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2;
+            {% if bg_style == 'gradient' %}
+            background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, transparent 100%);
+            {% endif %}
+        }
+        .content {
+            width: 85%; text-align: center; z-index: 3;
+            font-size: 80px; font-weight: 800; line-height: 1.2; text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .brand { position: absolute; top: 60px; font-size: 28px; font-weight: 700; text-transform: uppercase; z-index: 3; opacity: 0.8; }
+        .footer { position: absolute; bottom: 60px; font-size: 32px; font-weight: 700; z-index: 3; opacity: 0.6; }
+    </style>
+</head>
+<body>
+    {% if bg_style == 'blurred_hook' %}<img src="{{ bg_image_b64 }}" class="bg-image">{% endif %}
+    <div class="overlay"></div>
+    <div class="brand">{{ channel_name }}</div>
+    <div class="content">{{ text_overlay }}</div>
+    <div class="footer">{{ current_slide }} / {{ total_slides }}</div>
+</body>
+</html>

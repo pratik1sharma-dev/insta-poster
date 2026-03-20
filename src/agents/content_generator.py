@@ -190,19 +190,29 @@ You are creating an Instagram carousel post.
 
 **Your Task:**
 Create {strategy.carousel_length} slides with text overlays and image prompts that argue for the post's unique **Angle**.
+For each slide, you must also select a **Template** and a **Background Style**.
+
+**Available Templates:**
+- `standard`: Balanced text centered in the middle. Good for general points.
+- `big_fact`: One massive number or short phrase with a small explanatory subtext. Use this for shocking statistics or key terms.
+- `split_comparison`: A layout designed to compare two things (e.g., "This vs That").
+- `cta`: A layout specifically designed for the final call to action.
+
+**Available Background Styles:**
+- `solid`: Clean, flat brand color.
+- `gradient`: A sophisticated gradient for a more premium look.
+- `blurred_hook`: Uses a blurred version of the AI art from Slide 1 as the background. Great for visual continuity.
 
 **Slide Breakdown:**
-- Slide 1: HOOK - Introduce the Angle using a {strategy.hook_type} approach.
-- Slides 2-{strategy.carousel_length - 1}: CONTENT - Each slide must provide a point, fact, or example that supports the Angle.
-- Slide {strategy.carousel_length}: CTA - A call-to-action related to the Angle.
+- Slide 1: HOOK - Selection: AI image generation. Use `standard` template.
+- Slides 2-{strategy.carousel_length - 1}: CONTENT - Choose the best template for the data.
+- Slide {strategy.carousel_length}: CTA - Use the `cta` template.
 
 **Guidelines:**
 1. Text overlays should be SHORT and PUNCHY (max 10-15 words).
 2. Every slide MUST relate back to and reinforce the core **Angle**.
-3. Where appropriate, use examples or analogies relevant to the **Cultural Context** to make the content more relatable.
-4. Use emojis sparingly (only where they add value).
-5. Image prompts should describe the visual style in detail.
-6. Maintain a consistent visual theme across all slides.
+3. Use emojis sparingly.
+4. Image prompts should describe the visual style in detail.
 
 **Output Format (JSON):**
 {{
@@ -210,9 +220,10 @@ Create {strategy.carousel_length} slides with text overlays and image prompts th
     {{
       "slide_number": 1,
       "purpose": "hook",
-      "text_overlay": "The hook text here, introducing the angle.",
-      "image_prompt": "Detailed description for image generation that matches the angle and hook.",
-      "design_notes": "Optional notes about design choices"
+      "text_overlay": "The hook text",
+      "image_prompt": "Detailed AI art prompt",
+      "template_name": "standard",
+      "background_style": "solid"
     }},
     ...
   ]
@@ -260,6 +271,8 @@ Respond with ONLY the JSON, no other text.
                     purpose=SlidePurpose(purpose),
                     text_overlay=slide_data["text_overlay"],
                     image_prompt=slide_data["image_prompt"],
+                    template_name=slide_data.get("template_name", "standard"),
+                    background_style=slide_data.get("background_style", "solid"),
                     design_notes=slide_data.get("design_notes"),
                 )
             )

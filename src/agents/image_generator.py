@@ -2,6 +2,7 @@
 Image Generator Agent - Creates carousel images using Gemini or Replicate.
 """
 
+import base64
 from pathlib import Path
 from typing import List, Optional
 import logging
@@ -14,7 +15,7 @@ from google import genai as genai_client
 from google.genai import types
 import replicate
 from replicate.exceptions import ReplicateError
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from jinja2 import Template
 from html2image import Html2Image
@@ -79,24 +80,16 @@ class ImageGenerator:
         text_color = self._extract_text_color(bg_color)
 
         style_context = self._build_style_context(strategy, total_slides)
-
-        # Load HTML Template
-        template_path = Path("src/templates/slide.html")
-        if template_path.exists():
-            with open(template_path, "r") as f:
-                template_str = f.read()
-            jinja_template = Template(template_str)
-        else:
-            logger.warning("HTML template not found, falling back to AI for all slides.")
-            jinja_template = None
+        
+        # Keep track of Slide 1 path for blurred background
+        hook_image_path = None
 
         for slide in content.slides:
             image_path = output_dir / f"slide_{slide.slide_number:02d}.png"
 
             # Slide 1: AI Hook Image
-            # OR if no template is found, use AI for all.
-            if slide.slide_number == 1 or not jinja_template:
-                logger.info("Generating AI Hook Image for slide %s...", slide.slide_number)
+            if slide.slide_number == 1:
+                logger.info(f"[Slide 1] Generating AI Hook Image: {strategy.topic}")
                 
                 prompt = self._build_slide_prompt(
                     slide.image_prompt,
@@ -120,7 +113,7 @@ class ImageGenerator:
                                 response_modalities=["IMAGE"]
                             ),
                         )
-                        self._save_gemini_image(response, slide.slide_number, output_dir)
+                        hook_image_path = self._save_gemini_image(response, slide.slide_number, output_dir)
                     
                     elif self.provider == "replicate":
                         max_retries = 3
@@ -157,19 +150,56 @@ class ImageGenerator:
                             raise RuntimeError(f"Failed to generate image for slide {slide.slide_number} after retries")
 
                         image_url = output[0] if isinstance(output, list) else str(output)
-                        self._save_replicate_image(image_url, slide.slide_number, output_dir)
+                        hook_image_path = self._save_replicate_image(image_url, slide.slide_number, output_dir)
 
-                    image_paths.append(image_path)
+                    if hook_image_path:
+                        image_paths.append(hook_image_path)
                 
                 except Exception as e:
                     logger.error("Failed to generate AI image for slide %s: %s", slide.slide_number, e)
 
             # Slides 2+: HTML/CSS Templated Images
             else:
-                logger.info("Rendering HTML template for slide %s...", slide.slide_number)
+                template_name = slide.template_name if slide.template_name else "standard"
+                bg_style = slide.background_style if slide.background_style else "solid"
+                
+                logger.info(f"[Slide {slide.slide_number}] Rendering text '{slide.text_overlay[:30]}...' into '{template_name}' template with '{bg_style}' background")
+                
                 try:
+                    # Load template
+                    template_file = Path(f"src/templates/{template_name}.html")
+                    if not template_file.exists():
+                        # Fallback to standard
+                        template_file = Path("src/templates/standard.html")
+                        if not template_file.exists():
+                            # Fallback to generic slide.html if created earlier
+                            template_file = Path("src/templates/slide.html")
+                    
+                    with open(template_file, "r") as f:
+                        jinja_template = Template(f.read())
+
+                    # Prepare background data
+                    bg_data = {"type": bg_style, "value": bg_color}
+                    if bg_style == "blurred_hook" and hook_image_path and hook_image_path.exists():
+                        # Create blurred background
+                        with Image.open(hook_image_path) as img:
+                            # Apply blur and darken
+                            bg_img = img.filter(ImageFilter.GaussianBlur(radius=40))
+                            # Add dark overlay
+                            from PIL import ImageEnhance
+                            enhancer = ImageEnhance.Brightness(bg_img)
+                            bg_img = enhancer.enhance(0.4)
+                            
+                            # Convert to base64
+                            buffered = io.BytesIO()
+                            bg_img.save(buffered, format="PNG")
+                            img_str = base64.b64encode(buffered.getvalue()).decode()
+                            bg_data["image_b64"] = f"data:image/png;base64,{img_str}"
+
                     html_content = jinja_template.render(
                         bg_color=bg_color,
+                        bg_style=bg_style,
+                        bg_image_b64=bg_data.get("image_b64"),
                         text_color=text_color,
                         channel_name=channel_name,
                         text_overlay=slide.text_overlay,
@@ -177,21 +207,18 @@ class ImageGenerator:
                         total_slides=total_slides
                     )
                     
-                    # html2image requires saving to current dir first, so we use a temp name then move it
                     temp_name = f"temp_slide_{slide.slide_number}.png"
                     self.hti.screenshot(html_str=html_content, save_as=temp_name)
                     
-                    # Move to output dir
                     temp_path = Path(temp_name)
                     if temp_path.exists():
                         temp_path.replace(image_path)
                         image_paths.append(image_path)
-                        logger.info("Successfully rendered HTML for slide %s", slide.slide_number)
                     else:
                         raise FileNotFoundError("html2image failed to create the file.")
 
                 except Exception as e:
-                    logger.error("Failed to render HTML for slide %s: %s", slide.slide_number, e)
+                    logger.error(f"Failed to render HTML for slide {slide.slide_number}: {e}")
 
         return image_paths
 
