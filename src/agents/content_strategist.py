@@ -137,10 +137,21 @@ Your Mission: {channel_config.brand_mission or channel_config.theme}
 Your Audience: {channel_config.target_audience}
 Your Tone: {channel_config.tone}
 
+**LOGIC DIRECTIVE (CRITICAL):**
+- DO NOT use "False Tension". Never call a top-5 global company an "underdog," "pawn," or "scrappy rebel." 
+- Base your strategy on verifiable logic. If comparing titans, focus on efficiency, growth rates, or profit-per-employee rather than "David vs Goliath" fantasies.
+
 Your goal is to stop the scroll and provide massive value. ALWAYS respond in valid JSON.
 """
         prompt = self._build_strategy_prompt(channel_config, topic)
         
+        if raw_output_dir:
+            try:
+                with open(raw_output_dir / "strategy_PROMPT.txt", "w") as f:
+                    f.write(f"SYSTEM PROMPT:\n{system_prompt}\n\nUSER PROMPT:\n{prompt}")
+            except Exception as e:
+                logging.getLogger(__name__).error(f"Failed to save strategy prompt: {e}")
+
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
         
         if raw_output_dir:

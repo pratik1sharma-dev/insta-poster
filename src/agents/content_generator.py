@@ -217,6 +217,11 @@ You are creating an Instagram carousel post.
 **Your Task:**
 You are the Creative Director and Lead Researcher. Your goal is to create exactly {strategy.carousel_length} slides that tell a complete, high-value story. Do not stop early.
 
+**DATA INTEGRITY (MANDATORY):**
+- DO NOT invent numbers, growth percentages, or valuations.
+- Use only facts from verifiable reports (Brand Finance, Interbrand, etc).
+- If you state a number, you must include the source (e.g., "Source: Interbrand 2024").
+
 **The "Master Brief" for this Post:**
 1. **The Journey:** Use the Visual Metaphor ({strategy.visual_metaphor}) to take the reader from a curiosity-driven Hook to a high-impact conclusion.
 2. **Value Density (CRITICAL):** Do not be vague. Use your internal knowledge to provide specific names, numbers, and facts. If the topic is "The Top 5...", name all 5. Every slide must teach the reader something they didn't know.
@@ -248,6 +253,13 @@ You are the Creative Director and Lead Researcher. Your goal is to create exactl
 
 Respond with ONLY the JSON, no other text.
 """
+
+        if raw_output_dir:
+            try:
+                with open(raw_output_dir / "slides_PROMPT.txt", "w") as f:
+                    f.write(f"SYSTEM PROMPT:\n{system_prompt}\n\nUSER PROMPT:\n{prompt}")
+            except Exception as e:
+                logging.getLogger(__name__).error(f"Failed to save slides prompt: {e}")
 
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
         
