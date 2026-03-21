@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.1-70b-versatile"
 
+    # Tavily Search API
+    tavily_api_key: str = ""
+
     # Content Generation
     image_provider: str = "replicate"  # 'gemini' or 'replicate'
     llm_provider: str = "groq"         # 'gemini', 'replicate', or 'groq'
