@@ -6,7 +6,7 @@
     <style>
         * { box-sizing: border-box; }
         html, body {
-            width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+            width: 1080px; height: 1080px; margin: 0; padding: 0; overflow: hidden;
             background-color: {{ bg_color }};
         }
         body {
@@ -15,33 +15,33 @@
             color: {{ text_color }};
             position: relative;
         }
-        /* Background Layer Stack - Use viewport units to ensure full stretch */
+        /* Background Layer Stack - Force exact pixels to prevent gaps */
         .bg-base {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: linear-gradient(135deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 100%);
+            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px;
+            background-image: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 100%);
             z-index: 1;
         }
         .bg-image {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 2;
+            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; object-fit: cover; z-index: 2;
         }
         .overlay {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 3;
+            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; z-index: 3;
             background: rgba(0,0,0,0.2);
         }
         /* Grainy Texture Overlay */
         body::before {
-            content: ""; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            content: ""; position: absolute; top: 0; left: 0; width: 1080px; height: 1080px;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
             opacity: 0.05; pointer-events: none; z-index: 10;
         }
-        /* Glassmorphism Container */
+        /* Glassmorphism Container with Safe Zone Padding */
         .content {
-            width: 85%; 
-            max-height: 75%;
+            width: 880px; /* 1080 - 100px padding each side */
+            max-height: 700px; /* Leave room for header/footer */
             padding: 60px;
             background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 40px;
             display: flex;
@@ -50,7 +50,7 @@
             align-items: center;
             text-align: center;
             z-index: 5;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.4);
         }
         #headline {
             font-size: 80px;
@@ -67,13 +67,13 @@
             white-space: pre-wrap;
         }
         .brand { 
-            position: absolute; top: 50px; right: 50px; 
+            position: absolute; top: 60px; right: 60px; 
             font-size: 24px; font-weight: 700; text-transform: uppercase; 
-            z-index: 10; opacity: 0.5; letter-spacing: 0.15em;
+            z-index: 10; opacity: 0.6; letter-spacing: 0.15em;
         }
         .handle {
-            position: absolute; bottom: 50px; left: 50px;
-            font-size: 24px; font-weight: 700; z-index: 10; opacity: 0.5;
+            position: absolute; bottom: 60px; left: 60px;
+            font-size: 24px; font-weight: 700; z-index: 10; opacity: 0.6;
         }
     </style>
 </head>
@@ -105,6 +105,7 @@
             let bSize = 45;
             
             let iterations = 0;
+            // Strict fit check against container pixels
             while ((container.scrollHeight > container.offsetHeight) && iterations < 100) {
                 if (hSize > 30) hSize -= 2;
                 if (bodyText && bSize > 20) bSize -= 1;

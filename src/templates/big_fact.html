@@ -6,7 +6,7 @@
     <style>
         * { box-sizing: border-box; }
         html, body {
-            width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+            width: 1080px; height: 1080px; margin: 0; padding: 0; overflow: hidden;
             background-color: {{ bg_color }};
         }
         body {
@@ -17,7 +17,7 @@
         }
         /* Background Layer Stack */
         .bg-base {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px;
             background-image: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 100%);
             z-index: 1;
         }
@@ -25,20 +25,21 @@
             position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; object-fit: cover; z-index: 2;
         }
         .overlay { 
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 3; 
+            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; z-index: 3; 
             background-image: radial-gradient(circle, {{ text_color }} 1px, transparent 1px);
             background-size: 80px 80px;
             opacity: 0.03;
         }
         /* Grainy Texture Overlay */
         body::before {
-            content: ""; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            content: ""; position: absolute; top: 0; left: 0; width: 1080px; height: 1080px;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
             opacity: 0.05; pointer-events: none; z-index: 10;
         }
         /* Glass Box for Big Stat */
         .content {
-            width: 80%; padding: 80px;
+            width: 800px; padding: 80px;
+            max-height: 700px;
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
@@ -56,13 +57,13 @@
             font-size: 50px; font-weight: 400; line-height: 1.2; opacity: 0.9;
         }
         .brand { 
-            position: absolute; top: 50px; right: 50px; 
+            position: absolute; top: 60px; right: 60px; 
             font-size: 24px; font-weight: 700; text-transform: uppercase; 
-            z-index: 10; opacity: 0.5; letter-spacing: 0.15em;
+            z-index: 10; opacity: 0.6; letter-spacing: 0.15em;
         }
         .handle {
-            position: absolute; bottom: 50px; left: 50px;
-            font-size: 24px; font-weight: 700; z-index: 10; opacity: 0.5;
+            position: absolute; bottom: 60px; left: 60px;
+            font-size: 24px; font-weight: 700; z-index: 10; opacity: 0.6;
         }
     </style>
 </head>
