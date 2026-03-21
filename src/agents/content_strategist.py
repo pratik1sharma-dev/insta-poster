@@ -55,7 +55,6 @@ class ContentStrategist:
             try:
                 raw_response = ""
                 if self.provider == "gemini":
-                    # For Gemini, system instructions are set at client or model level
                     from google.genai import types
                     config = None
                     if system_prompt:
@@ -181,46 +180,38 @@ Respond with ONLY a comma-separated list of the 3 queries.
         research_data = self._research_topic(topic, channel_config.theme)
 
         # 3. Unified System Persona
-        system_prompt = f"""You are the Lead Data Analyst for '{channel_config.name}'. 
-Mission: {channel_config.brand_mission or channel_config.theme}
-Audience: {channel_config.target_audience}
-Tone: {channel_config.tone}
+        system_prompt = f"""You are the Lead Analytical Strategist for '{channel_config.name}'. 
+Your goal is to find the **Human Stake** in every topic. Why does this data matter to someone scrolling at 11 PM? 
 
-{research_data}
-
-### CORE DIRECTIVE: ANALYTICAL INTEGRITY FIRST
-- **SOURCE-LOCK (MANDATORY):** You are FORBIDDEN from using any data, rankings, or financial figures that are not explicitly present in the REAL-WORLD RESEARCH DATA provided above. 
-- **CATEGORICAL INTEGRITY:** Ensure every item in your ranking strictly matches the requested category. If the topic is "Fashion houses", you MUST skip "Automotive" or "Technology" brands even if they are in the same luxury report.
-- DO NOT invent "surprising" stories or archetypes (like "underdog"). 
-- If the research data is insufficient to fulfill the task, respond with: "DATA INSUFFICIENT".
-- Appending a source label to a figure not found in the provided snippets is a CRITICAL FAILURE.
+### STRATEGIC CORE:
+- **No Headlines:** Never suggest a boring summary like "Top 5 Facts."
+- **Visceral Tension:** Find an angle that triggers Curiosity, Ambition, or a "Realization."
+- **Analytical Integrity:** Ground your strategy in verifiable reality. 
+- **CATEGORICAL INTEGRITY:** Ensure every item in your ranking strictly matches the requested category (e.g. if requested 'Fashion', exclude 'Cars').
 """
 
         # 4. Ground Rules First
         prompt = f"""### GROUND RULES (NON-NEGOTIABLE):
-1. Every number must come from a named authoritative report.
+1. Every number must come from a named report found in the research data.
 2. If you cannot verify a figure, do not include it. Write "data unavailable".
 3. Appending a source label to an unverified number is a CRITICAL FAILURE.
-4. No "False Tension": Never call a top-5 global company an "underdog" or "pawn."
 
 ### THE TASK:
-Develop a strategic blueprint for the topic: "{topic}"
+Develop a high-impact strategic blueprint for: "{topic}"
 
-### STRATEGIC RULES:
-1. **The Angle:** Focus on providing a clear, high-value educational perspective. This can be a "Comprehensive Guide", "Clean Comparison", or "Top Summary". Do not force drama or "surprising" takes if they don't naturally fit.
-2. **Metaphor Feasibility (CRITICAL):** Suggest ONE singular, cinematic visual metaphor that helps explain the data.
-3. **Clarity over Hype:** Prioritize making the information easy to digest for your professional audience.
+### SEARCH DATA FOR CONTEXT:
+{research_data}
 
 ### OUTPUT FORMAT (JSON ONLY):
 {{
-  "angle": "clear educational focus or summary",
-  "hook_type": "curiosity | value_proposition | question | relatability",
+  "angle": "The visceral, human-centered hook or realization",
+  "hook_type": "curiosity | pattern_interrupt | value_revelation",
   "carousel_length": 6-10,
-  "visual_metaphor": "CONCRETE scene description",
+  "visual_metaphor": "ONE concrete, literal object (e.g. 'A rusted iron weight', 'A ticking glass clock'). No abstract concepts.",
   "color_palette": {{ "background": "hex", "primary": "hex", "accent": "hex" }},
-  "typography_style": "Font pairing",
-  "target_audience_insight": "the educational value for the audience",
-  "reasoning": "why this summary/guide is useful"
+  "typography_style": "Font pairing and mood (e.g. 'Aggressive Bold' or 'Elegant Serif')",
+  "target_audience_insight": "The core emotion/desire this post taps into",
+  "reasoning": "Why this specific angle will stop the scroll"
 }}
 """
         
