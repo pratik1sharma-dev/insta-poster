@@ -172,6 +172,10 @@ Audience: {channel_config.target_audience}"""
 3. Appending a source label to an unverified number is a CRITICAL FAILURE.
 4. The `text_overlay` must contain ONLY the final words for the slide. No meta-labels.
 
+### LOCALIZATION MANDATE:
+- If the cultural context mentions India, you MUST use Indian Rupees (INR or ₹) and Indian units (Lakh, Crore). 
+- NEVER use USD or Millions/Billions for Indian topics. This is a critical brand rule.
+
 ### THE STRATEGY BRIEF:
 - Topic: {strategy.topic}
 - Angle: {strategy.angle}

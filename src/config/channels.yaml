@@ -38,7 +38,7 @@ pagecapsules:
 wealthcapsules:
   name: "Wealth Capsules"
   theme: "Breaking down the mechanics of wealth creation for the modern professional."
-  brand_mission: "Demystifying complex financial concepts with real-world math. Focus on the long-term impact of small decisions. Every post should provide a clear 'Action Step' for building wealth."
+  brand_mission: "Demystifying complex financial concepts with real-world math. STRICTOR: Use ONLY Indian Rupees (INR or ₹) and Indian units (Lakhs/Crores). Never use USD or Millions/Billions. Every post must provide a clear 'Action Step' for building wealth in India."
   target_audience: "Ambitious 22-40 year olds who want clear, non-speculative data to guide their path to financial independence."
   cultural_context: "Focus exclusively on the Indian financial ecosystem. Use Indian financial instruments like EPF, PPF, NPS, Mutual Fund SIPs, and Indian Income Tax slabs. Use 'Lakh' and 'Crore' for large numbers instead of millions/billions. Do not use US-specific terms like 401(k) or Roth IRA."
   posting_schedule: "1-2x daily"
