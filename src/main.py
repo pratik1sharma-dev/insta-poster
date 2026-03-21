@@ -60,17 +60,17 @@ class ContentPipeline:
             logger.logger.info("\n[Phase 1.5] Validating strategy logic and facts...")
             validation_prompt = f"""### GROUND RULES:
 1. Appending a source label to an unverified number is a CRITICAL FAILURE.
-2. If the strategy angle relies on false tension (e.g. calling titans 'underdogs'), it must be rejected.
+2. The angle must be grounded in real data. Educational summaries are encouraged.
 
 ### STRATEGY TO VALIDATE:
 Topic: {strategy.topic}
 Angle: {strategy.angle}
 
 ### TASK:
-1. List the top 3 factual claims this angle requires to be true.
-2. Verify each one against your 2024 knowledge base.
+1. List the top 2 factual claims this post will make.
+2. Verify them against your 2024 knowledge base.
 3. If the angle is logical and factual, respond with "VALID".
-4. If it contains hallucinations or false tension, explain why and respond with "INVALID".
+4. If it contains pure hallucinations, respond with "INVALID".
 """
             validation_result = self.generator._generate_text(validation_prompt)
             

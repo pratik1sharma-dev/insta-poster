@@ -200,16 +200,21 @@ Tone: {channel_config.tone}
 ### THE TASK:
 Develop a strategic blueprint for the topic: "{topic}"
 
+### STRATEGIC RULES:
+1. **The Angle:** Focus on providing a clear, high-value educational perspective. This can be a "Comprehensive Guide", "Clean Comparison", or "Top Summary". Do not force drama or "surprising" takes if they don't naturally fit.
+2. **Metaphor Feasibility (CRITICAL):** Suggest ONE singular, cinematic visual metaphor that helps explain the data.
+3. **Clarity over Hype:** Prioritize making the information easy to digest for your professional audience.
+
 ### OUTPUT FORMAT (JSON ONLY):
 {{
-  "angle": "surprising, data-backed perspective",
-  "hook_type": "curiosity | controversy | relatability | value_proposition",
+  "angle": "clear educational focus or summary",
+  "hook_type": "curiosity | value_proposition | question | relatability",
   "carousel_length": 6-10,
-  "visual_metaphor": "CONCRETE scene description (e.g. 'A single gold bar on a marble floor'. No abstract concepts.)",
+  "visual_metaphor": "CONCRETE scene description",
   "color_palette": {{ "background": "hex", "primary": "hex", "accent": "hex" }},
   "typography_style": "Font pairing",
-  "target_audience_insight": "The psychological driver",
-  "reasoning": "Data-backed justification"
+  "target_audience_insight": "the educational value for the audience",
+  "reasoning": "why this summary/guide is useful"
 }}
 """
         
