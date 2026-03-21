@@ -68,7 +68,12 @@ Angle: {strategy.angle}
 4. If it contains hallucinations or false tension, explain why and respond with "INVALID".
 """
             validation_result = self.generator._generate_text(validation_prompt)
-            logger.log_raw_response("validation", validation_result)
+            
+            # Save raw validation response
+            try:
+                with open(logger.raw_dir / "validation.txt", "w") as f:
+                    f.write(validation_result)
+            except Exception: pass
             
             if "INVALID" in validation_result.upper():
                 logger.logger.warning(f"Strategy validation failed: {validation_result}")
