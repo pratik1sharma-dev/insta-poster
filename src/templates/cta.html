@@ -4,27 +4,38 @@
     <meta charset="UTF-8">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body {
-            width: 1080px; height: 1080px; margin: 0; display: flex; justify-content: center; align-items: center;
-            font-family: 'Montserrat', "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+        * { box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
             background-color: {{ bg_color }};
-            background-image: linear-gradient(0deg, rgba(0,0,0,0.4) 0%, transparent 100%);
+        }
+        body {
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Montserrat', "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
             color: {{ text_color }};
-            position: relative; overflow: hidden;
+            position: relative;
         }
-        /* Grainy Texture Overlay */
-        body::before {
-            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-            opacity: 0.05; pointer-events: none; z-index: 10;
+        /* Background Layer Stack */
+        .bg-base {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-image: linear-gradient(0deg, rgba(0,0,0,0.4) 0%, transparent 100%);
+            z-index: 1;
         }
-        .bg-image { position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; object-fit: cover; z-index: 1; }
+        .bg-image {
+            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; object-fit: cover; z-index: 2;
+        }
         .overlay { 
-            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; z-index: 2; 
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 3; 
             background: linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 100%);
             background-image: radial-gradient(circle, {{ text_color }} 1px, transparent 1px);
             background-size: 50px 50px;
             opacity: 0.04;
+        }
+        /* Grainy Texture Overlay */
+        body::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.05; pointer-events: none; z-index: 10;
         }
         /* CTA Glass Box */
         .content {
@@ -32,6 +43,7 @@
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 40px;
             padding: 60px;
@@ -60,10 +72,11 @@
     </style>
 </head>
 <body>
+    <div class="bg-base"></div>
     {% if bg_style == 'blurred_hook' and bg_image_b64 %}<img src="{{ bg_image_b64 }}" class="bg-image">{% endif %}
     <div class="overlay"></div>
     <div class="brand">{{ channel_name }}</div>
-    <div class="handle">@{{ channel_name|lower }}</div>
+    <div class="handle">@{{ channel_name|lower|replace(' ', '') }}</div>
     <div class="content">
         {% if '---' in text_overlay %}
             {% set parts = text_overlay.split('---') %}
@@ -80,6 +93,7 @@
             const container = document.querySelector('.content');
             const headline = document.getElementById('headline');
             const bodyText = document.getElementById('body-text');
+            if (!headline) return;
             
             let hSize = 70;
             let bSize = 40;

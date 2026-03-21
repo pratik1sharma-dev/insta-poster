@@ -46,7 +46,15 @@ class ImageGenerator:
         # Initialize HTML Renderer
         self.hti = Html2Image(size=(1080, 1080))
         # Add flags for Linux server environment (running as root)
-        self.hti.browser.flags = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--hide-scrollbars']
+        # Force window size and disable features that cause gray/white bars
+        self.hti.browser.flags = [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox', 
+            '--disable-gpu', 
+            '--hide-scrollbars',
+            '--window-size=1080,1080',
+            '--force-device-scale-factor=1'
+        ]
 
     def _extract_primary_color(self, color_palette: Union[str, dict]) -> str:
         """Attempt to extract a primary hex or CSS color from the strategy text or dict."""

@@ -53,6 +53,7 @@ class ContentStrategy(BaseModel):
     """Strategy for a single post, determined by AI."""
     topic: str
     angle: str  # The "spiky" angle or big idea for the post
+    character_persona: Optional[str] = None # Optional hero for the story
     hook_type: HookType
     carousel_length: int = Field(ge=3, le=10)
     visual_metaphor: str  # The unifying visual theme for the carousel
