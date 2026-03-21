@@ -170,6 +170,29 @@ Respond with ONLY a comma-separated list of the 3 queries.
             logging.getLogger(__name__).error(f"Tavily research failed: {e}")
             return ""
 
+    def _synthesize_research(self, raw_research: str, topic: str) -> str:
+        """Process raw search results into a clean, structured data block."""
+        if not raw_research or len(raw_research) < 100:
+            return "No verifiable data found."
+
+        prompt = f"""You are a Research Analyst. Your task is to extract only the most authoritative and specific data points from the raw search results below.
+
+Topic: "{topic}"
+
+RAW SEARCH DATA:
+{raw_research}
+
+### INSTRUCTIONS:
+1. Extract exactly 5-8 "VERIFIED DATA POINTS".
+2. Prioritize named sources (e.g. "McKinsey", "World Bank", "Forbes").
+3. Format each point as: "- [Source]: [Specific Fact/Number]"
+4. Strip out all conversational fluff, ads, and irrelevant site text.
+5. If you find math (like compound interest), show the equation logic.
+
+Respond with ONLY the structured list starting with "VERIFIED DATA POINTS:".
+"""
+        return self._generate_text(prompt)
+
     def plan_content(
         self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, raw_output_dir: Optional[Path] = None
     ) -> ContentStrategy:
@@ -184,9 +207,12 @@ Respond with ONLY a comma-separated list of the 3 queries.
             topic = random.choice(channel_config.curated_topics)
 
         # 2. Dynamic Research Step
-        research_data = self._research_topic(topic, channel_config.theme)
+        raw_research = self._research_topic(topic, channel_config.theme)
+        
+        # 3. Research Synthesis (NEW)
+        research_data = self._synthesize_research(raw_research, topic)
 
-        # 3. Unified System Persona
+        # 4. Unified System Persona
         system_prompt = f"""You are the Lead Analytical Strategist for '{channel_config.name}'. 
 Your goal is to find the **Human Stake** in every topic. Why does this data matter to someone scrolling at 11 PM? 
 
@@ -197,9 +223,9 @@ Your goal is to find the **Human Stake** in every topic. Why does this data matt
 - **CATEGORICAL INTEGRITY:** Ensure every item in your ranking strictly matches the requested category (e.g. if requested 'Fashion', exclude 'Cars').
 """
 
-        # 4. Ground Rules First
+        # 5. Ground Rules First
         prompt = f"""### GROUND RULES (NON-NEGOTIABLE):
-1. Every number must come from a named report found in the research data.
+1. Every number must come from the VERIFIED DATA POINTS provided below.
 2. If you cannot verify a figure, do not include it. Write "data unavailable".
 3. Appending a source label to an unverified number is a CRITICAL FAILURE.
 

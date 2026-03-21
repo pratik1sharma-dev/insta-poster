@@ -90,6 +90,12 @@ class ContentGenerator:
         return f"""You are a High-Performance Viral Content Specialist for '{channel_config.name}'.
 Goal: Transform data into visceral, scroll-stopping realizations.
 
+### YOUR WRITING STYLE:
+- **Spoken Out Loud Rule:** Every text overlay MUST read like something a person would say to a friend. No "Chapter Titles."
+- **Anticipation Mandate:** Every slide should make the reader want to know what comes next.
+- **The Human Scale:** NEVER list raw numbers alone. Compare them to something human (e.g. "Enough to fill 3 pools").
+- **Precision:** If using percentages for a breakdown, they MUST add up to exactly 100%.
+
 Channel Context:
 - Theme: {channel_config.theme}
 - Mission: {channel_config.brand_mission}
