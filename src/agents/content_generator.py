@@ -184,9 +184,13 @@ Audience: {channel_config.target_audience}"""
 
 ### THE TASK:
 Create exactly {strategy.carousel_length} slides that tell a complete, high-value story.
-1. **The Journey:** Take the reader from a Hook to a high-impact conclusion.
-2. **Value Density:** Name every item in a list. Teach the reader something specific.
-3. **No Citations in Overlay:** The `text_overlay` MUST be clean and punchy. DO NOT include source citations (e.g., "Source: Brand Finance") in the text overlay. Use citations only for your internal verification.
+1. **The Hook (Slide 1):** 
+   - **Clarity:** You MUST explicitly name the subject/topic. No vague "This dream is cracking."
+   - **Curiosity:** Create a "Knowledge Gap." Why should they swipe? (e.g. "The side hustle dream is cracking. Here is the reality no one tells you.")
+   - **No Spoilers:** DO NOT reveal specific numbers or final facts from later slides on Slide 1.
+2. **The Journey:** Take the reader from the Hook to a high-impact conclusion.
+3. **Value Density:** Name every item in a list. Teach the reader something specific.
+4. **No Citations in Overlay:** The `text_overlay` MUST be clean and punchy. DO NOT include source citations in the text overlay.
 4. **Visual Choice:** Select the Template and Background Style based on these strict logical rules:
    - `standard`: The default choice. Use for narrative sentences.
    - `big_fact`: Use ONLY for a single, high-impact statistic or a powerful punchline.
