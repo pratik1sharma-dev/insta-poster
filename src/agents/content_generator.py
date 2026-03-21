@@ -185,9 +185,9 @@ Audience: {channel_config.target_audience}"""
 ### THE TASK:
 Create exactly {strategy.carousel_length} slides that tell a complete, visceral story.
 1. **The Hook (Slide 1):** 
-   - **Flexible Style:** Choose the style that fits the topic naturally. Use **Direct Style** for simple lists (e.g. "Top 5 Luxury Brands") or **Teaser Style** for deep insights (e.g. "The hidden cost of your side hustle").
-   - **ZERO NUMBERS (FORBIDDEN):** You are strictly forbidden from using any specific numbers, percentages, or final data points on Slide 1. Save the math for the swipe.
-   - **Subject Clarity:** The user must instantly know the *subject* of the post.
+   - **Explicit Subject (MANDATORY):** You MUST name the core topic using its actual name (e.g. "Infertility", "Side Hustles", "GDP"). You are FORBIDDEN from using vague metaphors like "biological future" or "the dream". The user must know exactly what the case is in 0.5 seconds.
+   - **Flexible Style:** Choose the style that fits. Use **Direct Style** (e.g. "Top 5 Luxury Brands") or **Teaser Style** (e.g. "Why Infertility is rising in India").
+   - **ZERO NUMBERS (FORBIDDEN):** You are strictly forbidden from using any specific numbers or percentages on Slide 1. Save the math for the swipe.
 2. **The Journey:** Take the reader from the Hook to a high-impact realization.
 3. **The Human Anchor Rule:** NEVER list raw numbers alone. Every "Trillion", "Crore", or "%" must be compared to something human (e.g. "4 in 10 colleagues" instead of "40%", "Enough to fill 3 pools" instead of "200k tons").
 4. **Value Density:** Name every item in a list. Teach something specific.
