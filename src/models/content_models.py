@@ -15,6 +15,8 @@ class HookType(str, Enum):
     RELATABILITY = "relatability"
     QUESTION = "question"
     STAT_SHOCK = "stat_shock"
+    PATTERN_INTERRUPT = "pattern_interrupt"
+    VALUE_REVELATION = "value_revelation"
 
 
 class SlidePurpose(str, Enum):

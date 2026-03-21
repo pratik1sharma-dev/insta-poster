@@ -151,11 +151,18 @@ Respond with ONLY a comma-separated list of the 3 queries.
             queries = self._generate_search_queries(topic, theme)
 
             research_context = "### REAL-WORLD RESEARCH DATA:\n"
-
-            for i, result in enumerate(response.get('results', []), 1):
-                research_context += f"--- SEARCH RESULT [{i}] ---\n"
-                research_context += f"SOURCE URL: {result.get('url')}\n"
-                research_context += f"EXTRACTED CONTENT: {result.get('content')}\n\n"
+            i = 1
+            for query in queries:
+                try:
+                    logging.getLogger(__name__).info(f"Researching: {query}")
+                    search_response = client.search(query=query, search_depth="advanced", max_results=2)
+                    for result in search_response.get('results', []):
+                        research_context += f"--- SEARCH RESULT [{i}] ---\n"
+                        research_context += f"SOURCE URL: {result.get('url')}\n"
+                        research_context += f"EXTRACTED CONTENT: {result.get('content')}\n\n"
+                        i += 1
+                except Exception as e:
+                    logging.getLogger(__name__).error(f"Tavily search failed for query '{query}': {e}")
 
             return research_context
 
