@@ -171,11 +171,12 @@ Create exactly {strategy.carousel_length} slides that tell a complete, high-valu
 3. **Visual Choice:** Select the Template (`standard`, `big_fact`, `split_comparison`, `cta`) and Background Style (`solid`, `gradient`, `blurred_hook`) for each slide.
 """
 
-    # Generate components using the consolidated master brief
-    slides = self._generate_slides(strategy, channel_config, system_prompt, master_brief, raw_output_dir)
-    caption = self._generate_caption(strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir)
-    hashtags = self._generate_hashtags(strategy, channel_config, system_prompt, master_brief, raw_output_dir)
-    cta = self._generate_smart_cta(strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir)
+        # Generate components using the consolidated master brief
+        slides = self._generate_slides(strategy, channel_config, system_prompt, master_brief, raw_output_dir)
+        caption = self._generate_caption(strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir)
+        hashtags = self._generate_hashtags(strategy, channel_config, system_prompt, master_brief, raw_output_dir)
+        cta = self._generate_smart_cta(strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir)
+        
         return GeneratedContent(
             caption=caption,
             hashtags=hashtags,
