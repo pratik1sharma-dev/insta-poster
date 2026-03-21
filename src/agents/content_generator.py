@@ -184,10 +184,10 @@ Audience: {channel_config.target_audience}"""
 
 ### THE TASK:
 Create exactly {strategy.carousel_length} slides that tell a complete, visceral story.
-1. **The Hook (Slide 1):** 
-   - **Clarity (MANDATORY):** You MUST name the subject clearly (e.g. "The Side Hustle Dream", "Gold's Secret Value"). No vague metaphors.
-   - **Curiosity:** Create a "Knowledge Gap." Why should they swipe? (e.g. "The side hustle dream is cracking. Here is the reality no one tells you.")
-   - **NO SPOILERS (FORBIDDEN):** Do not use any numbers, percentages, or final facts that appear on later slides. Slide 1 is for the **Question**, not the **Answer**.
+1. **The Hook (Slide 1 - The Teaser):** 
+   - **Clue the Subject:** You MUST give a clear clue about the topic (e.g. "The side hustle dream", "The cost of your wedding ring"). The user should know the *vibe*, but not the *facts*.
+   - **ZERO NUMBERS (FORBIDDEN):** You are strictly forbidden from using any numbers, percentages, or data points on Slide 1. Save the math for later.
+   - **Curiosity Gap:** Use an intriguing statement or a "Stakes" question (e.g. "We’ve been lied to about X", "Most people get Y wrong").
 2. **The Journey:** Take the reader from the Hook to a high-impact realization.
 3. **The Human Anchor Rule:** NEVER list raw numbers alone. Every "Trillion", "Crore", or "%" must be compared to something human (e.g. "4 in 10 colleagues" instead of "40%", "Enough to fill 3 pools" instead of "200k tons").
 4. **Value Density:** Name every item in a list. Teach something specific.
