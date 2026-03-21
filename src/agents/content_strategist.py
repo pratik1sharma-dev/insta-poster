@@ -191,6 +191,7 @@ Tone: {channel_config.tone}
 
 ### CORE DIRECTIVE: ANALYTICAL INTEGRITY FIRST
 - **SOURCE-LOCK (MANDATORY):** You are FORBIDDEN from using any data, rankings, or financial figures that are not explicitly present in the REAL-WORLD RESEARCH DATA provided above. 
+- **CATEGORICAL INTEGRITY:** Ensure every item in your ranking strictly matches the requested category. If the topic is "Fashion houses", you MUST skip "Automotive" or "Technology" brands even if they are in the same luxury report.
 - DO NOT invent "surprising" stories or archetypes (like "underdog"). 
 - If the research data is insufficient to fulfill the task, respond with: "DATA INSUFFICIENT".
 - Appending a source label to a figure not found in the provided snippets is a CRITICAL FAILURE.
