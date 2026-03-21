@@ -153,14 +153,13 @@ Respond with ONLY a comma-separated list of the 3 queries.
 
             research_context = "### REAL-WORLD RESEARCH DATA:\n"
 
-            for query in queries:
-                logging.getLogger(__name__).info(f"Researching: {query}")
-                response = client.search(query=query, search_depth="advanced", max_results=2)
-                for result in response.get('results', []):
-                    research_context += f"- Source: {result.get('url')}\n"
-                    research_context += f"  Content: {result.get('content')}\n\n"
+            for i, result in enumerate(response.get('results', []), 1):
+                research_context += f"--- SEARCH RESULT [{i}] ---\n"
+                research_context += f"SOURCE URL: {result.get('url')}\n"
+                research_context += f"EXTRACTED CONTENT: {result.get('content')}\n\n"
 
             return research_context
+
         except Exception as e:
             logging.getLogger(__name__).error(f"Tavily research failed: {e}")
             return ""
