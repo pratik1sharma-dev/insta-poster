@@ -7,55 +7,63 @@
         body {
             width: 1080px; height: 1080px; margin: 0; display: flex; justify-content: center; align-items: center;
             font-family: 'Montserrat', "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif; 
-            background-color: {{ bg_color }}; color: {{ text_color }};
+            background-color: {{ bg_color }}; /* Layer 1: Solid Fallback */
+            background-image: linear-gradient(135deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 100%); /* Layer 2: Gradient Depth */
+            color: {{ text_color }};
             position: relative; overflow: hidden;
         }
         /* Grainy Texture Overlay */
         body::before {
             content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-            opacity: 0.05; contrast: 120%; brightness: 100%; pointer-events: none; z-index: 5;
+            opacity: 0.05; pointer-events: none; z-index: 10;
         }
         .bg-image {
             position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; object-fit: cover; z-index: 1;
         }
         .overlay {
             position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; z-index: 2;
-            background-image: radial-gradient(circle, {{ text_color }} 1px, transparent 1px);
-            background-size: 60px 60px;
-            opacity: 0.05;
-            {% if bg_style == 'gradient' %}
-            background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, transparent 100%);
-            {% endif %}
+            background: rgba(0,0,0,0.2);
         }
+        /* Glassmorphism Container */
         .content {
-            width: 90%; 
-            height: 70%;
+            width: 85%; 
+            padding: 60px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
             display: flex;
             justify-content: center;
             align-items: center;
             text-align: center;
-            z-index: 4;
-            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            word-wrap: break-word;
-            white-space: pre-wrap;
+            z-index: 5;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
         #text-fit {
-            font-size: 90px;
+            font-size: 80px;
             font-weight: 800;
-            line-height: 1.1;
+            line-height: 1.2;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
         .brand { 
-            position: absolute; top: 40px; right: 40px; 
-            font-size: 22px; font-weight: 400; text-transform: uppercase; 
-            z-index: 6; opacity: 0.4; letter-spacing: 0.1em;
+            position: absolute; top: 50px; right: 50px; 
+            font-size: 24px; font-weight: 700; text-transform: uppercase; 
+            z-index: 10; opacity: 0.5; letter-spacing: 0.15em;
+        }
+        .handle {
+            position: absolute; bottom: 50px; left: 50px;
+            font-size: 24px; font-weight: 700; z-index: 10; opacity: 0.5;
         }
     </style>
 </head>
 <body>
-    {% if bg_style == 'blurred_hook' %}<img src="{{ bg_image_b64 }}" class="bg-image">{% endif %}
+    {% if bg_style == 'blurred_hook' and bg_image_b64 %}<img src="{{ bg_image_b64 }}" class="bg-image">{% endif %}
     <div class="overlay"></div>
     <div class="brand">{{ channel_name }}</div>
+    <div class="handle">@{{ channel_name|lower }}</div>
+    
     <div class="content">
         <div id="text-fit">{{ text_overlay }}</div>
     </div>
@@ -64,9 +72,12 @@
         function fitText() {
             const container = document.querySelector('.content');
             const text = document.getElementById('text-fit');
-            let fontSize = 90;
+            let fontSize = 80;
+            // Pad the container dimensions for safety
+            const maxWidth = container.offsetWidth - 100;
+            const maxHeight = container.offsetHeight - 100;
             
-            while ((text.scrollHeight > container.offsetHeight || text.scrollWidth > container.offsetWidth) && fontSize > 20) {
+            while ((text.scrollHeight > maxHeight || text.scrollWidth > maxWidth) && fontSize > 20) {
                 fontSize--;
                 text.style.fontSize = fontSize + 'px';
             }
