@@ -215,11 +215,17 @@ Develop a high-impact strategic blueprint for: "{topic}"
   "hook_type": "curiosity | pattern_interrupt | value_revelation",
   "carousel_length": 6-10,
   "visual_metaphor": "ONE concrete, literal object (e.g. 'A rusted iron weight', 'A ticking glass clock'). No abstract concepts.",
-  "color_palette": {{ "background": "hex", "primary": "hex", "accent": "hex" }},
+  "color_palette": {{
+    "background": "#0f172a",
+    "text": "#ffffff",
+    "accent": "#3b82f6"
+  }},
   "typography_style": "Font pairing and mood (e.g. 'Aggressive Bold' or 'Elegant Serif')",
   "target_audience_insight": "The core emotion/desire this post taps into",
   "reasoning": "Why this specific angle will stop the scroll"
 }}
+
+**CRITICAL: color_palette MUST be a JSON object with 'background', 'text', and 'accent' keys. Use only HEX color codes (e.g., #0f172a).**
 """
         
         if raw_output_dir:

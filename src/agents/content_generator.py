@@ -220,16 +220,56 @@ Create exactly {strategy.carousel_length} slides that tell a complete, high-valu
 - Slides 2-{strategy.carousel_length - 1}: CONTENT - Deliver the core data and narrative.
 - Slide {strategy.carousel_length}: CTA - Final action.
 
+**Template Selection Rules (CRITICAL - READ CAREFULLY):**
+
+Choose template_name based on content type:
+
+1. **standard** - Use for: Regular sentences, explanations, multi-line content
+   - Character limit: 100 characters MAX
+   - Best for: Insights, explanations, context
+   - Example: "This is why compound interest beats active trading"
+
+2. **big_fact** - Use for: ONLY single big numbers or stats
+   - Character limit: 60 characters MAX
+   - Best for: Shocking statistics, large numbers
+   - Example: "₹2.5 Crore" or "78% fail within 2 years"
+   - DO NOT use for: Full sentences or explanations
+
+3. **cta** - Use for: ONLY the final call-to-action slide
+   - Character limit: 80 characters MAX
+   - Best for: Engagement prompts
+   - Example: "Save this for later" or "Follow for daily insights"
+
+**Background Style Rules:**
+
+- **"solid"** - Default, use for most slides
+- **"gradient"** - Use sparingly (1-2 slides) for visual variety
+- **"blurred_hook"** - Use ONLY for slides 2-3 to create continuity from slide 1
+
+**TEXT LENGTH ENFORCEMENT:**
+Before assigning a template, COUNT THE CHARACTERS in text_overlay.
+- If > 100 chars → MUST shorten text or use standard template
+- If > 60 chars → CANNOT use big_fact template
+- Unreadable text = rejected post
+
 **Output Format (JSON):**
 {{
   "slides": [
     {{
       "slide_number": 1,
       "purpose": "hook",
-      "text_overlay": "String",
+      "text_overlay": "Short punchy hook (max 80 chars)",
       "image_prompt": "Literal scene description (objects, positions, no abstract concepts)",
       "template_name": "standard",
       "background_style": "solid"
+    }},
+    {{
+      "slide_number": 2,
+      "purpose": "content",
+      "text_overlay": "First insight (max 100 if standard, 60 if big_fact)",
+      "image_prompt": "Not used for template slides",
+      "template_name": "standard",
+      "background_style": "blurred_hook"
     }}
   ]
 }}

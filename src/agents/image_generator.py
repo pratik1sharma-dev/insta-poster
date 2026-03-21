@@ -48,36 +48,50 @@ class ImageGenerator:
         # Add flags for Linux server environment (running as root)
         # Force window size and disable features that cause gray/white bars
         self.hti.browser.flags = [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox', 
-            '--disable-gpu', 
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-gpu',
             '--hide-scrollbars',
             '--window-size=1080,1080',
-            '--force-device-scale-factor=1'
+            '--force-device-scale-factor=1',
+            '--default-background-color=0',  # Prevent gray background
+            '--disable-dev-shm-usage',       # Prevent memory issues in containers
         ]
 
     def _extract_primary_color(self, color_palette: Union[str, dict]) -> str:
-        """Attempt to extract a primary hex or CSS color from the strategy text or dict."""
-        # If it's a dictionary, look for background or primary keys
-        if isinstance(color_palette, dict):
-            return color_palette.get('background') or color_palette.get('primary') or "#111827"
+        """Extract background color from strategy (expects dict format)."""
 
-        # If it's a string, try to find a hex code (e.g., #FFFFFF or #FFF)
+        # If it's already a dictionary (correct format from LLM)
+        if isinstance(color_palette, dict):
+            bg = color_palette.get('background')
+            if bg and isinstance(bg, str) and bg.startswith('#'):
+                return bg
+            # Fallback keys
+            primary = color_palette.get('primary', color_palette.get('bg', "#111827"))
+            if isinstance(primary, str) and primary.startswith('#'):
+                return primary
+
+        # Legacy string parsing (fallback for old strategy format)
         hex_match = re.search(r'#(?:[0-9a-fA-F]{3}){1,2}', str(color_palette))
         if hex_match:
             return hex_match.group(0)
 
-        # Fallback to keyword matching
-        palette_str = str(color_palette).lower()
-        if "blue" in palette_str:
-            return "#0f172a" # Deep Slate Blue
-        elif "green" in palette_str:
-            return "#064e3b" # Deep Emerald
-        elif "red" in palette_str:
-            return "#7f1d1d" # Deep Red
-        elif "purple" in palette_str:
-            return "#4c1d95"
-        return "#111827" # Default Dark Gray/Black
+        # If all else fails, return default
+        logger.warning(f"Could not parse color_palette: {color_palette}, using default #111827")
+        return "#111827"  # Dark gray default
+
+    def _extract_text_color(self, color_palette: Union[str, dict]) -> str:
+        """Extract text color or calculate contrast from background."""
+
+        # If dict has explicit text color, use it
+        if isinstance(color_palette, dict):
+            text = color_palette.get('text')
+            if text and isinstance(text, str) and text.startswith('#'):
+                return text
+
+        # Calculate from background for best contrast
+        bg_color = self._extract_primary_color(color_palette)
+        return self._get_contrast_color(bg_color)
 
     def _get_contrast_color(self, hex_color: str) -> str:
         """Calculate whether white or black text has better contrast with the background."""
@@ -108,7 +122,7 @@ class ImageGenerator:
         
         # Determine brand colors for templates
         bg_color = self._extract_primary_color(strategy.color_palette)
-        text_color = self._get_contrast_color(bg_color)
+        text_color = self._extract_text_color(strategy.color_palette)
 
         style_context = self._build_style_context(strategy, total_slides)
         
@@ -245,10 +259,30 @@ class ImageGenerator:
                     )
                     
                     temp_name = f"temp_slide_{slide.slide_number}.png"
-                    self.hti.screenshot(html_str=html_content, save_as=temp_name)
-                    
+
+                    # Render with explicit size
+                    self.hti.screenshot(
+                        html_str=html_content,
+                        save_as=temp_name,
+                        size=(1080, 1080)
+                    )
+
                     temp_path = Path(temp_name)
                     if temp_path.exists():
+                        # Crop to exact 1080x1080 to remove any gray bars
+                        img = Image.open(temp_path)
+                        if img.size != (1080, 1080):
+                            logger.info(f"Cropping image from {img.size} to 1080x1080")
+                            # Crop from center if larger, or pad if smaller
+                            if img.size[0] >= 1080 and img.size[1] >= 1080:
+                                left = (img.size[0] - 1080) // 2
+                                top = (img.size[1] - 1080) // 2
+                                img = img.crop((left, top, left + 1080, top + 1080))
+                            else:
+                                # If smaller, something went wrong - try to use what we have
+                                logger.warning(f"Image smaller than expected: {img.size}")
+                        img.save(temp_path)
+
                         temp_path.replace(image_path)
                         image_paths.append(image_path)
                     else:
