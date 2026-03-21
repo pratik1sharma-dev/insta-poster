@@ -255,7 +255,7 @@ startupcapsules:
 worldinranks:
   name: "WorldInRanks"
   theme: "Explaining the world through rankings, comparisons, and data-driven insights"
-  brand_mission: "Do not just list the top 10. Every post must provide a surprising comparison or a counter-intuitive perspective. Focus on 'The David vs Goliath' stories, 'The Hidden Leaders', or 'The Fall of the Giants'. Make the data feel personal and impactful."
+  brand_mission: "Provide clear, data-driven rankings and comparisons. While unique perspectives are encouraged, the primary goal is to deliver accurate, high-value insights that help the audience understand global trends. Make the data feel personal and impactful."
   target_audience: "Curious learners, professionals, and people interested in global trends, business, technology, and economics (18-40)"
   posting_schedule: "1-2x daily"
   tone: "informative, engaging, curiosity-driven"
