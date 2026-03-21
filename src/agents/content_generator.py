@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Optional, Any
 from google import genai
 import replicate
+from groq import Groq
 from replicate.exceptions import ReplicateError
 from src.models import (
     ChannelConfig,
@@ -34,6 +35,9 @@ class ContentGenerator:
             self.model = settings.gemini_generator_model
         elif self.provider == "replicate":
             self.model = settings.replicate_llm_model
+        elif self.provider == "groq":
+            self.client = Groq(api_key=settings.groq_api_key)
+            self.model = settings.groq_model
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
 
@@ -69,16 +73,37 @@ class ContentGenerator:
                         input=input_data
                     )
                     return "".join(output)
+                elif self.provider == "groq":
+                    messages = []
+                    if system_prompt:
+                        messages.append({"role": "system", "content": system_prompt})
+                    messages.append({"role": "user", "content": prompt})
+                    
+                    completion = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=messages,
+                        temperature=0.7,
+                        max_tokens=4096,
+                    )
+                    return completion.choices[0].message.content
             except Exception as e:
                 # Check if it's a rate limit error (429)
                 is_rate_limit = False
+                error_msg = str(e).lower()
+                
                 if self.provider == "replicate" and isinstance(e, ReplicateError):
-                    if "429" in str(e) or "throttled" in str(e).lower():
+                    if "429" in error_msg or "throttled" in error_msg:
+                        is_rate_limit = True
+                elif self.provider == "gemini":
+                    if "429" in error_msg or "resource_exhausted" in error_msg:
+                        is_rate_limit = True
+                elif self.provider == "groq":
+                    if "429" in error_msg or "rate_limit" in error_msg:
                         is_rate_limit = True
                 
                 if is_rate_limit and attempt < max_retries - 1:
                     wait_time = retry_delay * (2 ** attempt)
-                    logger.warning(f"Rate limited by Replicate. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
+                    logging.getLogger(__name__).warning(f"Rate limited by {self.provider}. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
                     time.sleep(wait_time)
                     continue
                 

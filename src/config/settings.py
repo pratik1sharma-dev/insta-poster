@@ -18,10 +18,13 @@ class Settings(BaseSettings):
     replicate_model: str = "ideogram-ai/ideogram-v2"
     replicate_llm_model: str = "meta/meta-llama-3-70b-instruct"
 
+    # Groq API
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.1-70b-versatile"
 
     # Content Generation
     image_provider: str = "replicate"  # 'gemini' or 'replicate'
-    llm_provider: str = "replicate"    # 'gemini' or 'replicate'
+    llm_provider: str = "groq"         # 'gemini', 'replicate', or 'groq'
 
     # Postiz Configuration
     postiz_api_url: str = "http://localhost:3000/api"
