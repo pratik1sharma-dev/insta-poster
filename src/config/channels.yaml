@@ -1,6 +1,7 @@
 pagecapsules:
   name: "PageCapsules"
   theme: "Turning powerful book ideas into simple visual insights"
+  brand_mission: "Summarize complex book ideas into 3-5 high-impact, actionable lessons. Prioritize utility and life-changing insights over generic summaries."
   target_audience: "Ambitious professionals, entrepreneurs, and lifelong learners (22-40)"
   posting_schedule: "1-2x daily"
   tone: "engaging, insightful, actionable, inspiring"
@@ -44,6 +45,7 @@ pagecapsules:
 wealthcapsules:
   name: "Wealth Capsules"
   theme: "Clear and practical insights about money, investing, and wealth building"
+  brand_mission: "Demystifying complex financial concepts with real-world math. Focus on the long-term impact of small financial decisions and provide clear, verified paths to wealth building."
   target_audience: "Young professionals (22-40), investors, and people pursuing financial independence"
   posting_schedule: "1-2x daily"
   tone: "practical, insightful, empowering"
@@ -114,6 +116,7 @@ wealthcapsules:
 mindcapsules:
   name: "MindCapsules"
   theme: "Understanding human psychology and how the mind works"
+  brand_mission: "Explain the 'Why' behind human behavior using psychological principles. Connect abstract concepts to daily habits and provide clear, science-backed insights for mental growth."
   target_audience: "Curious thinkers, professionals, and people interested in psychology and behavior (20-40)"
   posting_schedule: "1-2x daily"
   tone: "thought-provoking, insightful, educational"
@@ -184,6 +187,7 @@ mindcapsules:
 startupcapsules:
   name: "StartupCapsules"
   theme: "Startup lessons, growth strategies, and founder insights explained simply"
+  brand_mission: "Provide a tactical 'Founder’s Playbook' for the Indian ecosystem. Focus on scalability, unit economics, and real lessons from both failed and successful startups."
   target_audience: "Entrepreneurs, startup enthusiasts, builders, and professionals interested in startups (22-40) in India"
   cultural_context: "Use examples and analogies relevant to the Indian startup ecosystem. Reference local companies (e.g., Flipkart, Zomato, Zerodha), investors, and market trends. Use Hinglish phrases occasionally if it feels natural."
   posting_schedule: "1-2x daily"
@@ -326,6 +330,7 @@ worldinranks:
 fertilitycapsules:
   name: "FertilityCapsules"
   theme: "Demystifying fertility, busting IVF myths, and providing evidence-based reproductive health education"
+  brand_mission: "Provide a compassionate, science-first guide to reproductive health. Prioritize data accuracy and medical facts while maintaining an empathetic tone to support users through complex journeys."
   target_audience: "Individuals and couples planning families, and anyone curious about reproductive health (25-45)"
   posting_schedule: "1-2x daily"
   tone: "empathetic, scientific, transparent, empowering"
