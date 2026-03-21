@@ -111,47 +111,55 @@ class ContentStrategist:
     def plan_content(
         self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, raw_output_dir: Optional[Path] = None
     ) -> ContentStrategy:
-        """
-        Plan content strategy for a post.
-
-        Args:
-            channel_config: Channel configuration
-            topic_hint: Optional specific topic to use (overrides AI selection)
-
-        Returns:
-            ContentStrategy with all decisions
-        """
-        # If topic hint provided, use it; otherwise let AI decide
+        """Plan content strategy for a post."""
+        
+        # 1. Selection Logic
         if topic_hint:
             topic = topic_hint
         elif channel_config.allow_ai_discovery and random.random() < 0.3:
-            # 30% chance to discover new topic
             topic = self._discover_topic(channel_config, raw_output_dir)
         else:
-            # Select from curated list
             topic = random.choice(channel_config.curated_topics)
 
-        # Use LLM to determine optimal strategy
-        system_prompt = f"""You are the Lead Content Strategist for '{channel_config.name}'.
-Your Mission: {channel_config.brand_mission or channel_config.theme}
-Your Audience: {channel_config.target_audience}
-Your Tone: {channel_config.tone}
+        # 2. Unified System Persona
+        system_prompt = f"""### CORE DIRECTIVE: ANALYTICAL INTEGRITY FIRST
+- DO NOT invent or hallucinate data. 
+- DO NOT use "False Tension" (e.g., calling a multi-billion dollar leader an "underdog").
+- Base every insight on verifiable market reality.
 
-**Analytical Integrity:**
-- Ensure your narrative is grounded in the current reality of the industry. 
-- Avoid forcing dramatic archetypes (like "underdog" or "hero") where they do not logically apply. 
-- Build tension through data-backed insights, shifting market shares, and genuine performance metrics.
-
-Your goal is to stop the scroll and provide massive value. ALWAYS respond in valid JSON.
+### YOUR IDENTITY
+You are the Lead Data Analyst for '{channel_config.name}'. 
+Mission: {channel_config.brand_mission or channel_config.theme}
+Audience: {channel_config.target_audience}
+Tone: {channel_config.tone}
 """
-        prompt = self._build_strategy_prompt(channel_config, topic)
+
+        # 3. Surgical User Prompt
+        prompt = f"""Develop a strategic blueprint for: "{topic}"
+
+### STRATEGIC RULES:
+1. **The Angle:** Find a surprising, data-backed perspective. 
+2. **Metaphor Feasibility (CRITICAL):** Suggest ONE singular, cinematic visual metaphor. It must be a simple concept (e.g., "A Chessboard", "A Compass", "A Rising Tide"). Avoid complex, multi-object scenes that an AI cannot draw reliably.
+3. **Template Choice:** Select colors and typography that match the sophistication of this specific topic.
+
+### OUTPUT FORMAT (JSON ONLY):
+{{
+  "angle": "Surprising take",
+  "hook_type": "curiosity | controversy | relatability | value_proposition",
+  "carousel_length": 6-10,
+  "visual_metaphor": "Simple, deliverable theme",
+  "color_palette": {{ "background": "hex", "primary": "hex", "accent": "hex" }},
+  "typography_style": "Font family and weights",
+  "target_audience_insight": "Psychological driver",
+  "reasoning": "Data-backed justification"
+}}
+"""
         
         if raw_output_dir:
             try:
                 with open(raw_output_dir / "strategy_PROMPT.txt", "w") as f:
                     f.write(f"SYSTEM PROMPT:\n{system_prompt}\n\nUSER PROMPT:\n{prompt}")
-            except Exception as e:
-                logging.getLogger(__name__).error(f"Failed to save strategy prompt: {e}")
+            except Exception: pass
 
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
         
@@ -159,13 +167,9 @@ Your goal is to stop the scroll and provide massive value. ALWAYS respond in val
             try:
                 with open(raw_output_dir / "strategy.txt", "w") as f:
                     f.write(response_text)
-            except Exception as e:
-                logging.getLogger(__name__).error(f"Failed to save raw strategy: {e}")
+            except Exception: pass
 
-        # Parse strategy from response
-        strategy = self._parse_strategy_response(response_text, topic)
-
-        return strategy
+        return self._parse_strategy_response(response_text, topic)
 
     def _discover_topic(self, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None) -> str:
         """

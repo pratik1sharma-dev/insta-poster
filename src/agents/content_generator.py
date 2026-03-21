@@ -141,29 +141,23 @@ Global rules:
 - Use a consistent color palette and typography across slides.
 - Keep overall layout structure broadly consistent across slides.
 """
+def generate_content(
+    self, strategy: ContentStrategy, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None
+) -> GeneratedContent:
+    """Generate all text content for a post."""
 
-    def generate_content(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None
-    ) -> GeneratedContent:
-        """
-        Generate all text content for a post.
+    system_prompt = f"""### CORE DIRECTIVE: DATA INTEGRITY FIRST
+- DO NOT invent numbers, growth percentages, or valuations.
+- ONLY cite a source if you are pulling data from your high-confidence internal knowledge base. 
+- If you are unsure of an exact figure, use "Estimated", "Significant", or omit the number.
 
-        Args:
-            strategy: Content strategy from ContentStrategist
-            channel_config: Channel configuration
-
-        Returns:
-            GeneratedContent with caption, hashtags, and slides
-        """
-        system_prompt = f"""You are an expert Instagram content creator.
-Your goal is to create engaging, saveable content that grows followers and encourages interactions.
-
-Channel: {channel_config.theme}
-Tone: {channel_config.tone}
+### YOUR IDENTITY
+You are the Lead Content Creator for '{channel_config.name}'.
+Mission: {channel_config.brand_mission or channel_config.theme}
 Audience: {channel_config.target_audience}
-Cultural Context: {channel_config.cultural_context}
+Tone: {channel_config.tone}
+"""
 
-ALWAYS maintain a consistent voice and follow the strategic angle provided."""
 
         # Generate slides with text overlays
         slides = self._generate_slides(strategy, channel_config, system_prompt, raw_output_dir)
@@ -223,17 +217,16 @@ You are the Creative Director and Lead Researcher. Your goal is to create exactl
 - If you state a number, you must include the source (e.g., "Source: Interbrand 2024").
 
 **The "Master Brief" for this Post:**
-1. **The Journey:** Use the Visual Metaphor ({strategy.visual_metaphor}) to take the reader from a curiosity-driven Hook to a high-impact conclusion.
-2. **Value Density (CRITICAL):** Do not be vague. Use your internal knowledge to provide specific names, numbers, and facts. If the topic is "The Top 5...", name all 5. Every slide must teach the reader something they didn't know.
-3. **The Balance:** Balance the storytelling (narrative flow) with the raw information. The slides should feel connected, like turning the pages of a well-researched book.
-4. **Visual Choice:** You have full authority to select the **Template** and **Background Style** that best delivers the message of each slide. 
-   - **Variety is Key:** Do not use the same background for every slide. Alternate between `solid`, `gradient`, and `blurred_hook`.
-   - **Branding:** Use `blurred_hook` for at least 2-3 slides to create a cohesive high-end brand feel.
+1. **The Journey:** Use the Visual Metaphor ({strategy.visual_metaphor}) to take the reader from a Hook to a high-impact conclusion.
+2. **Visual Choice:** You have full authority to select the **Template** and **Background Style**.
+   - **Background Styles Defined:**
+     - `solid`: Clean, flat brand color.
+     - `gradient`: A sophisticated linear gradient.
+     - `blurred_hook`: Uses a blurred version of the AI art from Slide 1. Use this for a cohesive high-end brand feel.
+3. **Value Density:** Provide specific facts and numbers. Name every item in a list.
 
 **Guidelines:**
-- **Value Density:** Provide specific names, numbers, and facts. Name every item in a list.
-- **Narrative Flow:** Ensure the slides tell a connected story from start to finish.
-- **Text Only:** The `text_overlay` must contain ONLY the words for the slide—no labels or meta-text.
+- **Text Only:** The `text_overlay` must contain ONLY the words for the slide—no labels.
 - **Angle Alignment:** Every slide must reinforce the Angle: "{strategy.angle}".
 
 **Output Format (JSON):**
