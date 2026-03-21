@@ -25,9 +25,10 @@
             opacity: 0.04;
         }
         .content {
-            width: 85%; text-align: center; z-index: 3;
+            width: 85%; height: 70%; text-align: center; z-index: 3;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
-        .cta-text { 
+        #text-fit {
             font-size: 70px; font-weight: 800; line-height: 1.3; margin-bottom: 60px; 
             white-space: pre-wrap;
         }
@@ -47,8 +48,22 @@
     <div class="overlay"></div>
     <div class="brand">{{ channel_name }}</div>
     <div class="content">
-        <div class="cta-text">{{ text_overlay }}</div>
+        <div id="text-fit">{{ text_overlay }}</div>
         <div class="action-box">Save this post</div>
     </div>
+
+    <script>
+        function fitText() {
+            const container = document.querySelector('.content');
+            const text = document.getElementById('text-fit');
+            let fontSize = 70;
+            
+            while ((text.scrollHeight > container.offsetHeight || text.scrollWidth > container.offsetWidth) && fontSize > 20) {
+                fontSize--;
+                text.style.fontSize = fontSize + 'px';
+            }
+        }
+        window.onload = fitText;
+    </script>
 </body>
 </html>

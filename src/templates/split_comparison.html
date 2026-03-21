@@ -24,23 +24,19 @@
             opacity: 0.02;
         }
         .content {
-            width: 100%; height: 100%; display: flex; z-index: 3;
+            width: 90%; height: 80%; display: flex; z-index: 3;
+            justify-content: center; align-items: center; text-align: center;
         }
-        .side {
-            flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center;
-        }
-        .side-title { font-size: 40px; font-weight: 400; margin-bottom: 20px; opacity: 0.8; }
-        .side-value { 
+        #text-fit {
+            width: 100%;
             font-size: 80px; font-weight: 900; line-height: 1.1;
             white-space: pre-wrap;
         }
-        .divider { width: 4px; height: 60%; background: {{ text_color }}; align-self: center; opacity: 0.3; }
         .brand { 
             position: absolute; top: 40px; right: 40px; 
             font-size: 22px; font-weight: 400; text-transform: uppercase; 
             z-index: 4; opacity: 0.4; letter-spacing: 0.1em;
         }
-        .footer { position: absolute; bottom: 60px; font-size: 32px; font-weight: 700; z-index: 4; opacity: 0.6; left: 50%; transform: translateX(-50%); }
     </style>
 </head>
 <body>
@@ -48,9 +44,21 @@
     <div class="overlay"></div>
     <div class="brand">{{ channel_name }}</div>
     <div class="content">
-        <div class="side" style="width: 100%;">
-            <div class="side-value">{{ text_overlay }}</div>
-        </div>
+        <div id="text-fit">{{ text_overlay }}</div>
     </div>
+
+    <script>
+        function fitText() {
+            const container = document.querySelector('.content');
+            const text = document.getElementById('text-fit');
+            let fontSize = 80;
+            
+            while ((text.scrollHeight > container.offsetHeight || text.scrollWidth > container.offsetWidth) && fontSize > 20) {
+                fontSize--;
+                text.style.fontSize = fontSize + 'px';
+            }
+        }
+        window.onload = fitText;
+    </script>
 </body>
 </html>

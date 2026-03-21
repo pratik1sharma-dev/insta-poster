@@ -27,24 +27,52 @@
             {% endif %}
         }
         .content {
-            width: 85%; text-align: center; z-index: 3;
-            font-size: 70px; font-weight: 800; line-height: 1.2; 
+            width: 90%; 
+            height: 70%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 4;
             text-shadow: 0 4px 20px rgba(0,0,0,0.3);
             word-wrap: break-word;
-            white-space: pre-wrap; /* Preserve new lines from AI */
+            white-space: pre-wrap;
+        }
+        #text-fit {
+            font-size: 90px;
+            font-weight: 800;
+            line-height: 1.1;
         }
         .brand { 
             position: absolute; top: 40px; right: 40px; 
             font-size: 22px; font-weight: 400; text-transform: uppercase; 
-            z-index: 3; opacity: 0.4; letter-spacing: 0.1em;
+            z-index: 5; opacity: 0.4; letter-spacing: 0.1em;
         }
-        .footer { position: absolute; bottom: 60px; font-size: 32px; font-weight: 700; z-index: 3; opacity: 0.6; }
+        .bg-image {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;
+        }
     </style>
 </head>
 <body>
     {% if bg_style == 'blurred_hook' %}<img src="{{ bg_image_b64 }}" class="bg-image">{% endif %}
     <div class="overlay"></div>
     <div class="brand">{{ channel_name }}</div>
-    <div class="content">{{ text_overlay }}</div>
+    <div class="content">
+        <div id="text-fit">{{ text_overlay }}</div>
+    </div>
+
+    <script>
+        function fitText() {
+            const container = document.querySelector('.content');
+            const text = document.getElementById('text-fit');
+            let fontSize = 90;
+            
+            while ((text.scrollHeight > container.offsetHeight || text.scrollWidth > container.offsetWidth) && fontSize > 20) {
+                fontSize--;
+                text.style.fontSize = fontSize + 'px';
+            }
+        }
+        window.onload = fitText;
+    </script>
 </body>
 </html>

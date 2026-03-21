@@ -182,7 +182,8 @@ Audience: {channel_config.target_audience}"""
 Create exactly {strategy.carousel_length} slides that tell a complete, high-value story.
 1. **The Journey:** Take the reader from a Hook to a high-impact conclusion.
 2. **Value Density:** Name every item in a list. Teach the reader something specific.
-3. **Visual Choice:** Select the Template (`standard`, `big_fact`, `split_comparison`, `cta`) and Background Style (`solid`, `gradient`, `blurred_hook`) for each slide.
+3. **No Citations in Overlay:** The `text_overlay` MUST be clean and punchy. DO NOT include source citations (e.g., "Source: Brand Finance") in the text overlay. Use citations only for your internal verification.
+4. **Visual Choice:** Select the Template (`standard`, `big_fact`, `split_comparison`, `cta`) and Background Style (`solid`, `gradient`, `blurred_hook`) for each slide.
 """
 
         # Generate components using the consolidated master brief

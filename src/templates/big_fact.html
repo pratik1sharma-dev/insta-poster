@@ -24,17 +24,17 @@
             opacity: 0.03;
         }
         .content {
-            width: 90%; text-align: center; z-index: 3; display: flex; flex-direction: column;
-            white-space: pre-wrap;
+            width: 90%; height: 80%; text-align: center; z-index: 3; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; white-space: pre-wrap;
         }
-        .main-text { font-size: 150px; font-weight: 900; line-height: 1; text-transform: uppercase; margin-bottom: 20px; }
-        .sub-text { font-size: 45px; font-weight: 400; opacity: 0.9; }
+        #text-fit {
+            font-size: 150px; font-weight: 900; line-height: 1; text-transform: uppercase;
+        }
         .brand { 
             position: absolute; top: 40px; right: 40px; 
             font-size: 22px; font-weight: 400; text-transform: uppercase; 
             z-index: 3; opacity: 0.4; letter-spacing: 0.1em;
         }
-        .footer { position: absolute; bottom: 60px; font-size: 32px; font-weight: 700; z-index: 3; opacity: 0.6; }
     </style>
 </head>
 <body>
@@ -42,7 +42,21 @@
     <div class="overlay"></div>
     <div class="brand">{{ channel_name }}</div>
     <div class="content">
-        <div class="main-text">{{ text_overlay }}</div>
+        <div id="text-fit">{{ text_overlay }}</div>
     </div>
+
+    <script>
+        function fitText() {
+            const container = document.querySelector('.content');
+            const text = document.getElementById('text-fit');
+            let fontSize = 150;
+            
+            while ((text.scrollHeight > container.offsetHeight || text.scrollWidth > container.offsetWidth) && fontSize > 20) {
+                fontSize--;
+                text.style.fontSize = fontSize + 'px';
+            }
+        }
+        window.onload = fitText;
+    </script>
 </body>
 </html>
