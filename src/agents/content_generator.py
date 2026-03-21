@@ -1,14 +1,16 @@
 """
-Content Generator Agent - Writes slide text, captions, and hashtags.
+Content Generator Agent - Creates captions, hashtags, and slide text.
 """
 import json
 import logging
+import time
 import re
 from pathlib import Path
 from typing import List, Optional, Any
 from google import genai
 import replicate
 from groq import Groq
+from replicate.exceptions import ReplicateError
 from src.models import (
     CarouselSlide, 
     GeneratedContent, 
@@ -18,9 +20,7 @@ from src.models import (
 )
 from src.config import settings
 
-
 logger = logging.getLogger(__name__)
-
 
 class ContentGenerator:
     """AI agent that generates written content for Instagram posts."""
@@ -28,7 +28,6 @@ class ContentGenerator:
     def __init__(self):
         """Initialize the Content Generator with the requested provider."""
         self.provider = settings.llm_provider.lower()
-        
         if self.provider == "gemini":
             self.client = genai.Client(api_key=settings.gemini_api_key)
             self.model = settings.gemini_generator_model
@@ -42,19 +41,14 @@ class ContentGenerator:
 
     def _clean_ai_response(self, text: str) -> str:
         """Strip <think> blocks and other AI artifacts."""
-        if not text:
-            return ""
-        # Remove <think>...</think> blocks
-        import re
+        if not text: return ""
         text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
         return text.strip()
 
     def _generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """Utility to generate text from the configured provider with retry logic and system instructions."""
-        import time
         max_retries = 3
-        retry_delay = 5  # seconds
-
+        retry_delay = 5
         for attempt in range(max_retries):
             try:
                 raw_response = ""
@@ -63,160 +57,92 @@ class ContentGenerator:
                     config = None
                     if system_prompt:
                         config = types.GenerateContentConfig(system_instruction=system_prompt)
-                    
-                    response = self.client.models.generate_content(
-                        model=self.model, 
-                        contents=prompt,
-                        config=config
-                    )
+                    response = self.client.models.generate_content(model=self.model, contents=prompt, config=config)
                     raw_response = response.text
                 elif self.provider == "replicate":
-                    input_data = {
-                        "prompt": prompt,
-                        "max_new_tokens": 4096,
-                    }
-                    if system_prompt:
-                        input_data["system_prompt"] = system_prompt
-                        
-                    output = replicate.run(
-                        self.model,
-                        input=input_data
-                    )
+                    input_data = {"prompt": prompt, "max_new_tokens": 4096}
+                    if system_prompt: input_data["system_prompt"] = system_prompt
+                    output = replicate.run(self.model, input=input_data)
                     raw_response = "".join(output)
                 elif self.provider == "groq":
                     messages = []
-                    if system_prompt:
-                        messages.append({"role": "system", "content": system_prompt})
+                    if system_prompt: messages.append({"role": "system", "content": system_prompt})
                     messages.append({"role": "user", "content": prompt})
-                    
-                    completion = self.client.chat.completions.create(
-                        model=self.model,
-                        messages=messages,
-                        temperature=0.7,
-                        max_tokens=4096,
-                    )
+                    completion = self.client.chat.completions.create(model=self.model, messages=messages, temperature=0.7, max_tokens=4096)
                     raw_response = completion.choices[0].message.content
-                
                 return self._clean_ai_response(raw_response)
-
             except Exception as e:
-                # Check if it's a rate limit error (429)
                 is_rate_limit = False
                 error_msg = str(e).lower()
-                
-                if "429" in error_msg or "rate_limit" in error_msg or "throttled" in error_msg:
-                    is_rate_limit = True
-                
+                if self.provider == "replicate" and isinstance(e, ReplicateError):
+                    if "429" in error_msg or "throttled" in error_msg: is_rate_limit = True
+                elif self.provider == "gemini" and ("429" in error_msg or "resource_exhausted" in error_msg): is_rate_limit = True
+                elif self.provider == "groq" and ("429" in error_msg or "rate_limit" in error_msg): is_rate_limit = True
                 if is_rate_limit and attempt < max_retries - 1:
                     wait_time = retry_delay * (2 ** attempt)
-                    logging.getLogger(__name__).warning(f"Rate limited by {self.provider}. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
                     time.sleep(wait_time)
                     continue
-                
-                # If not a rate limit or we've exhausted retries, re-raise
                 raise e
         return ""
 
-    def generate_content(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None
-    ) -> GeneratedContent:
-        """Generate all text content for a post."""
+    def _build_session_brief(self, strategy: ContentStrategy, channel_config: ChannelConfig) -> str:
+        """Shared high-level brief for this specific Instagram carousel post."""
+        return f"""You are a High-Performance Viral Content Specialist for '{channel_config.name}'.
+Goal: Transform data into visceral, scroll-stopping realizations.
 
-        system_prompt = f"""You are a High-Performance Viral Content Specialist for '{channel_config.name}'. 
-Your job is to transform data into visceral, scroll-stopping realizations. 
-You are NOT a teacher or a textbook editor. You are a specialist in human attention.
+Channel Context:
+- Theme: {channel_config.theme}
+- Mission: {channel_config.brand_mission}
+- Audience: {channel_config.target_audience}
+- Cultural Context: {channel_config.cultural_context}
 
-### YOUR WRITING STYLE:
-- **Aggressive Clarity:** No safe or boring titles. Every slide is a punchline or a realization.
-- **Pattern Interrupt:** Use the `---` separator on nearly every slide to create a massive bold headline and smaller sub-text. 
-- **The Human Scale:** Never list a number without a human anchor (e.g. "Your morning coffee" vs "₹50").
-- **Precision:** If using percentages for a breakdown, they MUST add up to exactly 100%. No math errors.
-"""
-
-        # 1. GROUND RULES FIRST (TOP OF PROMPT)
-        master_brief = f"""### GROUND RULES (NON-NEGOTIABLE):
-1. Every number must come from a named authoritative report.
-2. If you cannot verify a figure, do not include it. Write "data unavailable".
-3. The `text_overlay` MUST contain ONLY the final words for the slide. No meta-labels.
-4. **NO SPOILERS:** Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers. Save the "payoff" for the swipe.
-
-### LOCALIZATION MANDATE:
-- If context is India, use ONLY Indian Rupees (INR/₹) and Indian units (Lakh/Crore). NEVER use USD or Millions/Billions.
-
-### THE STRATEGY BRIEF:
+Strategy:
 - Topic: {strategy.topic}
 - Angle: {strategy.angle}
 - Visual Metaphor: {strategy.visual_metaphor}
 - Character: {strategy.character_persona or "N/A"}
-
-### THE TASK:
-Create exactly {strategy.carousel_length} slides that tell a complete, visceral story.
-1. **The Hook (Slide 1):** 
-   - **Explicit Subject (MANDATORY):** You MUST name the core topic using its actual name (e.g. "Infertility", "Side Hustles", "GDP"). You are FORBIDDEN from using vague metaphors.
-   - **Flexible Style:** Choose the style that fits. Use **Direct Style** or **Teaser Style**.
-   - **ZERO NUMBERS (FORBIDDEN):** You are strictly forbidden from using any specific numbers or percentages on Slide 1.
-2. **The Journey:** Take the reader from the Hook to a high-impact realization.
-3. **The Human Anchor Rule:** NEVER list raw numbers alone. Every "Trillion", "Crore", or "%" must be compared to something human (e.g. "4 in 10 colleagues" instead of "40%").
-4. **Value Density:** Name every item in a list. Teach something specific.
-5. **No Citations in Overlay:** The `text_overlay` MUST be clean and punchy. No meta-labels.
-
-### VISUAL RULES:
-- **Visual Choice:** Select Template (`standard`, `big_fact`, `split_comparison`, `cta`) and Background Style (`solid`, `gradient`, `blurred_hook`) for each.
-- `standard`: Default choice for narrative.
-- `big_fact`: Use ONLY for a single, high-impact stat or 1-3 word punchline.
-- `split_comparison`: Use for Comparing items.
-- `cta`: Use ONLY for the final action slide.
-- **Dual-Size Text:** Use `---` to separate a massive headline from smaller sub-text.
-- **Background Strategy:** Use `blurred_hook` for at least 50% of the slides.
 """
 
-        # Generate components using the consolidated master brief
+    def generate_content(self, strategy: ContentStrategy, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None) -> GeneratedContent:
+        """Generate all text content for a post."""
+        system_prompt = self._build_session_brief(strategy, channel_config)
+        
+        master_brief = f"""### GROUND RULES (NON-NEGOTIABLE):
+1. Every number must come from a named authoritative report.
+2. If you cannot verify a figure, do not include it. Write "data unavailable".
+3. The `text_overlay` MUST contain ONLY the final words. No meta-labels.
+4. **NO SPOILERS:** Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers. Save the "payoff" for the swipe.
+5. **LOCALIZATION:** Use INR/₹ and Lakh/Crore for Indian topics. NEVER use USD or Millions/Billions.
+6. **PATTERN INTERRUPT:** Use `---` to separate Massive Headline from Body Text on nearly every slide.
+
+### THE TASK:
+Create exactly {strategy.carousel_length} slides telling a visceral story.
+- Slide 1: HOOK (Explicit Subject, Zero Numbers).
+- Slides 2-{strategy.carousel_length - 1}: CONTENT (Human Anchors, Precision Math: Ratios must add up to 100%).
+- Slide {strategy.carousel_length}: CTA (Clear, actionable prompt).
+"""
         slides = self._generate_slides(strategy, channel_config, system_prompt, master_brief, raw_output_dir)
         caption = self._generate_caption(strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir)
         hashtags = self._generate_hashtags(strategy, channel_config, system_prompt, master_brief, raw_output_dir)
         cta = self._generate_smart_cta(strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir)
-        
-        return GeneratedContent(
-            caption=caption,
-            hashtags=hashtags,
-            call_to_action=cta,
-            slides=slides,
-        )
+        return GeneratedContent(caption=caption, hashtags=hashtags, call_to_action=cta, slides=slides)
 
-    def _generate_slides(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str, master_brief: str, raw_output_dir: Optional[Path] = None
-    ) -> List[CarouselSlide]:
-        """Generate slides."""
+    def _generate_slides(self, strategy, channel_config, system_prompt, master_brief, raw_output_dir) -> List[CarouselSlide]:
+        """Generate slide content."""
         style_context = self._build_style_context(strategy, strategy.carousel_length)
-        
         prompt = f"""{master_brief}
 
 **Visual Context:**
 {style_context}
 
-**Slide Breakdown:**
-- Slide 1: HOOK - Selection: AI image generation.
-- Slides 2-{strategy.carousel_length - 1}: CONTENT - Deliver the core data and narrative.
-- Slide {strategy.carousel_length}: CTA - Final action.
+**Template Rules:**
+1. **standard**: Default for narratives. Use for slides with > 60 chars.
+2. **big_fact**: ONLY for single big stats or 1-3 word punchlines (< 60 chars).
+3. **split_comparison**: For direct "A vs B" comparisons.
+4. **cta**: ONLY for the final slide.
 
-**Output Format (JSON):**
-{{
-  "slides": [
-    {{
-      "slide_number": 1,
-      "purpose": "hook",
-      "text_overlay": "String (NO NUMBERS)",
-      "image_prompt": "Literal scene description (objects, positions, no abstract concepts)",
-      "template_name": "standard",
-      "background_style": "solid"
-    }},
-    ...
-  ]
-}}
-
-Respond with ONLY JSON.
+Respond with ONLY JSON matching the CarouselSlide model.
 """
-
         if raw_output_dir:
             try:
                 with open(raw_output_dir / "slides_PROMPT.txt", "w") as f:
@@ -224,26 +150,18 @@ Respond with ONLY JSON.
             except Exception: pass
 
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
-        
         if raw_output_dir:
             try:
-                with open(raw_output_dir / "slides.txt", "w") as f:
-                    f.write(response_text)
+                with open(raw_output_dir / "slides.txt", "w") as f: f.write(response_text)
             except Exception: pass
-
+        
         slides_data = self._parse_json_response(response_text)
-
+        purpose_map = {"hook": SlidePurpose.HOOK, "intro": SlidePurpose.HOOK, "cta": SlidePurpose.CTA, "action": SlidePurpose.CTA}
+        
         slides = []
         for slide_data in slides_data.get("slides", []):
-            purpose_raw = str(slide_data.get("purpose", "")).strip().lower()
-            
-            # Simple purpose mapping
-            purpose = SlidePurpose.CONTENT
-            if "hook" in purpose_raw or "intro" in purpose_raw:
-                purpose = SlidePurpose.HOOK
-            elif "cta" in purpose_raw or "action" in purpose_raw or "conclu" in purpose_raw:
-                purpose = SlidePurpose.CTA
-
+            purpose_raw = str(slide_data.get("purpose", "")).lower()
+            purpose = purpose_map.get(purpose_raw, SlidePurpose.CONTENT)
             slides.append(CarouselSlide(
                 slide_number=slide_data.get("slide_number"),
                 purpose=purpose,
@@ -252,58 +170,34 @@ Respond with ONLY JSON.
                 template_name=slide_data.get("template_name", "standard"),
                 background_style=slide_data.get("background_style", "solid")
             ))
-        
         return slides
 
     def _generate_caption(self, strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir):
         """Generate Instagram caption."""
-        prompt = f"""{master_brief}
-        
-Based on the slides generated above, write a high-converting Instagram caption.
-- Length: 150-300 characters.
-- Style: Value-first, curiosity-driven.
-- Include a question to drive comments.
-- DO NOT include hashtags.
-
-Respond with ONLY the caption text.
-"""
+        prompt = f"{master_brief}\n\nWrite a 150-300 char Instagram caption based on these slides. No hashtags. Include a driving question."
         return self._generate_text(prompt, system_prompt=system_prompt)
 
     def _generate_hashtags(self, strategy, channel_config, system_prompt, master_brief, raw_output_dir):
-        """Generate relevant hashtags."""
-        prompt = f"""{master_brief}
-        
-Generate 20-25 high-reach hashtags for this specific topic and audience in India.
-Respond with ONLY the hashtags separated by spaces.
-"""
+        """Generate hashtags."""
+        prompt = f"{master_brief}\n\nGenerate 20-25 high-reach Indian hashtags for this topic."
         return self._generate_text(prompt, system_prompt=system_prompt)
 
     def _generate_smart_cta(self, strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir):
-        """Generate final CTA."""
+        """Generate final CTA text."""
         return "Save this post if you found it valuable."
 
     def _build_style_context(self, strategy: ContentStrategy, total_slides: int) -> str:
-        """Helper to build consistent visual context for the AI."""
-        return f"""**Visual Standards:**
-- Visual Metaphor: {strategy.visual_metaphor}
-- Color Palette: {strategy.color_palette}
-- Typography: {strategy.typography_style}
-- Brand Consistency: All slides must feel like part of the same cinematic series."""
+        """Helper to build visual context."""
+        return f"Metaphor: {strategy.visual_metaphor}\nPalette: {strategy.color_palette}\nTypography: {strategy.typography_style}\nConsistency: All {total_slides} slides must feel like one cinematic series."
 
     def _parse_json_response(self, response_text: str) -> dict:
-        """Helper to parse JSON from AI response."""
+        """Robust JSON parsing helper."""
         try:
-            # 1. Try markdown block
             json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response_text, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group(1))
-            
-            # 2. Try raw curly braces
+            if json_match: return json.loads(json_match.group(1))
             json_match = re.search(r"(\{.*\})", response_text, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group(1))
-                
+            if json_match: return json.loads(json_match.group(1))
             return json.loads(response_text)
         except Exception:
-            logger.error(f"Failed to parse JSON: {response_text[:200]}...")
+            logger.error(f"Failed to parse JSON: {response_text[:200]}")
             return {"slides": []}
