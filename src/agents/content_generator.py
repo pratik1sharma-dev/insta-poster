@@ -182,8 +182,7 @@ Audience: {channel_config.target_audience}"""
 Create exactly {strategy.carousel_length} slides that tell a complete, high-value story.
 1. **The Journey:** Take the reader from a Hook to a high-impact conclusion.
 2. **Value Density:** Name every item in a list. Teach the reader something specific.
-3. **The Insight Rule (CRITICAL):** For every fact or number you share, you MUST explain the "Why". Don't just list a brand's value; tell us the specific strategic move (e.g. "Scarcity Model", "Digital Pivot", "Cultural Dominance") that earned them that spot. Move from "Reporter" to "Analyst".
-4. **No Citations in Overlay:** The `text_overlay` MUST be clean and punchy. DO NOT include source citations in the text overlay. Use citations only for your internal verification.
+3. **No Citations in Overlay:** The `text_overlay` MUST be clean and punchy. DO NOT include source citations (e.g., "Source: Brand Finance") in the text overlay. Use citations only for your internal verification.
 4. **Visual Choice:** Select the Template and Background Style based on these strict logical rules:
    - `standard`: The default choice. Use for all narrative sentences and general explanations.
    - `big_fact`: Use ONLY for a single, high-impact statistic or a powerful 1-3 word punchline (e.g. "$500 BILLION" or "GAME OVER").

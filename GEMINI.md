@@ -1,6 +1,7 @@
 # Project Rules & Standards: Insta-Poster
 
 ## 1. Engineering Standards (Mandatory)
+- **User Confirmation FIRST:** You MUST NOT modify, commit, or push any code changes without first describing the proposed changes and receiving explicit approval from the user.
 - **Syntax Check First:** BEFORE any `git commit` or `git push`, you MUST run `python3 -m py_compile src/**/*.py` to verify there are no syntax or indentation errors.
 - **Surgical Edits:** Prefer `replace` over `write_file` for large files to maintain context efficiency.
 - **Clean Architecture:** Use standard Python `logging` module. Do not pass custom logger objects into agents.
