@@ -146,31 +146,36 @@ def generate_content(
 ) -> GeneratedContent:
     """Generate all text content for a post."""
 
-    system_prompt = f"""### CORE DIRECTIVE: DATA INTEGRITY FIRST
-- DO NOT invent numbers, growth percentages, or valuations.
-- ONLY cite a source if you are pulling data from your high-confidence internal knowledge base. 
-- If you are unsure of an exact figure, use "Estimated", "Significant", or omit the number.
-
-### YOUR IDENTITY
-You are the Lead Content Creator for '{channel_config.name}'.
+    system_prompt = f"""You are the '{channel_config.name}' content team executing the strategy brief below.
 Mission: {channel_config.brand_mission or channel_config.theme}
-Audience: {channel_config.target_audience}
 Tone: {channel_config.tone}
+Audience: {channel_config.target_audience}"""
+
+    # 1. GROUND RULES FIRST (TOP OF PROMPT)
+    master_brief = f"""### GROUND RULES (NON-NEGOTIABLE):
+1. Every number must come from a named 2024 report (Brand Finance, Interbrand, or Kantar BrandZ).
+2. If you cannot verify a figure, do not include it. Write "data unavailable".
+3. Appending a source label to an unverified number is a CRITICAL FAILURE.
+4. The `text_overlay` must contain ONLY the final words for the slide. No meta-labels.
+
+### THE STRATEGY BRIEF:
+- Topic: {strategy.topic}
+- Angle: {strategy.angle}
+- Visual Theme: {strategy.visual_metaphor}
+- Carousel Length: {strategy.carousel_length}
+
+### THE TASK:
+Create exactly {strategy.carousel_length} slides that tell a complete, high-value story.
+1. **The Journey:** Take the reader from a Hook to a high-impact conclusion.
+2. **Value Density:** Name every item in a list. Teach the reader something specific.
+3. **Visual Choice:** Select the Template (`standard`, `big_fact`, `split_comparison`, `cta`) and Background Style (`solid`, `gradient`, `blurred_hook`) for each slide.
 """
 
-
-        # Generate slides with text overlays
-        slides = self._generate_slides(strategy, channel_config, system_prompt, raw_output_dir)
-
-        # Generate caption
-        caption = self._generate_caption(strategy, channel_config, slides, system_prompt, raw_output_dir)
-
-        # Generate hashtags
-        hashtags = self._generate_hashtags(strategy, channel_config, system_prompt, raw_output_dir)
-
-        # Generate call-to-action
-        cta = self._generate_smart_cta(strategy, channel_config, slides, system_prompt, raw_output_dir)
-
+    # Generate components using the consolidated master brief
+    slides = self._generate_slides(strategy, channel_config, system_prompt, master_brief, raw_output_dir)
+    caption = self._generate_caption(strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir)
+    hashtags = self._generate_hashtags(strategy, channel_config, system_prompt, master_brief, raw_output_dir)
+    cta = self._generate_smart_cta(strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir)
         return GeneratedContent(
             caption=caption,
             hashtags=hashtags,
@@ -179,55 +184,15 @@ Tone: {channel_config.tone}
         )
 
     def _generate_slides(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str, raw_output_dir: Optional[Path] = None
+        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str, master_brief: str, raw_output_dir: Optional[Path] = None
     ) -> List[CarouselSlide]:
-        """
-        Generate text and image prompts for each slide.
+        """Generate slides."""
+        prompt = f"""{master_brief}
 
-        Args:
-            strategy: Content strategy
-            channel_config: Channel configuration
-
-        Returns:
-            List of CarouselSlide objects
-        """
-        session_brief = self._build_session_brief(strategy, channel_config)
-
-        prompt = f"""{session_brief}
-
-You are creating an Instagram carousel post.
-
-**Core Idea:**
-- Topic: {strategy.topic}
-- Angle: {strategy.angle}
-
-**Strategy:**
-- Hook Type: {strategy.hook_type}
-- Carousel Length: {strategy.carousel_length}
-- Color Palette: {strategy.color_palette}
-- Typography Style: {strategy.typography_style}
-- Audience Insight: {strategy.target_audience_insight}
-
-**Your Task:**
-You are the Creative Director and Lead Researcher. Your goal is to create exactly {strategy.carousel_length} slides that tell a complete, high-value story. Do not stop early.
-
-**DATA INTEGRITY (MANDATORY):**
-- DO NOT invent numbers, growth percentages, or valuations.
-- Use only facts from verifiable reports (Brand Finance, Interbrand, etc).
-- If you state a number, you must include the source (e.g., "Source: Interbrand 2024").
-
-**The "Master Brief" for this Post:**
-1. **The Journey:** Use the Visual Metaphor ({strategy.visual_metaphor}) to take the reader from a Hook to a high-impact conclusion.
-2. **Visual Choice:** You have full authority to select the **Template** and **Background Style**.
-   - **Background Styles Defined:**
-     - `solid`: Clean, flat brand color.
-     - `gradient`: A sophisticated linear gradient.
-     - `blurred_hook`: Uses a blurred version of the AI art from Slide 1. Use this for a cohesive high-end brand feel.
-3. **Value Density:** Provide specific facts and numbers. Name every item in a list.
-
-**Guidelines:**
-- **Text Only:** The `text_overlay` must contain ONLY the words for the slide—no labels.
-- **Angle Alignment:** Every slide must reinforce the Angle: "{strategy.angle}".
+**Slide Breakdown:**
+- Slide 1: HOOK - Selection: AI image generation.
+- Slides 2-{strategy.carousel_length - 1}: CONTENT - Deliver the core data and narrative.
+- Slide {strategy.carousel_length}: CTA - Final action.
 
 **Output Format (JSON):**
 {{
@@ -235,16 +200,14 @@ You are the Creative Director and Lead Researcher. Your goal is to create exactl
     {{
       "slide_number": 1,
       "purpose": "hook",
-      "text_overlay": "The hook text",
-      "image_prompt": "Detailed AI art prompt",
+      "text_overlay": "String",
+      "image_prompt": "Literal scene description (objects, positions, no abstract concepts)",
       "template_name": "standard",
       "background_style": "solid"
-    }},
-    ...
+    }}
   ]
 }}
-
-Respond with ONLY the JSON, no other text.
+Respond with ONLY JSON.
 """
 
         if raw_output_dir:
@@ -321,55 +284,20 @@ Respond with ONLY the JSON, no other text.
         channel_config: ChannelConfig,
         slides: List[CarouselSlide],
         system_prompt: str,
+        master_brief: str,
         raw_output_dir: Optional[Path] = None,
     ) -> str:
-        """
-        Generate Instagram caption.
+        """Generate Instagram caption."""
+        prompt = f"""{master_brief}
 
-        Args:
-            strategy: Content strategy
-            channel_config: Channel configuration
-            slides: Generated slides for context
+### TASK:
+Write an engaging Instagram caption for this post.
+1. **Hook**: Start with a strong line reflecting the Angle.
+2. **Value**: Briefly explain the value of this insight.
+3. **Length**: 150-300 characters.
+4. **No Hashtags**.
 
-        Returns:
-            Instagram caption
-        """
-        session_brief = self._build_session_brief(strategy, channel_config)
-
-        slides_summary = "\n".join(
-            f"Slide {s.slide_number}: {s.text_overlay}" for s in slides[:3]
-        )
-
-        prompt = f"""{session_brief}
-
-You are writing an Instagram caption. Your goal is to be engaging and spark conversation.
-
-**Post Context:**
-- Topic: {strategy.topic}
-- Angle: {strategy.angle}
-- First 3 Slides: {slides_summary}
-
-**Channel Context:**
-- Target Audience: {channel_config.target_audience}
-- Cultural Context: {channel_config.cultural_context}
-- Tone: {channel_config.tone}
-
-**Caption Requirements:**
-1. **Hook (first 125 characters)**: Grab attention by introducing the post's unique **Angle**.
-2. **Value**: Briefly explain the value of understanding this angle.
-3. **Engagement**: End with a specific, open-ended question related to the Angle (this will be added later, so you don't need to write it).
-4. **Length**: 150-300 characters.
-5. **Readability**: Use line breaks to make it easy to read.
-6. **Emojis**: Use 1-3 relevant emojis.
-7. **No Hashtags**: Do not include hashtags in the caption.
-
-**Style:**
-- Conversational and authentic.
-- Opinionated, reflecting the post's Angle.
-- Benefit-focused.
-- If the Cultural Context is provided, use relevant examples, analogies, or phrases to make the content more relatable.
-
-Write the caption now (no JSON, just the caption text):
+Write the caption now:
 """
 
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
@@ -382,45 +310,14 @@ Write the caption now (no JSON, just the caption text):
         return response_text.strip()
 
     def _generate_hashtags(
-        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str, raw_output_dir: Optional[Path] = None
+        self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str, master_brief: str, raw_output_dir: Optional[Path] = None
     ) -> List[str]:
-        """
-        Generate relevant hashtags.
+        """Generate relevant hashtags."""
+        prompt = f"""{master_brief}
 
-        Args:
-            strategy: Content strategy
-            channel_config: Channel configuration
-
-        Returns:
-            List of hashtags
-        """
-        session_brief = self._build_session_brief(strategy, channel_config)
-
-        prompt = f"""{session_brief}
-
-Generate Instagram hashtags for a post about: {strategy.topic}
-
-**Channel Theme:** {channel_config.theme}
-**Target Audience:** {channel_config.target_audience}
-
-**Requirements:**
-1. 20-25 hashtags total
-2. Mix of sizes:
-   - 3-5 large hashtags (500k+ posts): broad reach
-   - 8-10 medium hashtags (50k-500k): targeted reach
-   - 7-10 niche hashtags (<50k): highly targeted
-3. All hashtags must be relevant to the topic and theme
-4. Include trending hashtags when applicable
-5. No banned or spam hashtags
-
-**Output Format (JSON):**
-{{
-  "hashtags": ["hashtag1", "hashtag2", ...]
-}}
-
-Note: Include hashtags WITHOUT the # symbol.
-
-Respond with ONLY the JSON, no other text.
+### TASK:
+Generate 20-25 relevant hashtags for this post.
+Respond with ONLY JSON: {{"hashtags": ["list"]}}
 """
 
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
@@ -440,36 +337,15 @@ Respond with ONLY the JSON, no other text.
         channel_config: ChannelConfig,
         slides: List[CarouselSlide],
         system_prompt: str,
+        master_brief: str,
         raw_output_dir: Optional[Path] = None,
     ) -> str:
         """Generate a content-specific, engaging CTA."""
+        prompt = f"""{master_brief}
 
-        slides_summary = "\n".join(
-            f"Slide {s.slide_number}: {s.text_overlay}" for s in slides
-        )
-
-        prompt = f"""You are an expert Instagram copywriter. Your goal is to write a Call-to-Action (CTA) that sparks conversation and builds community.
-
-**Channel Context:**
-- Tone: {channel_config.tone}
-- Audience: {channel_config.target_audience}
-
-**Post Context:**
-- Topic: {strategy.topic}
-- Angle: {strategy.angle}
-- Post Summary: {slides_summary}
-
-**The WORST CTAs are generic (e.g., "like this post," "follow for more"). DO NOT use them.**
-
-**Your Task:**
-Write a single, compelling, open-ended question that directly relates to the post's content. The question should encourage users to share their own experiences, opinions, or plans in the comments.
-
-**Examples of GOOD CTAs:**
-- For a post on productivity: "What's one productivity hack you swear by? Share it below!"
-- For a post on a travel destination: "If you could go tomorrow, what's the first thing you would do in Tokyo? 🗼"
-- For a post on a book summary: "What was your biggest takeaway from this book? Did you agree with the author's main point?"
-
-Now, write the perfect CTA for THIS post. Respond with ONLY the CTA text.
+### TASK:
+Write a single, compelling, open-ended question that directly relates to the post's content to encourage comments.
+Respond with ONLY the CTA text.
 """
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
         

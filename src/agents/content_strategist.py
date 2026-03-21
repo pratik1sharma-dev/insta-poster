@@ -122,35 +122,30 @@ class ContentStrategist:
             topic = random.choice(channel_config.curated_topics)
 
         # 2. Unified System Persona
-        system_prompt = f"""### CORE DIRECTIVE: ANALYTICAL INTEGRITY FIRST
-- DO NOT invent or hallucinate data. 
-- DO NOT use "False Tension" (e.g., calling a multi-billion dollar leader an "underdog").
-- Base every insight on verifiable market reality.
-
-### YOUR IDENTITY
-You are the Lead Data Analyst for '{channel_config.name}'. 
+        system_prompt = f"""You are the Lead Data Analyst for '{channel_config.name}'. 
 Mission: {channel_config.brand_mission or channel_config.theme}
 Audience: {channel_config.target_audience}
-Tone: {channel_config.tone}
-"""
+Tone: {channel_config.tone}"""
 
-        # 3. Surgical User Prompt
-        prompt = f"""Develop a strategic blueprint for: "{topic}"
+        # 3. Ground Rules First
+        prompt = f"""### GROUND RULES (NON-NEGOTIABLE):
+1. Every number must come from a named 2024 report (Brand Finance, Interbrand, or Kantar BrandZ).
+2. If you cannot verify a figure, do not include it. Write "data unavailable".
+3. Appending a source label to an unverified number is a CRITICAL FAILURE.
+4. No "False Tension": Never call a top-5 global company an "underdog" or "pawn."
 
-### STRATEGIC RULES:
-1. **The Angle:** Find a surprising, data-backed perspective. 
-2. **Metaphor Feasibility (CRITICAL):** Suggest ONE singular, cinematic visual metaphor. It must be a simple concept (e.g., "A Chessboard", "A Compass", "A Rising Tide"). Avoid complex, multi-object scenes that an AI cannot draw reliably.
-3. **Template Choice:** Select colors and typography that match the sophistication of this specific topic.
+### THE TASK:
+Develop a strategic blueprint for the topic: "{topic}"
 
 ### OUTPUT FORMAT (JSON ONLY):
 {{
-  "angle": "Surprising take",
+  "angle": "surprising, data-backed perspective",
   "hook_type": "curiosity | controversy | relatability | value_proposition",
   "carousel_length": 6-10,
-  "visual_metaphor": "Simple, deliverable theme",
+  "visual_metaphor": "CONCRETE scene description (e.g. 'A single gold bar on a marble floor'. No abstract concepts.)",
   "color_palette": {{ "background": "hex", "primary": "hex", "accent": "hex" }},
-  "typography_style": "Font family and weights",
-  "target_audience_insight": "Psychological driver",
+  "typography_style": "Font pairing",
+  "target_audience_insight": "The psychological driver",
   "reasoning": "Data-backed justification"
 }}
 """
