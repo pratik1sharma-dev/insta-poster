@@ -183,7 +183,12 @@ Create exactly {strategy.carousel_length} slides that tell a complete, high-valu
 1. **The Journey:** Take the reader from a Hook to a high-impact conclusion.
 2. **Value Density:** Name every item in a list. Teach the reader something specific.
 3. **No Citations in Overlay:** The `text_overlay` MUST be clean and punchy. DO NOT include source citations (e.g., "Source: Brand Finance") in the text overlay. Use citations only for your internal verification.
-4. **Visual Choice:** Select the Template (`standard`, `big_fact`, `split_comparison`, `cta`) and Background Style (`solid`, `gradient`, `blurred_hook`) for each slide.
+4. **Visual Choice:** Select the Template and Background Style based on these strict logical rules:
+   - `standard`: The default choice. Use for all narrative sentences and general explanations.
+   - `big_fact`: Use ONLY for a single, high-impact statistic or a powerful 1-3 word punchline (e.g. "$500 BILLION" or "GAME OVER").
+   - `split_comparison`: Use ONLY for direct "This vs That" comparisons.
+   - `cta`: Use ONLY for the final action slide.
+   - **Background Strategy:** Use `blurred_hook` for at least 50% of the slides to maintain a cohesive high-end brand feel.
 """
 
         # Generate components using the consolidated master brief
