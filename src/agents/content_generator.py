@@ -3,6 +3,7 @@ Content Generator Agent - Writes slide text, captions, and hashtags.
 """
 import json
 import logging
+import re
 from pathlib import Path
 from typing import List, Optional, Any
 from google import genai
@@ -186,7 +187,12 @@ Create exactly {strategy.carousel_length} slides that tell a complete, visceral 
         self, strategy: ContentStrategy, channel_config: ChannelConfig, system_prompt: str, master_brief: str, raw_output_dir: Optional[Path] = None
     ) -> List[CarouselSlide]:
         """Generate slides."""
+        style_context = self._build_style_context(strategy, strategy.carousel_length)
+        
         prompt = f"""{master_brief}
+
+**Visual Context:**
+{style_context}
 
 **Slide Breakdown:**
 - Slide 1: HOOK - Selection: AI image generation.
@@ -276,9 +282,16 @@ Respond with ONLY the hashtags separated by spaces.
         """Generate final CTA."""
         return "Save this post if you found it valuable."
 
+    def _build_style_context(self, strategy: ContentStrategy, total_slides: int) -> str:
+        """Helper to build consistent visual context for the AI."""
+        return f"""**Visual Standards:**
+- Visual Metaphor: {strategy.visual_metaphor}
+- Color Palette: {strategy.color_palette}
+- Typography: {strategy.typography_style}
+- Brand Consistency: All slides must feel like part of the same cinematic series."""
+
     def _parse_json_response(self, response_text: str) -> dict:
         """Helper to parse JSON from AI response."""
-        import re
         try:
             # 1. Try markdown block
             json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response_text, re.DOTALL)
