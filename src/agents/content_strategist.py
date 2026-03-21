@@ -6,7 +6,7 @@ import random
 import logging
 import time
 from pathlib import Path
-from typing import Optional, Any
+from typing import List, Optional, Any
 from google import genai
 import replicate
 from groq import Groq
@@ -14,45 +14,7 @@ from replicate.exceptions import ReplicateError
 from tavily import TavilyClient
 from src.models import ChannelConfig, ContentStrategy, HookType
 from src.config import settings
-...
-    def _generate_search_queries(self, topic: str, theme: str) -> List[str]:
-        """Ask the LLM to generate optimal search queries for this topic."""
-        prompt = f"""You are a research assistant. The topic is: "{topic}"
-    The channel theme is: "{theme}"
 
-    Generate 3 specific search queries to find the most up-to-date (2024), verifiable data, statistics, and reports for this topic.
-    Focus on finding authoritative sources (e.g. industry reports, scientific papers, financial data).
-
-    Respond with ONLY a comma-separated list of the 3 queries.
-    """
-        response = self._generate_text(prompt)
-        # Parse comma-separated list
-        queries = [q.strip().strip('"') for q in response.split(',')]
-        return queries[:3]
-
-    def _research_topic(self, topic: str, theme: str) -> str:
-        """Search for real-world data about the topic using AI-generated queries."""
-        if not settings.tavily_api_key:
-            return ""
-
-        try:
-            client = TavilyClient(api_key=settings.tavily_api_key)
-            queries = self._generate_search_queries(topic, theme)
-
-            research_context = "### REAL-WORLD RESEARCH DATA (2024):\n"
-
-            for query in queries:
-                logging.getLogger(__name__).info(f"Researching: {query}")
-                response = client.search(query=query, search_depth="advanced", max_results=2)
-                for result in response.get('results', []):
-                    research_context += f"- Source: {result.get('url')}\n"
-                    research_context += f"  Content: {result.get('content')}\n\n"
-
-            return research_context
-        except Exception as e:
-            logging.getLogger(__name__).error(f"Tavily research failed: {e}")
-            return ""
-    def plan_content(
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +46,6 @@ class ContentStrategist:
             try:
                 if self.provider == "gemini":
                     # For Gemini, system instructions are set at client or model level
-                    # But we can also pass them in the content generation config
                     from google.genai import types
                     config = None
                     if system_prompt:
@@ -146,6 +107,44 @@ class ContentStrategist:
                 # If not a rate limit or we've exhausted retries, re-raise
                 raise e
         return ""
+
+    def _generate_search_queries(self, topic: str, theme: str) -> List[str]:
+        """Ask the LLM to generate optimal search queries for this topic."""
+        prompt = f"""You are a research assistant. The topic is: "{topic}"
+The channel theme is: "{theme}"
+
+Generate 3 specific search queries to find the most up-to-date (2024), verifiable data, statistics, and reports for this topic.
+Focus on finding authoritative sources (e.g. industry reports, scientific papers, financial data).
+
+Respond with ONLY a comma-separated list of the 3 queries.
+"""
+        response = self._generate_text(prompt)
+        # Parse comma-separated list
+        queries = [q.strip().strip('"') for q in response.split(',')]
+        return queries[:3]
+
+    def _research_topic(self, topic: str, theme: str) -> str:
+        """Search for real-world data about the topic using AI-generated queries."""
+        if not settings.tavily_api_key:
+            return ""
+
+        try:
+            client = TavilyClient(api_key=settings.tavily_api_key)
+            queries = self._generate_search_queries(topic, theme)
+
+            research_context = "### REAL-WORLD RESEARCH DATA (2024):\n"
+
+            for query in queries:
+                logging.getLogger(__name__).info(f"Researching: {query}")
+                response = client.search(query=query, search_depth="advanced", max_results=2)
+                for result in response.get('results', []):
+                    research_context += f"- Source: {result.get('url')}\n"
+                    research_context += f"  Content: {result.get('content')}\n\n"
+
+            return research_context
+        except Exception as e:
+            logging.getLogger(__name__).error(f"Tavily research failed: {e}")
+            return ""
 
     def plan_content(
         self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, raw_output_dir: Optional[Path] = None
