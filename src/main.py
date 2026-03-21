@@ -68,7 +68,7 @@ Angle: {strategy.angle}
 
 ### TASK:
 1. List the top 2 factual claims this post will make.
-2. Verify them against your 2024 knowledge base.
+2. Verify them against your latest knowledge base.
 3. If the angle is logical and factual, respond with "VALID".
 4. If it contains pure hallucinations, respond with "INVALID".
 """

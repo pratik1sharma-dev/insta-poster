@@ -123,11 +123,17 @@ class ContentStrategist:
 
     def _generate_search_queries(self, topic: str, theme: str) -> List[str]:
         """Ask the LLM to generate optimal search queries for this topic."""
-        prompt = f"""You are a research assistant. The topic is: "{topic}"
-The channel theme is: "{theme}"
+        from datetime import datetime
+        current_date = datetime.now().strftime("%B %Y")
+        
+        prompt = f"""You are a research assistant. 
+Today's Date: {current_date}
+Topic: "{topic}"
+Channel Theme: "{theme}"
 
-Generate 3 specific search queries to find the most up-to-date (2024), verifiable data, statistics, and reports for this topic.
-Focus on finding authoritative sources (e.g. industry reports, scientific papers, financial data).
+Generate 3 specific search queries to find the most up-to-date, verifiable data and reports for this topic.
+Focus on finding the latest available figures relative to today's date. 
+If the topic is historical, focus on that specific era.
 
 Respond with ONLY a comma-separated list of the 3 queries.
 """
@@ -145,7 +151,7 @@ Respond with ONLY a comma-separated list of the 3 queries.
             client = TavilyClient(api_key=settings.tavily_api_key)
             queries = self._generate_search_queries(topic, theme)
 
-            research_context = "### REAL-WORLD RESEARCH DATA (2024):\n"
+            research_context = "### REAL-WORLD RESEARCH DATA:\n"
 
             for query in queries:
                 logging.getLogger(__name__).info(f"Researching: {query}")
@@ -192,7 +198,7 @@ Tone: {channel_config.tone}
 
         # 4. Ground Rules First
         prompt = f"""### GROUND RULES (NON-NEGOTIABLE):
-1. Every number must come from a named 2024 report.
+1. Every number must come from a named authoritative report.
 2. If you cannot verify a figure, do not include it. Write "data unavailable".
 3. Appending a source label to an unverified number is a CRITICAL FAILURE.
 4. No "False Tension": Never call a top-5 global company an "underdog" or "pawn."

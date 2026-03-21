@@ -167,7 +167,7 @@ Audience: {channel_config.target_audience}"""
 
         # 1. GROUND RULES FIRST (TOP OF PROMPT)
         master_brief = f"""### GROUND RULES (NON-NEGOTIABLE):
-1. Every number must come from a named 2024 report (Brand Finance, Interbrand, or Kantar BrandZ).
+1. Every number must come from a named authoritative report.
 2. If you cannot verify a figure, do not include it. Write "data unavailable".
 3. Appending a source label to an unverified number is a CRITICAL FAILURE.
 4. The `text_overlay` must contain ONLY the final words for the slide. No meta-labels.
