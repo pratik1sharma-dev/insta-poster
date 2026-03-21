@@ -184,10 +184,10 @@ Tone: {channel_config.tone}
 {research_data}
 
 ### CORE DIRECTIVE: ANALYTICAL INTEGRITY FIRST
-- Use the REAL-WORLD RESEARCH DATA provided above as your primary source.
-- DO NOT invent or hallucinate data. 
-- If the research data is insufficient, use "data unavailable".
-- Base every insight on verifiable market reality.
+- **SOURCE-LOCK (MANDATORY):** You are FORBIDDEN from using any data, rankings, or financial figures that are not explicitly present in the REAL-WORLD RESEARCH DATA provided above. 
+- DO NOT invent "surprising" stories or archetypes (like "underdog"). 
+- If the research data is insufficient to fulfill the task, respond with: "DATA INSUFFICIENT".
+- Appending a source label to a figure not found in the provided snippets is a CRITICAL FAILURE.
 """
 
         # 4. Ground Rules First

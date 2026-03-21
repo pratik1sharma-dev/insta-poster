@@ -49,6 +49,11 @@ class ContentPipeline:
             # Phase 1: Content Strategy
             logger.logger.info("\n[Phase 1/4] Determining content strategy...")
             strategy = self.strategist.plan_content(channel_config, topic_hint, logger.raw_dir)
+            
+            if strategy.topic == "DATA INSUFFICIENT" or "DATA INSUFFICIENT" in strategy.angle:
+                logger.logger.error("Strategist reported insufficient data to proceed safely.")
+                raise ValueError("Aborting run: Insufficient research data found for this topic.")
+                
             logger.log_strategy(strategy)
 
             # Validation Gate (Phase 1.5)
