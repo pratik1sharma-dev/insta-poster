@@ -7,8 +7,8 @@
         body {
             width: 1080px; height: 1080px; margin: 0; display: flex; justify-content: center; align-items: center;
             font-family: 'Montserrat', "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif; 
-            background-color: {{ bg_color }}; /* Layer 1: Solid Fallback */
-            background-image: linear-gradient(135deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 100%); /* Layer 2: Gradient Depth */
+            background-color: {{ bg_color }};
+            background-image: linear-gradient(135deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 100%);
             color: {{ text_color }};
             position: relative; overflow: hidden;
         }
@@ -28,24 +28,33 @@
         /* Glassmorphism Container */
         .content {
             width: 85%; 
+            max-height: 75%;
             padding: 60px;
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 40px;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
             z-index: 5;
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
-        #text-fit {
+        #headline {
             font-size: 80px;
             font-weight: 800;
-            line-height: 1.2;
+            line-height: 1.1;
+            margin-bottom: 20px;
             white-space: pre-wrap;
-            word-wrap: break-word;
+        }
+        #body-text {
+            font-size: 45px;
+            font-weight: 400;
+            line-height: 1.4;
+            opacity: 0.9;
+            white-space: pre-wrap;
         }
         .brand { 
             position: absolute; top: 50px; right: 50px; 
@@ -65,21 +74,33 @@
     <div class="handle">@{{ channel_name|lower }}</div>
     
     <div class="content">
-        <div id="text-fit">{{ text_overlay }}</div>
+        {% if '---' in text_overlay %}
+            {% set parts = text_overlay.split('---') %}
+            <div id="headline">{{ parts[0].strip() }}</div>
+            <div id="body-text">{{ parts[1].strip() }}</div>
+        {% else %}
+            <div id="headline" style="margin-bottom: 0;">{{ text_overlay }}</div>
+        {% endif %}
     </div>
 
     <script>
         function fitText() {
             const container = document.querySelector('.content');
-            const text = document.getElementById('text-fit');
-            let fontSize = 80;
-            // Pad the container dimensions for safety
-            const maxWidth = container.offsetWidth - 100;
-            const maxHeight = container.offsetHeight - 100;
+            const headline = document.getElementById('headline');
+            const bodyText = document.getElementById('body-text');
             
-            while ((text.scrollHeight > maxHeight || text.scrollWidth > maxWidth) && fontSize > 20) {
-                fontSize--;
-                text.style.fontSize = fontSize + 'px';
+            let hSize = 80;
+            let bSize = 45;
+            
+            // Limit iterations to prevent hanging
+            let iterations = 0;
+            while (container.scrollHeight > container.offsetHeight && iterations < 100) {
+                if (hSize > 30) hSize -= 2;
+                if (bodyText && bSize > 20) bSize -= 1;
+                
+                headline.style.fontSize = hSize + 'px';
+                if (bodyText) bodyText.style.fontSize = bSize + 'px';
+                iterations++;
             }
         }
         window.onload = fitText;

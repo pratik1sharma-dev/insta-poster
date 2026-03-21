@@ -8,7 +8,7 @@
             width: 1080px; height: 1080px; margin: 0; display: flex; justify-content: center; align-items: center;
             font-family: 'Montserrat', "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
             background-color: {{ bg_color }};
-            background-image: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 100%);
+            background-image: linear-gradient(0deg, rgba(0,0,0,0.4) 0%, transparent 100%);
             color: {{ text_color }};
             position: relative; overflow: hidden;
         }
@@ -26,6 +26,7 @@
             background-size: 50px 50px;
             opacity: 0.04;
         }
+        /* CTA Glass Box */
         .content {
             width: 85%; height: 75%; text-align: center; z-index: 5;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -36,13 +37,16 @@
             padding: 60px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
-        #text-fit {
-            font-size: 70px; font-weight: 800; line-height: 1.3; margin-bottom: 60px; 
+        #headline {
+            font-size: 70px; font-weight: 800; line-height: 1.3; margin-bottom: 40px; 
             white-space: pre-wrap;
         }
+        #body-text {
+            font-size: 40px; font-weight: 400; line-height: 1.4; opacity: 0.9; margin-bottom: 40px;
+        }
         .action-box {
-            display: inline-block; padding: 30px 60px; border: 5px solid {{ text_color }};
-            font-size: 40px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
+            display: inline-block; padding: 25px 50px; border: 4px solid {{ text_color }};
+            font-size: 32px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
         }
         .brand { 
             position: absolute; top: 50px; right: 50px; 
@@ -61,21 +65,33 @@
     <div class="brand">{{ channel_name }}</div>
     <div class="handle">@{{ channel_name|lower }}</div>
     <div class="content">
-        <div id="text-fit">{{ text_overlay }}</div>
+        {% if '---' in text_overlay %}
+            {% set parts = text_overlay.split('---') %}
+            <div id="headline">{{ parts[0].strip() }}</div>
+            <div id="body-text">{{ parts[1].strip() }}</div>
+        {% else %}
+            <div id="headline">{{ text_overlay }}</div>
+        {% endif %}
         <div class="action-box">Save this post</div>
     </div>
 
     <script>
         function fitText() {
             const container = document.querySelector('.content');
-            const text = document.getElementById('text-fit');
-            let fontSize = 70;
-            const maxWidth = container.offsetWidth - 120;
-            const maxHeight = container.offsetHeight - 120;
+            const headline = document.getElementById('headline');
+            const bodyText = document.getElementById('body-text');
             
-            while ((text.scrollHeight > maxHeight || text.scrollWidth > maxWidth) && fontSize > 20) {
-                fontSize--;
-                text.style.fontSize = fontSize + 'px';
+            let hSize = 70;
+            let bSize = 40;
+
+            let iterations = 0;
+            while (container.scrollHeight > container.offsetHeight && iterations < 100) {
+                if (hSize > 35) hSize -= 2;
+                if (bodyText && bSize > 20) bSize -= 1;
+                
+                headline.style.fontSize = hSize + 'px';
+                if (bodyText) bodyText.style.fontSize = bSize + 'px';
+                iterations++;
             }
         }
         window.onload = fitText;

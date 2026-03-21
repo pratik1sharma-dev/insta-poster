@@ -36,8 +36,12 @@
             justify-content: center; align-items: center; white-space: pre-wrap;
             box-shadow: 0 30px 60px rgba(0,0,0,0.4);
         }
-        #text-fit {
-            font-size: 100px; font-weight: 900; line-height: 1; text-transform: uppercase;
+        #headline {
+            font-size: 120px; font-weight: 900; line-height: 1; text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        #body-text {
+            font-size: 50px; font-weight: 400; line-height: 1.2; opacity: 0.9;
         }
         .brand { 
             position: absolute; top: 50px; right: 50px; 
@@ -56,20 +60,33 @@
     <div class="brand">{{ channel_name }}</div>
     <div class="handle">@{{ channel_name|lower }}</div>
     <div class="content">
-        <div id="text-fit">{{ text_overlay }}</div>
+        {% if '---' in text_overlay %}
+            {% set parts = text_overlay.split('---') %}
+            <div id="headline">{{ parts[0].strip() }}</div>
+            <div id="body-text">{{ parts[1].strip() }}</div>
+        {% else %}
+            <div id="headline" style="margin-bottom: 0; font-size: 90px;">{{ text_overlay }}</div>
+        {% endif %}
     </div>
 
     <script>
         function fitText() {
             const container = document.querySelector('.content');
-            const text = document.getElementById('text-fit');
-            let fontSize = 100;
-            const maxWidth = container.offsetWidth - 120;
-            const maxHeight = container.offsetHeight - 120;
+            const headline = document.getElementById('headline');
+            const bodyText = document.getElementById('body-text');
             
-            while ((text.scrollHeight > maxHeight || text.scrollWidth > maxWidth) && fontSize > 20) {
-                fontSize--;
-                text.style.fontSize = fontSize + 'px';
+            let hSize = 120;
+            let bSize = 50;
+            if (!bodyText) hSize = 90;
+
+            let iterations = 0;
+            while (container.scrollHeight > container.offsetHeight && iterations < 100) {
+                if (hSize > 40) hSize -= 2;
+                if (bodyText && bSize > 25) bSize -= 1;
+                
+                headline.style.fontSize = hSize + 'px';
+                if (bodyText) bodyText.style.fontSize = bSize + 'px';
+                iterations++;
             }
         }
         window.onload = fitText;
