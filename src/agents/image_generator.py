@@ -54,7 +54,6 @@ class ImageGenerator:
             '--hide-scrollbars',
             '--window-size=1080,1080',
             '--force-device-scale-factor=1',
-            '--default-background-color=0',  # Prevent gray background
             '--disable-dev-shm-usage',       # Prevent memory issues in containers
         ]
 
