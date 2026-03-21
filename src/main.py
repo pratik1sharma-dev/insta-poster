@@ -76,9 +76,8 @@ Angle: {strategy.angle}
             except Exception: pass
             
             if "INVALID" in validation_result.upper():
-                logger.logger.warning(f"Strategy validation failed: {validation_result}")
-                # We could implement a retry here, but for now we log and proceed with caution
-                # or we could raise an exception to stop the run.
+                logger.logger.error(f"Strategy validation failed: {validation_result}")
+                raise ValueError(f"Aborting run due to failed strategy validation: {validation_result[:200]}")
             else:
                 logger.logger.info("Strategy validated successfully.")
 

@@ -41,6 +41,15 @@ class ContentGenerator:
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
 
+    def _clean_ai_response(self, text: str) -> str:
+        """Strip <think> blocks and other AI artifacts."""
+        if not text:
+            return ""
+        # Remove <think>...</think> blocks
+        import re
+        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+        return text.strip()
+
     def _generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """Utility to generate text from the configured provider with retry logic and system instructions."""
         max_retries = 3
@@ -48,6 +57,7 @@ class ContentGenerator:
 
         for attempt in range(max_retries):
             try:
+                raw_response = ""
                 if self.provider == "gemini":
                     from google.genai import types
                     config = None
@@ -59,7 +69,7 @@ class ContentGenerator:
                         contents=prompt,
                         config=config
                     )
-                    return response.text
+                    raw_response = response.text
                 elif self.provider == "replicate":
                     input_data = {
                         "prompt": prompt,
@@ -72,7 +82,7 @@ class ContentGenerator:
                         self.model,
                         input=input_data
                     )
-                    return "".join(output)
+                    raw_response = "".join(output)
                 elif self.provider == "groq":
                     messages = []
                     if system_prompt:
@@ -85,7 +95,10 @@ class ContentGenerator:
                         temperature=0.7,
                         max_tokens=4096,
                     )
-                    return completion.choices[0].message.content
+                    raw_response = completion.choices[0].message.content
+                
+                return self._clean_ai_response(raw_response)
+
             except Exception as e:
                 # Check if it's a rate limit error (429)
                 is_rate_limit = False
