@@ -1,10 +1,10 @@
 pagecapsules:
   name: "PageCapsules"
-  theme: "Turning powerful book ideas into simple visual insights"
-  brand_mission: "Summarize complex book ideas into 3-5 high-impact, actionable lessons. Prioritize utility and life-changing insights over generic summaries."
-  target_audience: "Ambitious professionals, entrepreneurs, and lifelong learners (22-40)"
+  theme: "Compressing world-class wisdom into high-impact visual blueprints."
+  brand_mission: "Summarize complex book ideas into 3-5 high-impact, actionable lessons. Prioritize life-changing insights over generic summaries."
+  target_audience: "Lifelong learners and high-performers (22-40) who have a long 'to-read' list but limited time. They value dense, utility-first content that they can implement immediately."
   posting_schedule: "1-2x daily"
-  tone: "engaging, insightful, actionable, inspiring"
+  tone: "authoritative, dense, utility-first, inspiring"
   style_guidelines: "Clear and concise text overlays with minimal modern design. Focus on practical insights and memorable takeaways."
 
   curated_topics:
@@ -44,11 +44,11 @@ pagecapsules:
 
 wealthcapsules:
   name: "Wealth Capsules"
-  theme: "Clear and practical insights about money, investing, and wealth building"
+  theme: "Breaking down the mechanics of wealth creation for the modern professional."
   brand_mission: "Demystifying complex financial concepts with real-world math. Focus on the long-term impact of small financial decisions and provide clear, verified paths to wealth building."
-  target_audience: "Young professionals (22-40), investors, and people pursuing financial independence"
+  target_audience: "Ambitious 22-40 year olds who value fundamental analysis over hype. They are looking for clear, non-speculative data to guide their path to financial independence."
   posting_schedule: "1-2x daily"
-  tone: "practical, insightful, empowering"
+  tone: "clinical, objective, empowering, precision-focused"
   style_guidelines: "Minimal modern design with clear and actionable financial insights. Focus on timeless principles and practical examples."
 
   curated_topics:
@@ -115,11 +115,11 @@ wealthcapsules:
 
 mindcapsules:
   name: "MindCapsules"
-  theme: "Understanding human psychology and how the mind works"
+  theme: "Unlocking the psychological blueprints that drive human behavior."
   brand_mission: "Explain the 'Why' behind human behavior using psychological principles. Connect abstract concepts to daily habits and provide clear, science-backed insights for mental growth."
-  target_audience: "Curious thinkers, professionals, and people interested in psychology and behavior (20-40)"
+  target_audience: "Curious 20-40 year olds looking to optimize their mental performance, habits, and relationships. They value scientific accuracy and practical psychological tools over surface-level motivation."
   posting_schedule: "1-2x daily"
-  tone: "thought-provoking, insightful, educational"
+  tone: "cerebral, empathetic, clinical, clarifying"
   style_guidelines: "Explain psychological ideas clearly with simple visuals and relatable examples."
 
   curated_topics:
@@ -186,12 +186,12 @@ mindcapsules:
 
 startupcapsules:
   name: "StartupCapsules"
-  theme: "Startup lessons, growth strategies, and founder insights explained simply"
+  theme: "Tactical playbooks and hard-earned lessons from the world's fastest-growing builders."
   brand_mission: "Provide a tactical 'Founder’s Playbook' for the Indian ecosystem. Focus on scalability, unit economics, and real lessons from both failed and successful startups."
-  target_audience: "Entrepreneurs, startup enthusiasts, builders, and professionals interested in startups (22-40) in India"
+  target_audience: "Founders, builders, and aspiring entrepreneurs (22-40) in India. They want the 'ugly truth' about startups, tactical frameworks, and real-world metrics from the Indian market."
   cultural_context: "Use examples and analogies relevant to the Indian startup ecosystem. Reference local companies (e.g., Flipkart, Zomato, Zerodha), investors, and market trends. Use Hinglish phrases occasionally if it feels natural."
   posting_schedule: "1-2x daily"
-  tone: "practical, insightful, entrepreneurial, inspiring"
+  tone: "tactical, gritty, entrepreneurial, high-velocity"
   style_guidelines: "Minimal modern carousel design with clear and actionable startup insights. Focus on real-world strategies, frameworks, and lessons from successful startups."
 
   curated_topics:
@@ -258,11 +258,11 @@ startupcapsules:
 
 worldinranks:
   name: "WorldInRanks"
-  theme: "Explaining the world through rankings, comparisons, and data-driven insights"
+  theme: "Visualizing the hidden hierarchies and shifting global power dynamics."
   brand_mission: "Provide clear, data-driven rankings and comparisons. While unique perspectives are encouraged, the primary goal is to deliver accurate, high-value insights that help the audience understand global trends. Make the data feel personal and impactful."
-  target_audience: "Curious learners, professionals, and people interested in global trends, business, technology, and economics (18-40)"
+  target_audience: "Curious professionals, policy-watchers, and global trend-spotters (18-40) who want to see how the world is actually changing through verifiable, data-backed comparisons."
   posting_schedule: "1-2x daily"
-  tone: "informative, engaging, curiosity-driven"
+  tone: "analytical, neutral, authoritative, scale-focused"
   style_guidelines: "Clean carousel slides presenting rankings and comparisons with minimal design, bold numbers, and easy-to-read data."
 
   curated_topics:
@@ -329,11 +329,11 @@ worldinranks:
 
 fertilitycapsules:
   name: "FertilityCapsules"
-  theme: "Demystifying fertility, busting IVF myths, and providing evidence-based reproductive health education"
+  theme: "Bridging the gap between medical science and the emotional journey of fertility."
   brand_mission: "Provide a compassionate, science-first guide to reproductive health. Prioritize data accuracy and medical facts while maintaining an empathetic tone to support users through complex journeys."
-  target_audience: "Individuals and couples planning families, and anyone curious about reproductive health (25-45)"
+  target_audience: "Individuals and couples (25-45) navigating fertility, IVF, or reproductive health challenges. They value radical transparency, clinical evidence, and emotional validation."
   posting_schedule: "1-2x daily"
-  tone: "empathetic, scientific, transparent, empowering"
+  tone: "empathetic, clinical, transparent, steadfast"
   style_guidelines: "Use soft, calming visuals combined with clear, jargon-free medical facts. Balance technical accuracy with emotional intelligence."
 
   curated_topics:
