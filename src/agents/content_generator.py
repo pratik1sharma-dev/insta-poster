@@ -183,14 +183,16 @@ Audience: {channel_config.target_audience}"""
 - Carousel Length: {strategy.carousel_length}
 
 ### THE TASK:
-Create exactly {strategy.carousel_length} slides that tell a complete, high-value story.
+Create exactly {strategy.carousel_length} slides that tell a complete, visceral story.
 1. **The Hook (Slide 1):** 
-   - **Clarity:** You MUST explicitly name the subject/topic. No vague "This dream is cracking."
+   - **Clarity (MANDATORY):** You MUST name the subject clearly (e.g. "The Side Hustle Dream", "Gold's Secret Value"). No vague metaphors.
    - **Curiosity:** Create a "Knowledge Gap." Why should they swipe? (e.g. "The side hustle dream is cracking. Here is the reality no one tells you.")
-   - **No Spoilers:** DO NOT reveal specific numbers or final facts from later slides on Slide 1.
-2. **The Journey:** Take the reader from the Hook to a high-impact conclusion.
-3. **Value Density:** Name every item in a list. Teach the reader something specific.
-4. **No Citations in Overlay:** The `text_overlay` MUST be clean and punchy. DO NOT include source citations in the text overlay.
+   - **NO SPOILERS (FORBIDDEN):** Do not use any numbers, percentages, or final facts that appear on later slides. Slide 1 is for the **Question**, not the **Answer**.
+2. **The Journey:** Take the reader from the Hook to a high-impact realization.
+3. **The Human Anchor Rule:** NEVER list raw numbers alone. Every "Trillion", "Crore", or "%" must be compared to something human (e.g. "4 in 10 colleagues" instead of "40%", "Enough to fill 3 pools" instead of "200k tons").
+4. **Value Density:** Name every item in a list. Teach something specific.
+5. **No Citations in Overlay:** The `text_overlay` MUST be clean and punchy. No meta-labels.
+
 4. **Visual Choice:** Select the Template and Background Style based on these strict logical rules:
    - `standard`: The default choice. Use for narrative sentences.
    - `big_fact`: Use ONLY for a single, high-impact statistic or a powerful punchline.
