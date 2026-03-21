@@ -28,7 +28,7 @@
             justify-content: center; align-items: center; white-space: pre-wrap;
         }
         #text-fit {
-            font-size: 150px; font-weight: 900; line-height: 1; text-transform: uppercase;
+            font-size: 90px; font-weight: 900; line-height: 1; text-transform: uppercase;
         }
         .brand { 
             position: absolute; top: 40px; right: 40px; 
@@ -49,7 +49,7 @@
         function fitText() {
             const container = document.querySelector('.content');
             const text = document.getElementById('text-fit');
-            let fontSize = 150;
+            let fontSize = 90;
             
             while ((text.scrollHeight > container.offsetHeight || text.scrollWidth > container.offsetWidth) && fontSize > 20) {
                 fontSize--;
