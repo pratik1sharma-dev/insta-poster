@@ -113,10 +113,8 @@ class ImageGenerator:
             # Slide 1: AI Hook Image (or placeholder)
             if slide.slide_number == 1:
                 if skip_ai_image:
-                    logger.info("[Slide 1] SKIP-AI-IMAGE: Generating placeholder for Slide 1")
-                    # Create a simple colored placeholder with text
-                    placeholder = Image.new('RGB', (1080, 1080), color=bg_color)
-                    placeholder.save(image_path)
+                    logger.info("[Slide 1] SKIP-AI-IMAGE: Using HTML template for Slide 1")
+                    # Fall through to the template rendering logic below
                     hook_image_path = image_path
                 else:
                     logger.info(f"[Slide 1] Generating AI Hook Image: {strategy.topic}")
@@ -187,8 +185,8 @@ class ImageGenerator:
                 if hook_image_path:
                     image_paths.append(hook_image_path)
 
-            # Slides 2+: HTML/CSS Templated Images
-            else:
+            # Slides 2+ (or Slide 1 if skipping AI): HTML/CSS Templated Images
+            if slide.slide_number > 1 or skip_ai_image:
                 template_name = slide.template_name if slide.template_name else "standard"
                 bg_style = slide.background_style if slide.background_style else "solid"
                 
