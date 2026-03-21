@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # Groq API
     groq_api_key: str = ""
-    groq_model: str = "llama-3.1-70b-versatile"
+    groq_model: str = "qwen-2.5-32b"
 
     # Tavily Search API
     tavily_api_key: str = ""
