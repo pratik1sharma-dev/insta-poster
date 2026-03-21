@@ -141,18 +141,19 @@ Global rules:
 - Use a consistent color palette and typography across slides.
 - Keep overall layout structure broadly consistent across slides.
 """
-def generate_content(
-    self, strategy: ContentStrategy, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None
-) -> GeneratedContent:
-    """Generate all text content for a post."""
 
-    system_prompt = f"""You are the '{channel_config.name}' content team executing the strategy brief below.
+    def generate_content(
+        self, strategy: ContentStrategy, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None
+    ) -> GeneratedContent:
+        """Generate all text content for a post."""
+
+        system_prompt = f"""You are the '{channel_config.name}' content team executing the strategy brief below.
 Mission: {channel_config.brand_mission or channel_config.theme}
 Tone: {channel_config.tone}
 Audience: {channel_config.target_audience}"""
 
-    # 1. GROUND RULES FIRST (TOP OF PROMPT)
-    master_brief = f"""### GROUND RULES (NON-NEGOTIABLE):
+        # 1. GROUND RULES FIRST (TOP OF PROMPT)
+        master_brief = f"""### GROUND RULES (NON-NEGOTIABLE):
 1. Every number must come from a named 2024 report (Brand Finance, Interbrand, or Kantar BrandZ).
 2. If you cannot verify a figure, do not include it. Write "data unavailable".
 3. Appending a source label to an unverified number is a CRITICAL FAILURE.
