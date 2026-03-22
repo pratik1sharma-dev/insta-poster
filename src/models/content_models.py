@@ -78,6 +78,12 @@ class CarouselSlide(BaseModel):
     image_prompt: str
     template_name: str = "standard"  # e.g., standard, big_fact, split_comparison, cta
     background_style: str = "solid"  # e.g., solid, gradient, blurred_hook
+    headline: Optional[str] = None
+    subtext: Optional[str] = None
+    pre_label: Optional[str] = None
+    left_content: Optional[str] = None
+    right_content: Optional[str] = None
+    action_text: Optional[str] = None
     design_notes: Optional[str] = None
 
     class Config:
