@@ -44,6 +44,9 @@ class ChannelConfig(BaseModel):
     style_guidelines: str
     visual_preferences: Optional[List[str]] = None
     tone: str = "engaging"
+    content_team_persona: Optional[str] = None
+    copy_voice_examples: Optional[str] = None
+    localization_type: str = "global"
 
     class Config:
         frozen = False
@@ -60,6 +63,7 @@ class ContentStrategy(BaseModel):
     color_palette: Union[str, Dict[str, str]]
     typography_style: Union[str, Dict[str, str]]
     target_audience_insight: str
+    verified_data: Optional[str] = None  # NEW: Real-world research extracted in Strategy phase
     reasoning: Optional[str] = None  # Why this strategy was chosen
 
     class Config:

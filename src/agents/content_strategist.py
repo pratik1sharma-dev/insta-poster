@@ -268,7 +268,7 @@ Develop a high-impact strategic blueprint for: "{topic}"
                     f.write(response_text)
             except Exception: pass
 
-        return self._parse_strategy_response(response_text, topic)
+        return self._parse_strategy_response(response_text, topic, research_data)
 
     def _discover_topic(self, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None) -> str:
         """
@@ -338,19 +338,20 @@ Create a clear and engaging strategy for a post about: "{topic}"
 Respond with ONLY JSON.
 """
 
-    def _parse_strategy_response(self, response_text: str, topic: str) -> ContentStrategy:
+    def _parse_strategy_response(self, response_text: str, topic: str, verified_data: Optional[str] = None) -> ContentStrategy:
         """
         Parse LLM's strategy response into ContentStrategy model.
 
         Args:
             response_text: Raw response from LLM
             topic: Topic being planned
+            verified_data: Verified data from research
 
         Returns:
             ContentStrategy instance
         """
         if not response_text:
-            return self._get_default_strategy(topic)
+            return self._get_default_strategy(topic, verified_data)
 
         # 1. Try to find content within markdown code blocks
         import re
@@ -384,7 +385,7 @@ Respond with ONLY JSON.
                 data = json.loads(cleaned)
             except json.JSONDecodeError:
                 logger.error(f"Failed to parse strategy JSON: {response_text[:200]}...")
-                return self._get_default_strategy(topic)
+                return self._get_default_strategy(topic, verified_data)
 
         # Create ContentStrategy
         return ContentStrategy(
@@ -396,10 +397,11 @@ Respond with ONLY JSON.
             color_palette=data["color_palette"],
             typography_style=data["typography_style"],
             target_audience_insight=data["target_audience_insight"],
+            verified_data=verified_data,
             reasoning=data.get("reasoning"),
         )
 
-    def _get_default_strategy(self, topic: str) -> ContentStrategy:
+    def _get_default_strategy(self, topic: str, verified_data: Optional[str] = None) -> ContentStrategy:
         """Return a fallback strategy if LLM fails."""
         return ContentStrategy(
             topic=topic,
@@ -410,5 +412,6 @@ Respond with ONLY JSON.
             color_palette="A default color palette.",
             typography_style="A default typography style.",
             target_audience_insight="Seeking actionable insights",
+            verified_data=verified_data,
             reasoning="Default strategy due to parsing error",
         )
