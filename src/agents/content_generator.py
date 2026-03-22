@@ -117,9 +117,11 @@ Strategy:
 1. Every number must come from a named authoritative report.
 2. If you cannot verify a figure, do not include it. Write "data unavailable".
 3. The `text_overlay` MUST contain ONLY the final words. No meta-labels.
-4. **NO SPOILERS:** Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers. Save the "payoff" for the swipe.
-5. **LOCALIZATION:** Use INR/₹ and Lakh/Crore for Indian topics. NEVER use USD or Millions/Billions.
-6. **PATTERN INTERRUPT:** Use `---` to separate Massive Headline from Body Text on nearly every slide.
+4. **NO CITATIONS:** DO NOT include source citations (e.g. "Source: Brand Finance") in the text overlay. Keep the slides clean.
+5. **NO SPOILERS:** Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers. Save the "payoff" for the swipe.
+6. **LOCALIZATION:** Use INR/₹ and Lakh/Crore for Indian topics. NEVER use USD.
+7. **PATTERN INTERRUPT:** Use `---` to separate Massive Headline from Body Text on nearly every slide.
+
 
 ### THE TASK:
 Create exactly {strategy.carousel_length} slides telling a visceral story.
