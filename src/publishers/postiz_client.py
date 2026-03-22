@@ -148,6 +148,116 @@ class PostizClient:
                 image_paths=[str(img) for img in images],
             )
 
+    def publish_reel(
+        self,
+        video_path: Path,
+        content: GeneratedContent,
+        strategy: ContentStrategy,
+        channel: str,
+        dry_run: bool = False,
+    ) -> PostResult:
+        """
+        Publish a Reel to Instagram via Postiz.
+        """
+        if dry_run:
+            return PostResult(
+                post_id=None,
+                timestamp=datetime.now(),
+                channel=channel,
+                content=content,
+                strategy=strategy,
+                status="dry_run",
+                image_paths=[str(video_path)],
+            )
+
+        try:
+            # 1. Upload Video
+            uploaded_video_object = self._upload_video(video_path)
+
+            # 2. Get Integration
+            integration_id = self._get_instagram_integration_id(channel)
+            if not integration_id:
+                raise Exception("No Instagram integration ID found for Reel posting.")
+
+            # 3. Prepare Reel Data
+            full_caption = f"{content.caption}\n\n{' '.join(content.hashtags)}"
+            schedule_date = datetime.now() + timedelta(minutes=10) # Reels might take longer to process
+            SCHEDULE_DATE = schedule_date.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+            reel_data = {
+                "type": "schedule",
+                "date": SCHEDULE_DATE,
+                "shortLink": false,
+                "posts": [
+                    {
+                        "integration": { "id": integration_id },
+                        "value": [
+                            {
+                                "content": full_caption,
+                                "video": [uploaded_video_object],
+                            }
+                        ],
+                        "settings": {
+                            "__type": "instagram",
+                            "post_type": "reel",
+                        }
+                    }
+                ]
+            }
+
+            response = requests.post(
+                f"{self.api_url}/public/v1/posts",
+                headers=self.headers,
+                json=reel_data,
+                timeout=30,
+            )
+
+            if response.status_code in [200, 201]:
+                return PostResult(
+                    post_id=response.json()[0].get("postId"),
+                    timestamp=datetime.now(),
+                    channel=channel,
+                    content=content,
+                    strategy=strategy,
+                    status="success",
+                    image_paths=[str(video_path)],
+                )
+            else:
+                raise Exception(f"Postiz Reel API Error: {response.text}")
+
+        except Exception as e:
+            return PostResult(
+                post_id=None,
+                timestamp=datetime.now(),
+                channel=channel,
+                content=content,
+                strategy=strategy,
+                status="failed",
+                error_message=str(e),
+                image_paths=[str(video_path)],
+            )
+
+    def _upload_video(self, video_path: Path) -> dict:
+        """Upload video file to Postiz."""
+        with open(video_path, "rb") as f:
+            files = {"file": (video_path.name, f, "video/mp4")}
+            response = requests.post(
+                f"{self.api_url}/public/v1/upload",
+                headers={"Authorization": self.api_key},
+                files=files,
+                timeout=60, # Videos need more time
+            )
+            if response.status_code in [200, 201]:
+                res = response.json()
+                return {
+                    "id": res.get("id"),
+                    "name": res.get("name"),
+                    "path": res.get("path"),
+                    "thumbnail": None,
+                }
+            else:
+                raise Exception(f"Failed to upload video: {response.text}")
+
     def _upload_images(self, images: List[Path]) -> List[dict]: # Changed return type
         """
         Upload images to Postiz and get media IDs and metadata.

@@ -122,6 +122,7 @@ Angle: {strategy.angle}
             if dry_run:
                 logger.logger.info("DRY RUN MODE - Skipping actual posting")
 
+            # Post Carousel
             result = self.publisher.publish_post(
                 images=image_paths,
                 content=content,
@@ -129,8 +130,23 @@ Angle: {strategy.angle}
                 channel=channel_name,
                 dry_run=dry_run,
             )
-
             logger.log_post_result(result)
+
+            # Post Reel (Optional)
+            if generate_reel:
+                reel_path = logger.get_output_dir() / "reel.mp4"
+                if reel_path.exists():
+                    logger.logger.info("Publishing generated Reel...")
+                    reel_result = self.publisher.publish_reel(
+                        video_path=reel_path,
+                        content=content,
+                        strategy=strategy,
+                        channel=channel_name,
+                        dry_run=dry_run,
+                    )
+                    logger.log_post_result(reel_result)
+                    if reel_result.status == "success":
+                        logger.logger.info(f"Reel successfully posted! ID: {reel_result.post_id}")
 
             # Summary
             logger.logger.info("\n" + "="*80)
