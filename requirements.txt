@@ -23,7 +23,5 @@ black>=24.0.0
 ruff>=0.1.0
 gTTS>=2.5.4
 
-# AI Audio (Optional - for Bark)
-transformers>=4.31.0
-torch>=2.0.0
-scipy>=1.10.0
+# Audio (Lightweight)
+edge-tts>=6.1.10

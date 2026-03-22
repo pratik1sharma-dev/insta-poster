@@ -34,8 +34,9 @@ class Settings(BaseSettings):
     postiz_api_key: str
 
     # Reel / TTS Configuration
-    tts_provider: str = "gtts"  # 'gtts' or 'bark'
-    bark_speaker: str = "v2/en_speaker_9"  # High quality male, often works well for Indian context
+    tts_provider: str = "edge"  # 'gtts' or 'edge'
+    edge_tts_voice: str = "en-IN-PrabhatNeural"  # Professional Indian Male Neural voice
+    bark_speaker: str = "v2/en_speaker_9"  # Deprecated but keeping for config compatibility
 
     # Logging
     log_level: str = "INFO"
