@@ -140,20 +140,26 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
             duration = self._get_audio_duration(audio_path)
             clip_path = video_fragments_dir / f"clip_{i:02d}.mp4"
             
-            # FFmpeg command:
-            # - Create vertical 1080x1920 canvas
-            # - Background: Scaled/blurred version of the square image
-            # - Foreground: The sharp square image centered
-            # - Apply slight Ken Burns (zoom)
+            # Refined FFmpeg command:
+            # 1. Force 25fps input loop
+            # 2. Scale background to 1080x1920 and blur
+            # 3. Scale foreground to 1080x1080 and overlay
+            # 4. Use a simpler zoom effect that is more stable
+            # 5. Force 44.1kHz Stereo AAC for maximum compatibility
             
             ffmpeg_cmd = [
-                'ffmpeg', '-y', '-loop', '1', '-i', str(img_path), '-i', str(audio_path),
+                'ffmpeg', '-y', 
+                '-loop', '1', '-framerate', '25', '-t', str(duration), '-i', str(img_path),
+                '-i', str(audio_path),
                 '-filter_complex', 
                 f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:10[bg];" +
                 f"[0:v]scale=1080:1080[fg];" +
-                f"[bg][fg]overlay=(W-w)/2:(H-h)/2,zoompan=z='min(zoom+0.001,1.1)':d={int(duration * 25)}:s=1080x1920[v]",
-                '-map', '[v]', '-map', '1:a', '-c:v', 'libx264', '-tune', 'stillimage', '-c:a', 'aac', '-b:a', '192k', 
-                '-pix_fmt', 'yuv420p', '-t', str(duration), str(clip_path)
+                f"[bg][fg]overlay=(W-w)/2:(H-h)/2[v_base];" +
+                f"[v_base]zoompan=z='min(zoom+0.001,1.1)':d=1:s=1080x1920:fps=25[v]",
+                '-map', '[v]', '-map', '1:a',
+                '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'stillimage',
+                '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
+                '-pix_fmt', 'yuv420p', '-shortest', str(clip_path)
             ]
             
             subprocess.run(ffmpeg_cmd, check=True)
@@ -165,9 +171,12 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
             for cp in clip_paths:
                 f.write(f"file '{cp.absolute()}'\n")
         
+        # Re-encode during concat to ensure unified timestamps and fix "Non-monotonic DTS"
         final_cmd = [
             'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', str(concat_list_path),
-            '-c', 'copy', str(output_path)
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+            '-c:a', 'aac', '-b:a', '192k',
+            str(output_path)
         ]
         subprocess.run(final_cmd, check=True)
         
