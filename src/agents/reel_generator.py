@@ -73,13 +73,44 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
             return [s.text_overlay for s in slides]
 
     def _create_audio_segments(self, script_segments: List[str], output_dir: Path) -> List[Path]:
-        """Convert script segments into individual audio files using gTTS."""
+        """Convert script segments into individual audio files using the configured provider."""
+        provider = settings.tts_provider.lower()
         audio_paths = []
-        for i, text in enumerate(script_segments, 1):
-            audio_path = output_dir / f"audio_{i:02d}.mp3"
-            tts = gTTS(text=text, lang='en', tld='co.in') # Using Indian English TLD for local flavor
-            tts.save(str(audio_path))
-            audio_paths.append(audio_path)
+
+        if provider == "bark":
+            logger.info("Initializing Bark TTS (this may take a moment)...")
+            from transformers import BarkModel, AutoProcessor
+            import torch
+            import scipy.io.wavfile as wavfile
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            model = BarkModel.from_pretrained("suno/bark-small").to(device)
+            processor = AutoProcessor.from_pretrained("suno/bark-small")
+            
+            for i, text in enumerate(script_segments, 1):
+                audio_path_wav = output_dir / f"audio_{i:02d}.wav"
+                audio_path_mp3 = output_dir / f"audio_{i:02d}.mp3"
+                
+                inputs = processor(text, voice_preset=settings.bark_speaker).to(device)
+                with torch.no_grad():
+                    audio_array = model.generate(**inputs)
+                
+                # Convert to numpy and save
+                audio_array = audio_array.cpu().numpy().squeeze()
+                sample_rate = model.generation_config.sample_rate
+                wavfile.write(str(audio_path_wav), rate=sample_rate, data=audio_array)
+                
+                # Convert WAV to MP3 using FFmpeg for smaller size/compatibility
+                subprocess.run(['ffmpeg', '-y', '-i', str(audio_path_wav), str(audio_path_mp3)], check=True, capture_output=True)
+                audio_paths.append(audio_path_mp3)
+                
+        else: # Default to gTTS
+            for i, text in enumerate(script_segments, 1):
+                audio_path = output_dir / f"audio_{i:02d}.mp3"
+                tts = gTTS(text=text, lang='en', tld='co.in')
+                tts.save(str(audio_path))
+                audio_paths.append(audio_path)
+                
         return audio_paths
 
     def _get_audio_duration(self, audio_path: Path) -> float:

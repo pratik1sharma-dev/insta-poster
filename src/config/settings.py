@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     postiz_api_url: str = "http://localhost:3000/api"
     postiz_api_key: str
 
+    # Reel / TTS Configuration
+    tts_provider: str = "gtts"  # 'gtts' or 'bark'
+    bark_speaker: str = "v2/en_speaker_9"  # High quality male, often works well for Indian context
+
     # Logging
     log_level: str = "INFO"
 
