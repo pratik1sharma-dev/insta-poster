@@ -1,5 +1,5 @@
 """
-Image Generator Agent - Creates carousel images using Gemini or Replicate.
+Image Generator Agent - Creates carousel images using AI (hook) and HTML templates (content slides).
 """
 
 import base64
@@ -15,12 +15,12 @@ from google import genai as genai_client
 from google.genai import types
 import replicate
 from replicate.exceptions import ReplicateError
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageEnhance
 
 from jinja2 import Template
 from html2image import Html2Image
 
-from src.models import ContentStrategy, GeneratedContent, ChannelConfig
+from src.models import ContentStrategy, GeneratedContent, ChannelConfig, CarouselSlide
 from src.config import settings
 
 
@@ -28,25 +28,33 @@ logger = logging.getLogger(__name__)
 
 
 class ImageGenerator:
-    """AI agent that generates carousel images using AI for the hook and HTML templates for the rest."""
+    """
+    Generates carousel images.
+    - Slide 1: AI-generated background image (Gemini or Replicate)
+    - Slides 2+: HTML/CSS templates rendered via html2image
+
+    Key improvements over previous version:
+    - Accent color extracted and passed to all templates
+    - Structured slide fields (headline, subtext, left_content, etc.)
+      passed to templates instead of flat text_overlay only
+    - AI image prompt explicitly forbids text/labels in the scene
+    - channel_name always comes from ChannelConfig, not a default string
+    - action_text from generated CTA passed to cta template
+    """
 
     def __init__(self):
         """Initialize the requested provider and HTML renderer."""
         self.provider = settings.image_provider.lower()
-        
+
         if self.provider == "gemini":
             self.client = genai_client.Client(api_key=settings.gemini_api_key)
-            self.model = settings.gemini_generator_model
+            self.model = settings.gemini_image_model
         elif self.provider == "replicate":
-            # REPLICATE_API_TOKEN is handled by the replicate library if in environment
             self.model = settings.replicate_model
         else:
             raise ValueError(f"Unsupported image provider: {self.provider}")
 
-        # Initialize HTML Renderer
         self.hti = Html2Image(size=(1080, 1080))
-        # Add flags for Linux server environment (running as root)
-        # Force window size and disable features that cause gray/white bars
         self.hti.browser.flags = [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -54,100 +62,65 @@ class ImageGenerator:
             '--hide-scrollbars',
             '--window-size=1080,1080',
             '--force-device-scale-factor=1',
-            '--disable-dev-shm-usage',       # Prevent memory issues in containers
+            '--disable-dev-shm-usage',
         ]
 
-    def _extract_primary_color(self, color_palette: Union[str, dict]) -> str:
-        """Extract background color from strategy (expects dict format)."""
-
-        # If it's already a dictionary (correct format from LLM)
-        if isinstance(color_palette, dict):
-            bg = color_palette.get('background')
-            if bg and isinstance(bg, str) and bg.startswith('#'):
-                return bg
-            # Fallback keys
-            primary = color_palette.get('primary', color_palette.get('bg', "#111827"))
-            if isinstance(primary, str) and primary.startswith('#'):
-                return primary
-
-        # Legacy string parsing (fallback for old strategy format)
-        hex_match = re.search(r'#(?:[0-9a-fA-F]{3}){1,2}', str(color_palette))
-        if hex_match:
-            return hex_match.group(0)
-
-        # If all else fails, return default
-        logger.warning(f"Could not parse color_palette: {color_palette}, using default #111827")
-        return "#111827"  # Dark gray default
-
-    def _extract_text_color(self, color_palette: Union[str, dict]) -> str:
-        """Extract text color or calculate contrast from background."""
-
-        # If dict has explicit text color, use it
-        if isinstance(color_palette, dict):
-            text = color_palette.get('text')
-            if text and isinstance(text, str) and text.startswith('#'):
-                return text
-
-        # Calculate from background for best contrast
-        bg_color = self._extract_primary_color(color_palette)
-        return self._get_contrast_color(bg_color)
-
-    def _get_contrast_color(self, hex_color: str) -> str:
-        """Calculate whether white or black text has better contrast with the background."""
-        hex_color = hex_color.lstrip('#')
-        if len(hex_color) == 3:
-            hex_color = ''.join([c*2 for c in hex_color])
-        
-        # Convert hex to RGB
-        r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-        
-        # Calculate luminance (standard formula)
-        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-        
-        # If background is light (luminance > 0.5), use black text. Otherwise white.
-        return "#000000" if luminance > 0.5 else "#ffffff"
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
     def generate_carousel(
         self,
         content: GeneratedContent,
         strategy: ContentStrategy,
+        channel_config: ChannelConfig,
         output_dir: Path,
-        channel_name: str = "Capsule",
         skip_ai_image: bool = False,
     ) -> List[Path]:
+        """
+        Generate all carousel slide images.
 
+        Args:
+            content:        Generated slide content including structured fields.
+            strategy:       Content strategy with color palette etc.
+            channel_config: Channel config — used for name and branding.
+            output_dir:     Where to save the images.
+            skip_ai_image:  If True, renders slide 1 with HTML instead of AI.
+
+        Returns:
+            List of Paths to generated images in slide order.
+        """
         image_paths = []
         total_slides = len(content.slides)
-        
-        # Determine brand colors for templates
-        bg_color = self._extract_primary_color(strategy.color_palette)
-        text_color = self._extract_text_color(strategy.color_palette)
 
-        style_context = self._build_style_context(strategy, total_slides)
-        
-        # Keep track of Slide 1 path for blurred background
-        hook_image_path = None
+        # Extract all three brand colors
+        bg_color = self._extract_color(strategy.color_palette, "background", "#111827")
+        text_color = self._extract_color(strategy.color_palette, "text", None)
+        if not text_color:
+            text_color = self._get_contrast_color(bg_color)
+        accent_color = self._extract_color(strategy.color_palette, "accent", "#3b82f6")
+
+        # Channel name always from config
+        channel_name = channel_config.name
+
+        style_context = self._build_style_context(strategy)
+        hook_image_path: Optional[Path] = None
 
         for slide in content.slides:
             image_path = output_dir / f"slide_{slide.slide_number:02d}.png"
 
-            # Slide 1: AI Hook Image
+            # ── Slide 1: AI Hook Image ──────────────────────────────────
             if slide.slide_number == 1 and not skip_ai_image:
-                logger.info(f"[Slide 1] Generating AI Hook Image: {strategy.topic}")
-                
-                prompt = self._build_slide_prompt(
-                    slide.image_prompt,
-                    slide.text_overlay,
-                    slide.slide_number,
-                    style_context,
-                    strategy,
+                logger.info("[Slide 1] Generating AI hook image: %s", strategy.topic)
+
+                prompt = self._build_ai_image_prompt(
+                    slide, style_context, strategy
                 )
 
                 try:
                     if self.provider == "gemini":
-                        # Add delay to avoid 2-images-per-minute free tier limit
                         if slide.slide_number > 1:
-                            logger.info("Waiting 35s to respect Gemini free tier image rate limits...")
+                            logger.info("Waiting 35s for Gemini free tier rate limit...")
                             time.sleep(35)
 
                         response = self.client.models.generate_content(
@@ -157,188 +130,323 @@ class ImageGenerator:
                                 response_modalities=["IMAGE"]
                             ),
                         )
-                        hook_image_path = self._save_gemini_image(response, slide.slide_number, output_dir)
-                    
+                        hook_image_path = self._save_gemini_image(
+                            response, slide.slide_number, output_dir
+                        )
+
                     elif self.provider == "replicate":
-                        max_retries = 3
-                        retry_delay = 10
-                        
-                        output = None
-                        for attempt in range(max_retries):
-                            try:
-                                input_params = {
-                                    "prompt": prompt,
-                                    "aspect_ratio": "1:1",
-                                }
-                                if "flux" in self.model:
-                                    input_params["output_format"] = "png"
+                        hook_image_path = self._generate_replicate_image(
+                            prompt, slide.slide_number, output_dir
+                        )
 
-                                output = replicate.run(
-                                    self.model,
-                                    input=input_params
-                                )
-                                break
-                            except Exception as e:
-                                is_rate_limit = False
-                                if isinstance(e, ReplicateError) and ("429" in str(e) or "throttled" in str(e).lower()):
-                                    is_rate_limit = True
-                                
-                                if is_rate_limit and attempt < max_retries - 1:
-                                    wait_time = retry_delay * (2 ** attempt)
-                                    logger.warning(f"Image rate limit hit. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
-                                    time.sleep(wait_time)
-                                    continue
-                                raise e
-
-                        if not output:
-                            raise RuntimeError(f"Failed to generate image for slide {slide.slide_number} after retries")
-
-                        image_url = output[0] if isinstance(output, list) else str(output)
-                        hook_image_path = self._save_replicate_image(image_url, slide.slide_number, output_dir)
                 except Exception as e:
-                    logger.error("Failed to generate AI image for slide %s: %s", slide.slide_number, e)
+                    logger.error(
+                        "Failed to generate AI image for slide %s: %s",
+                        slide.slide_number, e
+                    )
 
                 if hook_image_path:
                     image_paths.append(hook_image_path)
 
-            # Slides 2+ (or Slide 1 if skipping AI): HTML/CSS Templated Images
+            # ── Slides 2+ (or slide 1 if skipping AI): HTML templates ──
             elif slide.slide_number > 1 or skip_ai_image:
                 if skip_ai_image and slide.slide_number == 1:
-                    logger.info("[Slide 1] SKIP-AI-IMAGE: Using HTML template for Slide 1")
-                    hook_image_path = image_path # Used for blurred backgrounds later
-                template_name = slide.template_name if slide.template_name else "standard"
-                bg_style = slide.background_style if slide.background_style else "solid"
-                
-                msg = f"[Slide {slide.slide_number}] Rendering into '{template_name}' template with '{bg_style}' background"
-                logging.getLogger(__name__).info(msg)
-                logging.getLogger(__name__).info(f"Text Overlay: {slide.text_overlay}")
-                
+                    logger.info("[Slide 1] skip_ai_image=True: using HTML template")
+                    hook_image_path = image_path
+
+                template_name = slide.template_name or "standard"
+                bg_style = slide.background_style or "solid"
+
+                logger.info(
+                    "[Slide %s] Rendering template='%s' bg='%s'",
+                    slide.slide_number, template_name, bg_style
+                )
+                logger.info("[Slide %s] Headline: %s", slide.slide_number, slide.headline or slide.text_overlay)
+
                 try:
-                    # Load template
-                    template_file = Path(f"src/templates/{template_name}.html")
-                    if not template_file.exists():
-                        # Fallback to standard
-                        template_file = Path("src/templates/standard.html")
-                        if not template_file.exists():
-                            # Fallback to generic slide.html if created earlier
-                            template_file = Path("src/templates/slide.html")
-                    
-                    with open(template_file, "r") as f:
-                        jinja_template = Template(f.read())
-
-                    # Prepare background data
-                    bg_data = {"type": bg_style, "value": bg_color}
-                    if bg_style == "blurred_hook" and hook_image_path and hook_image_path.exists():
-                        # Create blurred background
-                        with Image.open(hook_image_path) as img:
-                            # Apply blur and darken
-                            bg_img = img.filter(ImageFilter.GaussianBlur(radius=40))
-                            # Add dark overlay
-                            from PIL import ImageEnhance
-                            enhancer = ImageEnhance.Brightness(bg_img)
-                            bg_img = enhancer.enhance(0.4)
-                            
-                            # Convert to base64
-                            buffered = io.BytesIO()
-                            bg_img.save(buffered, format="PNG")
-                            img_str = base64.b64encode(buffered.getvalue()).decode()
-                            bg_data["image_b64"] = f"data:image/png;base64,{img_str}"
-
-                    html_content = jinja_template.render(
-                        bg_color=bg_color,
+                    rendered_path = self._render_html_slide(
+                        slide=slide,
+                        template_name=template_name,
                         bg_style=bg_style,
-                        bg_image_b64=bg_data.get("image_b64"),
+                        bg_color=bg_color,
                         text_color=text_color,
+                        accent_color=accent_color,
                         channel_name=channel_name,
-                        text_overlay=slide.text_overlay,
+                        hook_image_path=hook_image_path,
                         current_slide=slide.slide_number,
-                        total_slides=total_slides
+                        total_slides=total_slides,
+                        output_path=image_path,
+                        cta_text=content.call_to_action,
                     )
-                    
-                    temp_name = f"temp_slide_{slide.slide_number}.png"
-
-                    # Render with explicit size
-                    self.hti.screenshot(
-                        html_str=html_content,
-                        save_as=temp_name,
-                        size=(1080, 1080)
-                    )
-
-                    temp_path = Path(temp_name)
-                    if temp_path.exists():
-                        # Crop to exact 1080x1080 to remove any gray bars
-                        img = Image.open(temp_path)
-                        if img.size != (1080, 1080):
-                            logger.info(f"Cropping image from {img.size} to 1080x1080")
-                            # Crop from center if larger, or pad if smaller
-                            if img.size[0] >= 1080 and img.size[1] >= 1080:
-                                left = (img.size[0] - 1080) // 2
-                                top = (img.size[1] - 1080) // 2
-                                img = img.crop((left, top, left + 1080, top + 1080))
-                            else:
-                                # If smaller, something went wrong - try to use what we have
-                                logger.warning(f"Image smaller than expected: {img.size}")
-                        img.save(temp_path)
-
-                        temp_path.replace(image_path)
-                        image_paths.append(image_path)
-                    else:
-                        raise FileNotFoundError("html2image failed to create the file.")
+                    if rendered_path:
+                        image_paths.append(rendered_path)
 
                 except Exception as e:
-                    logger.error(f"Failed to render HTML for slide {slide.slide_number}: {e}")
+                    logger.error(
+                        "Failed to render HTML for slide %s: %s",
+                        slide.slide_number, e
+                    )
 
         return image_paths
 
-    def _build_style_context(self, strategy: ContentStrategy, total_slides: int) -> str:
-        """Create shared design system for the carousel."""
+    # ------------------------------------------------------------------
+    # HTML template rendering
+    # ------------------------------------------------------------------
 
-        return f"""
-You are a senior graphic designer creating a single, high-impact Instagram post.
+    def _render_html_slide(
+        self,
+        slide: CarouselSlide,
+        template_name: str,
+        bg_style: str,
+        bg_color: str,
+        text_color: str,
+        accent_color: str,
+        channel_name: str,
+        hook_image_path: Optional[Path],
+        current_slide: int,
+        total_slides: int,
+        output_path: Path,
+        cta_text: str = "",
+    ) -> Optional[Path]:
+        """Load a Jinja2 template and render it to a 1080x1080 PNG."""
 
-**Brand DNA:**
+        # Find template file
+        template_file = Path(f"src/templates/{template_name}.html")
+        if not template_file.exists():
+            logger.warning(
+                "Template '%s' not found, falling back to standard.html",
+                template_name
+            )
+            template_file = Path("src/templates/standard.html")
+        if not template_file.exists():
+            raise FileNotFoundError(f"No template found at {template_file}")
+
+        with open(template_file, "r") as f:
+            jinja_template = Template(f.read())
+
+        # Build blurred background if needed
+        bg_image_b64 = None
+        if bg_style == "blurred_hook" and hook_image_path and hook_image_path.exists():
+            bg_image_b64 = self._make_blurred_b64(hook_image_path)
+
+        # Derive action_text for CTA slide
+        # Priority: slide.action_text > first ~5 words of generated CTA > fallback
+        action_text = slide.action_text
+        if not action_text and slide.purpose.value == "cta" and cta_text:
+            # Use a short version of the CTA as button label
+            action_text = "Comment below"
+
+        # Render
+        html_content = jinja_template.render(
+            # Colors
+            bg_color=bg_color,
+            text_color=text_color,
+            accent_color=accent_color,
+            # Background
+            bg_style=bg_style,
+            bg_image_b64=bg_image_b64,
+            # Branding
+            channel_name=channel_name,
+            # Slide counters
+            current_slide=current_slide,
+            total_slides=total_slides,
+            # Structured text fields
+            headline=slide.headline,
+            subtext=slide.subtext,
+            pre_label=slide.pre_label,
+            left_content=slide.left_content,
+            right_content=slide.right_content,
+            action_text=action_text,
+            # Flat fallback (always populated)
+            text_overlay=slide.text_overlay,
+        )
+
+        temp_name = f"temp_slide_{current_slide}.png"
+        self.hti.screenshot(html_str=html_content, save_as=temp_name, size=(1080, 1080))
+
+        temp_path = Path(temp_name)
+        if not temp_path.exists():
+            raise FileNotFoundError(f"html2image failed to create {temp_name}")
+
+        # Crop to exact 1080x1080 to remove any gray bars
+        img = Image.open(temp_path)
+        if img.size != (1080, 1080):
+            logger.info(
+                "Cropping slide %s from %s to 1080x1080",
+                current_slide, img.size
+            )
+            if img.size[0] >= 1080 and img.size[1] >= 1080:
+                left = (img.size[0] - 1080) // 2
+                top = (img.size[1] - 1080) // 2
+                img = img.crop((left, top, left + 1080, top + 1080))
+            else:
+                logger.warning("Slide %s smaller than expected: %s", current_slide, img.size)
+        img.save(temp_path)
+        temp_path.replace(output_path)
+
+        return output_path
+
+    def _make_blurred_b64(self, image_path: Path) -> str:
+        """Blur, darken, and base64-encode an image for use as background."""
+        with Image.open(image_path) as img:
+            blurred = img.filter(ImageFilter.GaussianBlur(radius=40))
+            darkened = ImageEnhance.Brightness(blurred).enhance(0.4)
+            buffered = io.BytesIO()
+            darkened.save(buffered, format="PNG")
+            b64 = base64.b64encode(buffered.getvalue()).decode()
+            return f"data:image/png;base64,{b64}"
+
+    # ------------------------------------------------------------------
+    # AI image generation
+    # ------------------------------------------------------------------
+
+    def _build_style_context(self, strategy: ContentStrategy) -> str:
+        """Shared design brief for the AI image model."""
+        return f"""You are a senior graphic designer creating a background image for an Instagram carousel.
+
+Brand context:
 - Topic: {strategy.topic}
-- Angle: {strategy.angle}
-- Color Palette: {strategy.color_palette}
-- Typography Style: {strategy.typography_style}
-- Aesthetic: Clean, modern, professional, and minimalist.
+- Visual theme: {strategy.visual_metaphor}
+- Color palette: {strategy.color_palette}
+- Aesthetic: Clean, modern, cinematic, minimalist.
 
-**Strict Composition Rules:**
-- **Single Image Only:** Create one unified, focused composition for this specific slide.
-- **No Collages:** Do not use sub-images, grids, or multi-image layouts. 
-- **Negative Space:** Ensure there is enough clean space for the text to be easily readable.
-- **Readability:** Text must be bold, sharp, and highly readable on mobile screens.
+Composition rules:
+- Create ONE unified background scene.
+- Leave generous negative space (especially center) for text overlay.
+- No collages or multi-image grids.
+- Photorealistic or high-quality illustrative style.
 """
 
-    def _build_slide_prompt(
+    def _build_ai_image_prompt(
         self,
-        base_prompt: str,
-        text_overlay: str,
-        slide_number: int,
+        slide: CarouselSlide,
         style_context: str,
         strategy: ContentStrategy,
     ) -> str:
+        """
+        Build the image generation prompt for slide 1.
 
-        return f"""
-{style_context}
+        Critical: explicitly forbids any text, letters, words, or labels
+        in the generated image. Text is handled by the HTML layer.
+        """
+        return f"""{style_context}
 
-**Visual Theme:** {strategy.visual_metaphor}
+Scene to create:
+{slide.image_prompt}
 
-**Slide Design Mission:**
-You must create a single, clean image that combines a visual background with a specific text overlay.
+ABSOLUTE RULES — violations will ruin the slide:
+1. NO TEXT of any kind in the image. No words, letters, numbers, labels,
+   watermarks, captions, or typographic elements anywhere in the scene.
+   Text will be added separately as an overlay.
+2. NO charts, graphs, infographics, or data tables.
+3. NO collages or multi-panel layouts.
+4. ONE clear focal point with negative space around it.
+5. Output a single 1080x1080 square image only.
 
-1. **The Background Scene:** {base_prompt}
-2. **The ONLY Text Allowed:** "{text_overlay}"
+Generate the background scene now."""
 
-**Strict Visual Rules:**
-- **No Background Text:** Do not include any labels, numbers, data legends, or random characters in the background. 
-- **No Charts/Grids:** Avoid drawing literal charts or data tables that contain text. Represent data through abstract shapes instead.
-- **Single Focal Point:** The ONLY readable words in the entire image must be: "{text_overlay}".
-- **Placement:** Position "{text_overlay}" in a clear area of negative space using bold, professional typography.
+    def _generate_replicate_image(
+        self,
+        prompt: str,
+        slide_number: int,
+        output_dir: Path,
+    ) -> Optional[Path]:
+        """Generate image via Replicate with retry logic."""
+        max_retries = 3
+        retry_delay = 10
 
-**Final Directive:**
-Generate a single 1080x1080 image. Ensure zero typos in the text. Do not return conversational text. Return ONLY the image.
-"""
+        for attempt in range(max_retries):
+            try:
+                input_params = {"prompt": prompt, "aspect_ratio": "1:1"}
+                if "flux" in self.model:
+                    input_params["output_format"] = "png"
+
+                output = replicate.run(self.model, input=input_params)
+                image_url = output[0] if isinstance(output, list) else str(output)
+                return self._save_replicate_image(image_url, slide_number, output_dir)
+
+            except Exception as e:
+                is_rate_limit = (
+                    isinstance(e, ReplicateError)
+                    and ("429" in str(e) or "throttled" in str(e).lower())
+                )
+                if is_rate_limit and attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)
+                    logger.warning(
+                        "Image rate limit hit. Retrying in %ss (attempt %d/%d)",
+                        wait_time, attempt + 1, max_retries
+                    )
+                    time.sleep(wait_time)
+                    continue
+                raise e
+
+        return None
+
+    # ------------------------------------------------------------------
+    # Color utilities
+    # ------------------------------------------------------------------
+
+    def _extract_color(
+        self,
+        color_palette: Union[str, dict],
+        key: str,
+        fallback: Optional[str],
+    ) -> Optional[str]:
+        """
+        Extract a specific color from the palette.
+
+        Handles both dict format (from improved LLM output) and
+        legacy string format (fallback hex extraction).
+        """
+        if isinstance(color_palette, dict):
+            value = color_palette.get(key)
+            if value and isinstance(value, str) and value.startswith("#"):
+                return value
+            # Try common aliases
+            aliases = {
+                "background": ["bg", "background_color"],
+                "text": ["primary", "text_color", "foreground"],
+                "accent": ["secondary", "highlight", "accent_color"],
+            }
+            for alias in aliases.get(key, []):
+                value = color_palette.get(alias)
+                if value and isinstance(value, str) and value.startswith("#"):
+                    return value
+
+        # Legacy: parse JSON string then extract
+        if isinstance(color_palette, str):
+            try:
+                parsed = __import__("json").loads(color_palette)
+                return self._extract_color(parsed, key, fallback)
+            except Exception:
+                pass
+            # Last resort: return first hex found for background, ignore key
+            if key == "background":
+                match = re.search(r"#(?:[0-9a-fA-F]{3}){1,2}", color_palette)
+                if match:
+                    return match.group(0)
+
+        if fallback:
+            logger.warning(
+                "Could not extract '%s' from palette: %s — using fallback %s",
+                key, color_palette, fallback
+            )
+        return fallback
+
+    def _get_contrast_color(self, hex_color: str) -> str:
+        """Return black or white for best contrast against the given background."""
+        hex_color = hex_color.lstrip("#")
+        if len(hex_color) == 3:
+            hex_color = "".join(c * 2 for c in hex_color)
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return "#000000" if luminance > 0.5 else "#ffffff"
+
+    # ------------------------------------------------------------------
+    # Image save helpers
+    # ------------------------------------------------------------------
 
     def _save_gemini_image(
         self,
@@ -346,16 +454,17 @@ Generate a single 1080x1080 image. Ensure zero typos in the text. Do not return 
         slide_number: int,
         output_dir: Path,
     ) -> Path:
-
+        """Extract and save image bytes from a Gemini response."""
         image_bytes = None
-
         try:
             for part in response.candidates[0].content.parts:
                 if part.inline_data:
                     image_bytes = part.inline_data.data
                     break
         except Exception as e:
-            logger.error("Failed to extract Gemini image for slide %s: %s", slide_number, e)
+            logger.error(
+                "Failed to extract Gemini image for slide %s: %s", slide_number, e
+            )
 
         if not image_bytes:
             raise RuntimeError(f"No image returned for slide {slide_number}")
@@ -363,8 +472,7 @@ Generate a single 1080x1080 image. Ensure zero typos in the text. Do not return 
         image = Image.open(io.BytesIO(image_bytes))
         image_path = output_dir / f"slide_{slide_number:02d}.png"
         image.save(image_path, "PNG")
-
-        logger.info("Saved Gemini image for slide %s to %s", slide_number, image_path)
+        logger.info("Saved Gemini image: slide %s → %s", slide_number, image_path)
         return image_path
 
     def _save_replicate_image(
@@ -373,15 +481,14 @@ Generate a single 1080x1080 image. Ensure zero typos in the text. Do not return 
         slide_number: int,
         output_dir: Path,
     ) -> Path:
-        """Download and save image from Replicate URL."""
-        
-        response = requests.get(url)
+        """Download and save image from a Replicate URL."""
+        response = requests.get(url, timeout=60)
         if response.status_code != 200:
-            raise RuntimeError(f"Failed to download image from {url}")
-
+            raise RuntimeError(
+                f"Failed to download image from {url} (status {response.status_code})"
+            )
         image = Image.open(io.BytesIO(response.content))
         image_path = output_dir / f"slide_{slide_number:02d}.png"
         image.save(image_path, "PNG")
-
-        logger.info("Saved Replicate image for slide %s to %s", slide_number, image_path)
+        logger.info("Saved Replicate image: slide %s → %s", slide_number, image_path)
         return image_path

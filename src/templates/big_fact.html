@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; }
         html, body {
@@ -15,96 +15,173 @@
             color: {{ text_color }};
             position: relative;
         }
-        /* Background Layer Stack */
+
+        /* ── Background layers ── */
         .bg-base {
             position: absolute; top: 0; left: 0; width: 1080px; height: 1080px;
-            background-image: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.6) 100%);
+            background-image: linear-gradient(160deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
             z-index: 1;
         }
         .bg-image {
-            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; object-fit: cover; z-index: 2;
+            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px;
+            object-fit: cover; z-index: 2;
         }
-        .overlay { 
-            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; z-index: 3; 
+        /* Dot grid overlay — subtle texture */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; z-index: 3;
             background-image: radial-gradient(circle, {{ text_color }} 1px, transparent 1px);
-            background-size: 80px 80px;
-            opacity: 0.05;
+            background-size: 72px 72px;
+            opacity: 0.04;
         }
-        /* Grainy Texture Overlay */
         body::before {
             content: ""; position: absolute; top: 0; left: 0; width: 1080px; height: 1080px;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
             opacity: 0.07; pointer-events: none; z-index: 10;
         }
-        
+
+        /* ── Accent ring behind the number ── */
+        .accent-ring {
+            position: absolute;
+            width: 600px; height: 600px;
+            border-radius: 50%;
+            border: 3px solid {{ accent_color }};
+            opacity: 0.12;
+            z-index: 4;
+        }
+
+        /* ── Content ── */
         .content {
             width: 920px;
-            max-height: 800px;
+            max-height: 820px;
             padding: 80px 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center; /* Big fact remains centered but uses new fonts */
+            align-items: center;
             text-align: center;
             z-index: 5;
             position: relative;
         }
+
+        /* Small label ABOVE the big number */
+        #pre-label {
+            font-family: 'Poppins', sans-serif;
+            font-size: 32px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            opacity: 0.7;
+            margin-bottom: 16px;
+            color: {{ accent_color }};
+        }
+
+        /* The big number / punchline */
         #headline {
             font-family: 'Anton', sans-serif;
-            font-size: 140px; 
-            font-weight: 400; 
-            line-height: 1; 
+            font-size: 160px;
+            font-weight: 400;
+            line-height: 0.95;
             text-transform: uppercase;
-            text-shadow: 0 15px 45px rgba(0,0,0,0.6);
+            text-shadow: 0 16px 48px rgba(0,0,0,0.6);
             white-space: pre-wrap;
+            word-break: break-word;
         }
-        .brand { 
-            position: absolute; top: 60px; left: 60px; 
-            font-size: 28px; font-weight: 800; text-transform: uppercase; 
-            z-index: 10; opacity: 0.9; letter-spacing: 0.1em;
+
+        /* Divider line */
+        .divider {
+            width: 120px; height: 4px;
+            background: {{ accent_color }};
+            margin: 32px auto;
+            border-radius: 2px;
+        }
+
+        /* Context label BELOW the number */
+        #subtext {
+            font-family: 'Poppins', sans-serif;
+            font-size: 38px;
+            font-weight: 400;
+            line-height: 1.35;
+            opacity: 0.88;
+            white-space: pre-wrap;
+            max-width: 800px;
+        }
+
+        /* ── Branding ── */
+        .brand {
+            position: absolute; top: 56px; left: 60px;
+            font-size: 26px; font-weight: 800; text-transform: uppercase;
+            z-index: 10; opacity: 0.95; letter-spacing: 0.12em;
             display: flex; align-items: center;
         }
         .brand::before {
-            content: ""; display: inline-block; width: 12px; height: 12px;
-            background: {{ text_color }}; margin-right: 15px; border-radius: 2px;
+            content: ""; display: inline-block; width: 10px; height: 10px;
+            background: {{ accent_color }}; margin-right: 14px; border-radius: 2px;
         }
         .handle {
-            position: absolute; bottom: 60px; right: 60px;
-            font-size: 24px; font-weight: 600; z-index: 10; opacity: 0.7;
+            position: absolute; bottom: 56px; right: 60px;
+            font-size: 22px; font-weight: 600; z-index: 10; opacity: 0.6;
         }
 
-        /* Slide progress bar */
+        /* ── Progress bar ── */
         .progress-container {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 12px; z-index: 10; background: rgba(255,255,255,0.1);
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 10px;
+            z-index: 10; background: rgba(255,255,255,0.08);
         }
         .progress-bar {
-            height: 100%; background: {{ text_color }}; width: {{ (current_slide / total_slides) * 100 }}%;
+            height: 100%; background: {{ accent_color }};
+            width: {{ (current_slide / total_slides * 100) | round(1) }}%;
         }
     </style>
 </head>
 <body>
     <div class="bg-base"></div>
-    {% if bg_style == 'blurred_hook' and bg_image_b64 %}<img src="{{ bg_image_b64 }}" class="bg-image">{% endif %}
+    {% if bg_style == 'blurred_hook' and bg_image_b64 %}
+        <img src="{{ bg_image_b64 }}" class="bg-image">
+    {% endif %}
     <div class="overlay"></div>
+    <div class="accent-ring"></div>
+
     <div class="brand">{{ channel_name }}</div>
-    <div class="handle">@{{ channel_name|lower|replace(' ', '') }}</div>
+    <div class="handle">@{{ channel_name | lower | replace(' ', '') }}</div>
+
     <div class="content">
-        <div id="headline">{{ text_overlay }}</div>
+        {% if headline %}
+            {% if pre_label %}
+                <div id="pre-label">{{ pre_label }}</div>
+            {% endif %}
+            <div id="headline">{{ headline }}</div>
+            {% if subtext %}
+                <div class="divider"></div>
+                <div id="subtext">{{ subtext }}</div>
+            {% endif %}
+        {% elif '---' in text_overlay %}
+            {% set parts = text_overlay.split('---') %}
+            <div id="headline">{{ parts[0].strip() }}</div>
+            {% if parts | length > 1 %}
+                <div class="divider"></div>
+                <div id="subtext">{{ parts[1].strip() }}</div>
+            {% endif %}
+        {% else %}
+            <div id="headline">{{ text_overlay }}</div>
+        {% endif %}
     </div>
 
-    <div class="progress-container"><div class="progress-bar"></div></div>
+    <div class="progress-container">
+        <div class="progress-bar"></div>
+    </div>
 
     <script>
         function fitText() {
             const container = document.querySelector('.content');
             const headline = document.getElementById('headline');
+            const subtext = document.getElementById('subtext');
             if (!headline) return;
-            
-            let hSize = 140;
-            let iterations = 0;
-            while (container.scrollHeight > container.offsetHeight && iterations < 100) {
-                hSize -= 5;
+            let hSize = 160, sSize = 38, iterations = 0;
+            while (container.scrollHeight > container.offsetHeight && iterations < 120) {
+                if (hSize > 60) hSize -= 4;
+                if (subtext && sSize > 22) sSize -= 1;
                 headline.style.fontSize = hSize + 'px';
+                if (subtext) subtext.style.fontSize = sSize + 'px';
                 iterations++;
             }
         }

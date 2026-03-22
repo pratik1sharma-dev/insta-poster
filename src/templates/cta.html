@@ -11,81 +11,121 @@
         }
         body {
             display: flex; justify-content: center; align-items: center;
-            font-family: 'Montserrat', "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+            font-family: 'Montserrat', "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
             color: {{ text_color }};
             position: relative;
         }
-        /* Background Layer Stack */
+
+        /* ── Background layers ── */
         .bg-base {
             position: absolute; top: 0; left: 0; width: 1080px; height: 1080px;
-            background-image: linear-gradient(0deg, rgba(0,0,0,0.4) 0%, transparent 100%);
+            background-image: linear-gradient(0deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 100%);
             z-index: 1;
         }
         .bg-image {
-            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; object-fit: cover; z-index: 2;
+            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px;
+            object-fit: cover; z-index: 2;
         }
-        .overlay { 
-            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; z-index: 3; 
-            background: linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 100%);
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 1080px; height: 1080px; z-index: 3;
             background-image: radial-gradient(circle, {{ text_color }} 1px, transparent 1px);
-            background-size: 50px 50px;
-            opacity: 0.04;
+            background-size: 50px 50px; opacity: 0.03;
         }
-        /* Grainy Texture Overlay */
         body::before {
             content: ""; position: absolute; top: 0; left: 0; width: 1080px; height: 1080px;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
             opacity: 0.05; pointer-events: none; z-index: 10;
         }
-        /* CTA Glass Box */
+
+        /* ── Glass card ── */
         .content {
-            width: 850px; height: 750px; text-align: center; z-index: 5;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 880px; height: 780px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            text-align: center;
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 40px;
-            padding: 60px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            padding: 60px 70px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+            z-index: 5; position: relative; overflow: hidden;
         }
+
+        /* Accent top border */
+        .content::before {
+            content: "";
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 5px; background: {{ accent_color }};
+            border-radius: 40px 40px 0 0;
+        }
+
+        /* Question / main headline */
         #headline {
-            font-size: 70px; font-weight: 800; line-height: 1.3; margin-bottom: 40px; 
-            white-space: pre-wrap;
+            font-size: 62px; font-weight: 800; line-height: 1.25;
+            margin-bottom: 32px; white-space: pre-wrap;
         }
+
+        /* Supporting context line */
         #body-text {
-            font-size: 40px; font-weight: 400; line-height: 1.4; opacity: 0.9; margin-bottom: 40px;
+            font-size: 36px; font-weight: 400; line-height: 1.4;
+            opacity: 0.85; margin-bottom: 44px; white-space: pre-wrap;
         }
+
+        /* Action button — uses channel accent */
         .action-box {
-            display: inline-block; padding: 25px 50px; border: 4px solid {{ text_color }};
-            font-size: 32px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
+            display: inline-block;
+            padding: 22px 52px;
+            background: {{ accent_color }};
+            color: {{ bg_color }};
+            font-size: 28px; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
         }
-        .brand { 
-            position: absolute; top: 60px; right: 60px; 
-            font-size: 24px; font-weight: 700; text-transform: uppercase; 
-            z-index: 10; opacity: 0.6; letter-spacing: 0.15em;
+
+        /* ── Branding ── */
+        .brand {
+            position: absolute; top: 56px; right: 60px;
+            font-size: 24px; font-weight: 700; text-transform: uppercase;
+            z-index: 10; opacity: 0.65; letter-spacing: 0.15em;
         }
         .handle {
-            position: absolute; bottom: 60px; left: 60px;
-            font-size: 24px; font-weight: 700; z-index: 10; opacity: 0.6;
+            position: absolute; bottom: 56px; left: 60px;
+            font-size: 22px; font-weight: 700; z-index: 10; opacity: 0.6;
         }
     </style>
 </head>
 <body>
     <div class="bg-base"></div>
-    {% if bg_style == 'blurred_hook' and bg_image_b64 %}<img src="{{ bg_image_b64 }}" class="bg-image">{% endif %}
+    {% if bg_style == 'blurred_hook' and bg_image_b64 %}
+        <img src="{{ bg_image_b64 }}" class="bg-image">
+    {% endif %}
     <div class="overlay"></div>
+
     <div class="brand">{{ channel_name }}</div>
-    <div class="handle">@{{ channel_name|lower|replace(' ', '') }}</div>
+    <div class="handle">@{{ channel_name | lower | replace(' ', '') }}</div>
+
     <div class="content">
-        {% if '---' in text_overlay %}
+        {% if headline %}
+            <div id="headline">{{ headline }}</div>
+            {% if subtext %}
+                <div id="body-text">{{ subtext }}</div>
+            {% endif %}
+        {% elif '---' in text_overlay %}
             {% set parts = text_overlay.split('---') %}
             <div id="headline">{{ parts[0].strip() }}</div>
-            <div id="body-text">{{ parts[1].strip() }}</div>
+            {% if parts | length > 1 %}
+                <div id="body-text">{{ parts[1].strip() }}</div>
+            {% endif %}
         {% else %}
             <div id="headline">{{ text_overlay }}</div>
         {% endif %}
-        <div class="action-box">Save this post</div>
+
+        {# action_text comes from the generated CTA field.
+           Falls back to "Comment below" if not provided. #}
+        <div class="action-box">{{ action_text or 'Comment below' }}</div>
     </div>
 
     <script>
@@ -94,15 +134,10 @@
             const headline = document.getElementById('headline');
             const bodyText = document.getElementById('body-text');
             if (!headline) return;
-            
-            let hSize = 70;
-            let bSize = 40;
-
-            let iterations = 0;
-            while (container.scrollHeight > container.offsetHeight && iterations < 100) {
-                if (hSize > 35) hSize -= 2;
+            let hSize = 62, bSize = 36, iterations = 0;
+            while (container.scrollHeight > container.offsetHeight && iterations < 120) {
+                if (hSize > 30) hSize -= 2;
                 if (bodyText && bSize > 20) bSize -= 1;
-                
                 headline.style.fontSize = hSize + 'px';
                 if (bodyText) bodyText.style.fontSize = bSize + 'px';
                 iterations++;
