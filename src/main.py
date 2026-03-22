@@ -4,7 +4,7 @@ Main orchestrator for the content generation pipeline.
 import argparse
 import sys
 from typing import Optional
-from src.agents import ContentStrategist, ContentGenerator, ImageGenerator
+from src.agents import ContentStrategist, ContentGenerator, ImageGenerator, ReelGenerator
 from src.publishers import PostizClient
 from src.utils import ContentLogger, load_channel_config, list_available_channels
 from src.models import PostResult
@@ -18,10 +18,11 @@ class ContentPipeline:
         self.strategist = ContentStrategist()
         self.generator = ContentGenerator()
         self.image_generator = ImageGenerator()
+        self.reel_generator = ReelGenerator()
         self.publisher = PostizClient()
 
     def run(
-        self, channel_name: str, dry_run: bool = False, topic_hint: Optional[str] = None, skip_ai_image: bool = False
+        self, channel_name: str, dry_run: bool = False, topic_hint: Optional[str] = None, skip_ai_image: bool = False, generate_reel: bool = False
     ) -> PostResult:
         """
         Run the complete content pipeline.
@@ -30,6 +31,8 @@ class ContentPipeline:
             channel_name: Name of the channel to post to
             dry_run: If True, generate content but don't post
             topic_hint: Optional specific topic to use
+            skip_ai_image: Skip AI image generation
+            generate_reel: Whether to generate a video Reel
 
         Returns:
             PostResult with all pipeline information
@@ -104,6 +107,16 @@ Angle: {strategy.angle}
             if not image_paths:
                 raise Exception("No images were generated")
 
+            # Phase 3.5: Reel Generation (Optional)
+            if generate_reel:
+                logger.logger.info("\n[Phase 3.5] Generating video Reel...")
+                reel_path = logger.get_output_dir() / "reel.mp4"
+                self.reel_generator.generate_reel(
+                    content, strategy, channel_config, image_paths, reel_path
+                )
+                logger.logger.info(f"Reel generated successfully: {reel_path}")
+                self.reel_generator.cleanup()
+
             # Phase 4: Publishing
             logger.logger.info("\n[Phase 4/4] Publishing to Instagram...")
             if dry_run:
@@ -175,6 +188,12 @@ def main():
         help="Skip expensive AI image generation and use placeholders for testing",
     )
 
+    parser.add_argument(
+        "--generate-reel",
+        action="store_true",
+        help="Generate a vertical video Reel in addition to the carousel",
+    )
+
     args = parser.parse_args()
 
     # List channels if requested
@@ -205,6 +224,7 @@ def main():
             dry_run=args.dry_run,
             topic_hint=args.topic,
             skip_ai_image=args.skip_ai_image,
+            generate_reel=args.generate_reel,
         )
 
         if result.status == "success":
