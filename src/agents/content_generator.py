@@ -259,8 +259,9 @@ class ContentGenerator:
 1. Every number must come ONLY from the VERIFIED DATA block below.
 2. If you cannot verify a figure, write the insight without a number.
 3. Appending a source label to an unverified number is a CRITICAL FAILURE.
-4. Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers.
-5. Write complete, logical thoughts — not forced headlines or marketing slogans.
+4. **NO CITATIONS:** DO NOT include source citations (e.g. "Source: Brand Finance") in the text overlay. Keep the slides clean.
+5. Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers.
+6. Write complete, logical thoughts — not forced headlines or marketing slogans.
 
 {data_block}
 

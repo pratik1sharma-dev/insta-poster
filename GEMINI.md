@@ -9,7 +9,6 @@
 
 ## 2. Data Integrity (Non-Negotiable)
 - **Zero Hallucination:** Every number or financial statistic must be traceable to a specific 2024 report (e.g., Brand Finance, Interbrand, Forbes).
-- **Source Citation:** Data slides must cite their source. 
 - **Integrity First:** Appending a source label to a fabricated or "guessed" number is a CRITICAL FAILURE.
 - **Verification Gate:** Always perform a Phase 1.5 factual validation before generating final slides.
 
