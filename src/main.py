@@ -95,7 +95,7 @@ Angle: {strategy.angle}
             logger.logger.info("\n[Phase 3/4] Generating images...")
             images_dir = logger.get_images_dir()
             image_paths = self.image_generator.generate_carousel(
-                content, strategy, images_dir, channel_name, skip_ai_image
+                content, strategy, channel_config, images_dir, skip_ai_image
             )
 
             for i, image_path in enumerate(image_paths, 1):
