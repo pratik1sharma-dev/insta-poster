@@ -165,11 +165,15 @@ Respond with ONLY JSON matching the CarouselSlide model.
         purpose_map = {"hook": SlidePurpose.HOOK, "intro": SlidePurpose.HOOK, "cta": SlidePurpose.CTA, "action": SlidePurpose.CTA}
         
         slides = []
-        for slide_data in slides_data.get("slides", []):
+        for i, slide_data in enumerate(slides_data.get("slides", []), 1):
             purpose_raw = str(slide_data.get("purpose", "")).lower()
             purpose = purpose_map.get(purpose_raw, SlidePurpose.CONTENT)
+            
+            # Ensure we have a valid slide number (AI sometimes omits it or uses wrong key)
+            slide_num = slide_data.get("slide_number") or i
+
             slides.append(CarouselSlide(
-                slide_number=slide_data.get("slide_number"),
+                slide_number=int(slide_num),
                 purpose=purpose,
                 text_overlay=slide_data.get("text_overlay", ""),
                 image_prompt=slide_data.get("image_prompt", ""),
