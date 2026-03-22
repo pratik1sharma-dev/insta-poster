@@ -153,8 +153,7 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
                 '-filter_complex', 
                 f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:10[bg];" +
                 f"[0:v]scale=1080:1080[fg];" +
-                f"[bg][fg]overlay=(W-w)/2:(H-h)/2[v_base];" +
-                f"[v_base]zoompan=z='min(zoom+0.001,1.1)':d=1:s=1080x1920:fps=25[v]",
+                f"[bg][fg]overlay=(W-w)/2:(H-h)/2[v]",
                 '-map', '[v]', '-map', '1:a',
                 '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'stillimage',
                 '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
