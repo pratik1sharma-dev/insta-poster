@@ -1,32 +1,107 @@
+# =============================================================================
+# CHANNEL CONFIGURATIONS
+# =============================================================================
+# Topic curation principles:
+#   - No duplicates or near-duplicates
+#   - No ambiguous or interchangeable topics
+#   - India-relevant where the channel audience is Indian
+#   - Specific enough that two posts cannot be confused
+#   - Western concepts replaced with Indian equivalents where appropriate
+# =============================================================================
+
+
 pagecapsules:
   name: "PageCapsules"
-  theme: "Compressing world-class wisdom into high-impact visual blueprints."
-  brand_mission: "Summarize complex book ideas into 3-5 high-impact lessons. Prioritize life-changing insights over generic summaries. Every post should answer: 'How can I use this today?'"
-  target_audience: "Lifelong learners and professionals (22-40) who want the wisdom of books without the 10-hour time commitment."
+  theme: "Turning powerful book ideas into simple visual insights"
+  target_audience: "Ambitious professionals, entrepreneurs, and lifelong learners (22-40)"
   posting_schedule: "1-2x daily"
-  tone: "authoritative, dense, utility-first"
-  style_guidelines: "Clear text overlays with minimal modern design. Focus on practical takeaways."
+  tone: "engaging, insightful, actionable, inspiring"
+  localization_type: "global"
+
+  style_guidelines: >
+    Clear and concise text overlays with minimal modern design.
+    Every post should feel like the one idea from the book
+    the reader will repeat to someone tomorrow.
+
+  strategist_persona: >
+    You are the Lead Book Strategist for PageCapsules.
+    Your goal: find the ONE idea in this book that will make
+    someone stop scrolling and think I needed to hear that today.
+    Not a summary. A realization.
+
+  content_team_persona: >
+    You are the PageCapsules content team executing the strategy brief below.
+    Tone: engaging, insightful, actionable.
+    Audience: ambitious professionals and lifelong learners (22-40).
+
+  strategic_core: |
+    ### STRATEGIC CORE:
+    - **One Idea Per Post:** Find the single most counter-intuitive idea
+      in the book. Build everything around that.
+    - **No Summaries:** Never write "Here are 5 lessons from X."
+      Write the insight itself.
+    - **Practical First:** Every slide must answer "so what do I do with this?"
+    - **Human Entry Point:** Start with a situation the reader has lived,
+      then introduce the book insight as the explanation.
+
+  copy_voice_examples: |
+    ### COPY VOICE:
+    WRONG: "Atomic Habits teaches you to build good habits and break bad ones."
+    RIGHT: "You do not rise to the level of your goals. You fall to the level of your systems."
+
+    WRONG: "James Clear explains why small changes matter."
+    RIGHT: "A 1% improvement every day makes you 37x better by year end. A 1% decline makes you nearly zero."
+
+    The test: would a reader screenshot this to send to a friend?
 
   curated_topics:
-    - "How to build life-changing habits (Atomic Habits)"
-    - "How to reclaim your focus in a distracted world (Deep Work)"
-    - "The secret to a growth mindset (Mindset)"
-    - "Why we do what we do (The Power of Habit)"
-    - "How to make better decisions (Thinking, Fast and Slow)"
-    - "The art of persuasion (Influence)"
-    - "Why we make irrational choices (Predictably Irrational)"
-    - "The path to lasting happiness (The Happiness Hypothesis)"
-    - "Mastering your money psychology (The Psychology of Money)"
-    - "How to build the future (Zero to One)"
-    - "The lean way to start a business (The Lean Startup)"
-    - "Managing through hard times (The Hard Thing About Hard Things)"
-    - "The art of getting things done (GTD)"
-    - "The disciplined pursuit of less (Essentialism)"
-    - "How to own your time (Make Time)"
-    - "How to become indistractable (Indistractable)"
+    # Self-improvement
+    - "Atomic Habits by James Clear"
+    - "Deep Work by Cal Newport"
+    - "Mindset by Carol Dweck"
+    - "The Power of Habit by Charles Duhigg"
+    - "Can't Hurt Me by David Goggins"
+    - "The 5 AM Club by Robin Sharma"
+    - "Grit by Angela Duckworth"
+    - "Man's Search for Meaning by Viktor Frankl"
+    # Psychology & Thinking
+    - "Thinking, Fast and Slow by Daniel Kahneman"
+    - "Influence by Robert Cialdini"
+    - "Predictably Irrational by Dan Ariely"
+    - "The Happiness Hypothesis by Jonathan Haidt"
+    - "Stumbling on Happiness by Daniel Gilbert"
+    - "Blink by Malcolm Gladwell"
+    - "The Paradox of Choice by Barry Schwartz"
+    - "The Art of Thinking Clearly by Rolf Dobelli"
+    # Business & Money
+    - "The Psychology of Money by Morgan Housel"
+    - "Zero to One by Peter Thiel"
+    - "The Lean Startup by Eric Ries"
+    - "The Hard Thing About Hard Things by Ben Horowitz"
+    - "Good to Great by Jim Collins"
+    - "Rework by Jason Fried"
+    - "The Almanack of Naval Ravikant"
+    - "Poor Charlie's Almanack by Charlie Munger"
+    # Productivity
+    - "Getting Things Done by David Allen"
+    - "Essentialism by Greg McKeown"
+    - "Make Time by Jake Knapp and John Zeratsky"
+    - "Indistractable by Nir Eyal"
+    - "Flow by Mihaly Csikszentmihalyi"
+    - "The One Thing by Gary Keller"
+    # Leadership & Relationships
+    - "How to Win Friends and Influence People by Dale Carnegie"
+    - "Dare to Lead by Brene Brown"
+    - "Radical Candor by Kim Scott"
+    - "Never Split the Difference by Chris Voss"
+    - "The Culture Code by Daniel Coyle"
+    # Big Ideas
+    - "Sapiens by Yuval Noah Harari"
+    - "The Black Swan by Nassim Taleb"
+    - "Antifragile by Nassim Taleb"
+    - "Thinking in Systems by Donella Meadows"
 
   allow_ai_discovery: true
-
   visual_preferences:
     - "Minimal backgrounds"
     - "Bold readable typography"
@@ -35,30 +110,113 @@ pagecapsules:
     - "Subtle references to book covers"
 
 
+# =============================================================================
+
 wealthcapsules:
-  name: "Wealth Capsules"
-  theme: "Breaking down the mechanics of wealth creation for the modern professional."
-  brand_mission: "Demystifying complex financial concepts with real-world math. STRICTOR: Use ONLY Indian Rupees (INR or ₹) and Indian units (Lakhs/Crores). Never use USD or Millions/Billions. Every post must provide a clear 'Action Step' for building wealth in India."
-  target_audience: "Ambitious 22-40 year olds who want clear, non-speculative data to guide their path to financial independence."
-  cultural_context: "Focus exclusively on the Indian financial ecosystem. Use Indian financial instruments like EPF, PPF, NPS, Mutual Fund SIPs, and Indian Income Tax slabs. Use 'Lakh' and 'Crore' for large numbers instead of millions/billions. Do not use US-specific terms like 401(k) or Roth IRA."
+  name: "WealthCapsules"
+  theme: "Clear and practical insights about money, investing, and wealth building"
+  target_audience: "Young Indian professionals (22-40), first-generation investors, and people pursuing financial independence"
+  cultural_context: >
+    Audience is primarily Indian. Use Indian financial context naturally
+    -- SIP, PPF, FD, EPF, Nifty, ELSS -- where relevant.
+    Write like a smart friend in a WhatsApp voice note, not a Western finance blog.
+    Never use Hinglish artificially.
   posting_schedule: "1-2x daily"
-  tone: "clinical, objective, empowering"
-  style_guidelines: "Minimal modern design with clear and actionable financial insights."
+  tone: "practical, insightful, empowering"
+  localization_type: "india"
+
+  style_guidelines: >
+    Minimal modern design with clear actionable financial insights.
+    Every post should make the reader feel capable of taking one
+    concrete step today -- not overwhelmed.
+
+  strategist_persona: >
+    You are the Lead Financial Strategist for WealthCapsules.
+    Your goal: find the Human Stake in every money topic.
+    Why does this principle matter to a 28-year-old in Bangalore
+    who just got their first salary and has no idea what to do with it?
+
+  content_team_persona: >
+    You are the WealthCapsules content team executing the strategy brief below.
+    Tone: practical, empowering, like a knowledgeable friend.
+    Audience: young Indian professionals building wealth for the first time.
+
+  strategic_core: |
+    ### STRATEGIC CORE:
+    - **No Jargon Gates:** Never open with a technical term. Open with a situation.
+    - **Indian Context First:** Use SIP, FD, Nifty, EPF, PPF, ELSS where natural.
+    - **First-Generation Lens:** Most readers build wealth without a blueprint.
+      Every post should feel like advice their parents could not give them.
+    - **One Action:** End every post with one thing the reader can do today.
+    - **Analytical Integrity:** Never invent returns, tax rates, or market figures.
+
+    ### INDIAN AUDIENCE LENS:
+    - Use INR and Crore/Lakh for all figures.
+    - The reader likely has family pressure to buy property early,
+      fear of anything labeled risky, and no inherited wealth blueprint.
+      Angles touching these resonate without needing to name them directly.
+
+  copy_voice_examples: |
+    ### COPY VOICE:
+    WRONG: "Optimize your portfolio for maximum risk-adjusted returns."
+    RIGHT: "Your parents kept everything in FDs. Here is what that actually cost them over 20 years."
+
+    WRONG: "Compound interest grows wealth exponentially."
+    RIGHT: "Rs 5,000 a month in SIP at age 25. Rs 2.3 crore at age 60.
+            The same amount starting at 35? Rs 67 lakh. That gap is just 10 years."
+
+    The test: would a 26-year-old share this in a salary WhatsApp group?
 
   curated_topics:
-    - "How starting small today builds a fortune later (Compounding)"
-    - "Where to put your money so you can sleep at night (Asset Allocation)"
-    - "How inflation is quietly eating your savings"
-    - "Why your house might not be the 'investment' you think it is"
-    - "The 50/30/20 rule for perfect budgeting"
-    - "How to build an emergency fund from scratch"
-    - "Why index funds beat 90% of professional investors"
-    - "The true cost of a new car over 5 years"
-    - "How to earn your first $1,000 in passive income"
-    - "The psychological trap of lifestyle creep"
+    # Compounding and Time
+    - "How compounding actually works with real SIP examples from age 22 to 60"
+    - "Why starting a SIP at 22 beats starting at 32 -- the actual numbers"
+    - "The real cost of delaying your first investment by 5 years"
+    - "How small monthly SIPs grow into crores over 30 years"
+    - "Time in market vs timing the market -- what Indian data shows"
+    # Indian Investment Instruments
+    - "SIP vs lump sum investing -- which works better and when"
+    - "PPF vs ELSS -- which tax-saving instrument wins long term"
+    - "FD vs debt mutual funds -- what your bank does not tell you"
+    - "EPF -- why most Indians underuse their best guaranteed return"
+    - "NPS explained -- who should use it and who should not"
+    - "Index funds in India -- Nifty 50 vs Nifty Next 50 vs Nifty 500"
+    - "Direct vs regular mutual funds -- the hidden fee that costs lakhs"
+    - "How to build a simple portfolio using only index funds"
+    - "Liquid funds vs savings account -- where to keep your emergency money"
+    # Wealth Building Fundamentals
+    - "The 50/30/20 rule adapted for Indian salaries and expenses"
+    - "Emergency fund -- how much to keep and exactly where in India"
+    - "Asset allocation by age -- a simple Indian framework"
+    - "Portfolio rebalancing -- when and how without panic selling"
+    - "How inflation erodes FD returns -- the real purchasing power loss"
+    - "Renting vs buying a home in India -- the honest financial math"
+    - "The real cost of a home loan EMI over 20 years"
+    # Behavioral Finance
+    - "Why Indian investors panic sell during market crashes"
+    - "The psychology behind chasing hot stock tips"
+    - "Lifestyle inflation -- why salary hikes do not automatically build wealth"
+    - "Spending psychology -- why UPI makes us spend more than cash"
+    - "Loss aversion -- why Indian investors hold losing stocks too long"
+    - "How social comparison drives bad financial decisions"
+    - "The sunk cost trap -- when to exit a bad investment"
+    # Tax and Practical Planning
+    - "LTCG vs STCG -- how taxes reduce your actual stock market returns"
+    - "Tax loss harvesting -- the legal way to reduce capital gains tax"
+    - "Section 80C -- how to use it smartly beyond just EPF"
+    - "Health insurance -- why it is the most important financial product"
+    - "Term insurance -- how much cover you actually need and why"
+    - "How to read a mutual fund factsheet before investing"
+    # Financial Independence
+    - "What financial independence actually means on an Indian salary"
+    - "How to calculate your FIRE number in rupees"
+    - "Passive income in India -- what actually works vs what just sounds good"
+    - "How to pay off a personal loan faster without stopping investments"
+    - "The opportunity cost of buying a car on EMI"
+    - "Generational wealth -- why most Indian families reset to zero each generation"
+    - "How to talk about money with your parents and partner"
 
   allow_ai_discovery: true
-
   visual_preferences:
     - "Minimal backgrounds"
     - "Bold readable typography"
@@ -67,30 +225,126 @@ wealthcapsules:
     - "Subtle finance icons"
 
 
+# =============================================================================
+
 mindcapsules:
   name: "MindCapsules"
-  theme: "Unlocking the psychological blueprints that drive human behavior."
-  brand_mission: "Explain the 'Why' behind human behavior. Connect abstract concepts to daily habits. If using a complex term (e.g. Zeigarnik Effect), explain it using a simple real-world example immediately."
-  target_audience: "Curious 20-40 year olds looking to optimize their life. They value simplicity and practical tools over academic jargon."
-  cultural_context: "Use examples and social scenarios relevant to modern Indian life (workplace, family dynamics, social expectations). Use analogies that resonate with the Indian urban and professional experience."
+  theme: "Understanding human psychology and how the mind works"
+  target_audience: "Curious Indian thinkers, professionals, and people interested in psychology and behavior (20-40)"
+  cultural_context: >
+    Audience is primarily Indian. Use relatable Indian scenarios naturally
+    -- exam pressure, family expectations, career guilt, workplace dynamics.
+    Write like a smart friend explaining your own brain to you over chai.
+    Never force Hinglish.
   posting_schedule: "1-2x daily"
-  tone: "cerebral, empathetic, clarifying"
-  style_guidelines: "Explain psychological ideas clearly with simple visuals and relatable examples."
+  tone: "thought-provoking, insightful, educational"
+  localization_type: "global"
+
+  style_guidelines: >
+    Explain psychological ideas clearly with simple visuals and relatable examples.
+    Every post should make the reader feel like they just understood something
+    about themselves they never had words for before.
+
+  strategist_persona: >
+    You are the Lead Psychological Strategist for MindCapsules.
+    Your goal: find the Human Stake in every psychology concept.
+    Why does this bias matter to someone who just made a decision they regret?
+    Not a definition. A moment of recognition.
+
+  content_team_persona: >
+    You are the MindCapsules content team executing the strategy brief below.
+    Tone: thought-provoking, warm, like a friend who studied psychology
+    explaining your own behavior to you.
+    Audience: curious Indian professionals (20-40) who want to understand themselves better.
+
+  strategic_core: |
+    ### STRATEGIC CORE:
+    - **The Realization Format:** Every post should deliver one moment where
+      the reader thinks "wait -- that is exactly what I do."
+      Start with the behavior, then name the psychology.
+    - **No Textbook Definitions:** Never open with "X bias is defined as..."
+      Open with a situation the reader has lived.
+    - **Visceral Tension:** Find the angle that makes the reader slightly
+      uncomfortable -- because it is true about them.
+    - **Analytical Integrity:** Never invent study statistics.
+
+    ### INDIAN AUDIENCE LENS (apply lightly):
+    - Indian readers carry specific pressures -- family expectations,
+      log kya kahenge, career guilt, exam trauma, pressure to not waste
+      parental sacrifice. When these fit the topic naturally, lean in.
+      Never name them explicitly -- make the scenario specific enough
+      that the reader feels seen.
+
+  copy_voice_examples: |
+    ### COPY VOICE:
+    WRONG: "Sunk cost fallacy is a cognitive bias where people continue investing
+            in something due to past investments."
+    RIGHT: "The more you invest in something, the harder your brain fights to keep
+            you there. Even when leaving is the only logical move."
+
+    WRONG: "Loss aversion affects human decision making."
+    RIGHT: "Losing Rs 1,000 hurts twice as much as winning Rs 1,000 feels good.
+            Your brain is wired this way. And it is costing you more than money."
+
+    The test: does this make the reader think about a specific decision
+    they made last week?
 
   curated_topics:
-    - "Why we only see what we already believe (Confirmation Bias)"
-    - "Why first impressions stick so hard (The Halo Effect)"
-    - "Why unfinished tasks haunt your brain (The Zeigarnik Effect)"
-    - "Why you can't stop checking your phone (The Dopamine Loop)"
-    - "Why we fear losing more than we love winning (Loss Aversion)"
-    - "Why we follow the crowd even when they're wrong (Social Proof)"
-    - "How to break a bad habit in 3 steps"
-    - "Why you feel tired even after 8 hours of sleep"
-    - "The secret to making better decisions under stress"
-    - "Why we procrastinate on things we actually want to do"
+    # Cognitive Biases -- one clear post each, no duplicates
+    - "Confirmation bias -- why you only find what you are already looking for"
+    - "Availability heuristic -- why recent events feel more likely than they are"
+    - "Anchoring bias -- why the first number always has too much power"
+    - "Survivorship bias -- why success stories are statistically misleading"
+    - "Recency bias -- why last month feels like it defines everything"
+    - "Dunning-Kruger effect -- why beginners are overconfident and experts doubt themselves"
+    - "Halo effect -- why attractive or successful people seem smarter"
+    - "Authority bias -- why we trust titles and credentials over logic"
+    - "Bandwagon effect -- why popularity becomes its own proof of quality"
+    - "Negativity bias -- why bad news sticks harder and longer than good"
+    - "Status quo bias -- why we choose familiar over objectively better"
+    - "Sunk cost fallacy -- why past investment traps future decisions"
+    - "Scarcity principle -- why limited supply changes what we want"
+    - "Optimism bias -- why we think bad things happen to other people"
+    - "Hindsight bias -- why everything seems obvious after it happens"
+    # Decision Making
+    - "How your brain decides before your conscious mind catches up"
+    - "Decision fatigue -- why your worst choices happen in the evening"
+    - "Why people avoid discomfort even when discomfort is the solution"
+    - "How emotions hijack logical decisions in the moment"
+    - "Cognitive dissonance -- why we believe what reduces our guilt"
+    - "The psychology of regret -- why inaction hurts more than failure"
+    - "Why people resist change even when the alternative is obviously better"
+    - "Overchoice -- why too many options leads to worse decisions"
+    # Motivation and Behavior
+    - "What dopamine actually does versus what most people think"
+    - "Intrinsic vs extrinsic motivation -- why rewards often backfire"
+    - "Why humans procrastinate -- the real psychological mechanism"
+    - "Delayed gratification -- what the marshmallow study actually proved"
+    - "How habits form and why they are so hard to break"
+    - "Fear vs reward motivation -- which one actually sustains behavior"
+    - "Impulse control -- the psychology behind why some people have more"
+    # Social Psychology
+    - "Social proof -- why we look to others when we are uncertain"
+    - "Why humans seek validation even from people they do not respect"
+    - "The psychology of trust -- what actually builds it"
+    - "Why people follow leaders even when the leader is clearly wrong"
+    - "The spotlight effect -- why you think people notice you more than they do"
+    - "Conformity pressure -- how groups change individual judgment"
+    # Happiness and Identity
+    - "The psychology of happiness -- why we are so bad at predicting it"
+    - "Why people seek meaning more than pleasure"
+    - "How core beliefs form -- and why they are almost impossible to change"
+    - "Mental resilience -- what psychological research actually says it is"
+    - "The psychology of confidence -- what builds it versus what fakes it"
+    - "Why uncertainty feels worse than a confirmed bad outcome"
+    - "Emotional intelligence -- separating the science from the self-help"
+    # Self-Perception
+    - "The planning fallacy -- why every project takes longer than expected"
+    - "Why we overestimate our own abilities in familiar situations"
+    - "The psychology of goal setting -- why most goals fail before February"
+    - "Human attention -- what research shows about focus and distraction"
 
   allow_ai_discovery: true
-
   visual_preferences:
     - "Minimal backgrounds"
     - "Clean typography"
@@ -99,30 +353,134 @@ mindcapsules:
     - "Concept illustration elements"
 
 
+# =============================================================================
+
 startupcapsules:
   name: "StartupCapsules"
-  theme: "Tactical playbooks and hard-earned lessons from the world's fastest-growing builders."
-  brand_mission: "Provide a tactical 'Founder’s Playbook' for the Indian ecosystem. Focus on scalability, unit economics, and real lessons from both failed and successful startups. Be honest about the 'ugly truth' of building."
-  target_audience: "Founders, builders, and aspiring entrepreneurs (22-40) in India. They want practical frameworks and real-world metrics from the Indian market."
-  cultural_context: "Use examples and analogies relevant to the Indian startup ecosystem. Reference local companies (e.g., Flipkart, Zomato, Zerodha), investors, and market trends. Use Hinglish phrases occasionally if it feels natural."
+  theme: "Startup lessons, growth strategies, and founder insights explained simply"
+  target_audience: "Indian entrepreneurs, startup enthusiasts, builders, and professionals interested in startups (22-40)"
+  cultural_context: >
+    Audience is the Indian startup ecosystem. Reference Indian companies
+    naturally -- Zerodha, Zomato, CRED, Razorpay, Byju's including its failure,
+    Meesho, Boat, Mamaearth, PhonePe, Groww -- where they genuinely illustrate the point.
+    Reference Indian investors (Sequoia India, Accel, Blume, Peak XV) where relevant.
+    Use Hinglish only when it flows completely naturally.
   posting_schedule: "1-2x daily"
-  tone: "tactical, gritty, high-velocity"
-  style_guidelines: "Minimal modern carousel design with clear and actionable startup insights. Focus on real-world strategies."
+  tone: "practical, insightful, entrepreneurial, inspiring"
+  localization_type: "india"
+
+  style_guidelines: >
+    Minimal modern carousel design with actionable startup insights.
+    Focus on real-world lessons from actual startups -- Indian ones
+    where they make the point better.
+
+  strategist_persona: >
+    You are the Lead Startup Strategist for StartupCapsules.
+    Your goal: find the one founder lesson that changes how someone
+    thinks about building -- not a framework, a realization.
+    What is the thing successful founders know that first-timers
+    learn too late and too expensively?
+
+  content_team_persona: >
+    You are the StartupCapsules content team executing the strategy brief below.
+    Tone: practical, direct, like a senior founder giving real advice
+    to a first-timer over chai -- not a TED talk.
+    Audience: Indian entrepreneurs and aspiring founders (22-40).
+
+  strategic_core: |
+    ### STRATEGIC CORE:
+    - **Founder Truth First:** Find the insight successful founders know
+      but almost never say publicly. That is your angle.
+    - **Indian Examples First:** Use Indian startup examples where they fit.
+      Never use a US example when an Indian one makes the same point better.
+    - **No Jargon Without Context:** If you use PMF, CAC, or unit economics
+      -- explain it immediately in one plain sentence.
+    - **Analytical Integrity:** Never invent funding figures or valuations.
+    - **One Takeaway:** Every post must end with one thing the reader can apply today.
+
+    ### INDIAN AUDIENCE LENS:
+    - Most readers are employed and dreaming of starting up, or early-stage
+      with limited runway and family pressure.
+    - Building for Bharat -- Tier 2/3 cities, vernacular users -- is a
+      uniquely Indian opportunity worth covering regularly.
+    - Use INR and Crore for all financial figures.
+
+  copy_voice_examples: |
+    ### COPY VOICE:
+    WRONG: "Product-market fit is when your product satisfies a strong market demand."
+    RIGHT: "You will know you have PMF when you cannot keep up with growth even without trying.
+            Until then -- you do not have it yet."
+
+    WRONG: "CAC must be lower than LTV."
+    RIGHT: "Zerodha spent Rs 0 on marketing for its first 5 years. That is not a hack.
+            That is what happens when the product is the marketing."
+
+    WRONG: "Failure is the stepping stone to success."
+    RIGHT: "Byju's raised Rs 41,000 crore and still failed. The lesson is not about money.
+            It is about what happens when growth becomes the product instead of the service."
+
+    The test: would a founder share this in their startup WhatsApp group?
 
   curated_topics:
-    - "How to find your first 100 customers"
-    - "Why most startups fail in the first 12 months"
-    - "The simple math of Unit Economics (LTV vs CAC)"
-    - "How to build an MVP that actually validates your idea"
-    - "Why 'Bootstrapping' is the ultimate superpower in 2025"
-    - "The growth hacking secret of India's biggest unicorns"
-    - "How to pitch your startup to an angel investor"
-    - "Why your startup culture matters more than your code"
-    - "The true cost of raising venture capital"
-    - "How to pivot your product when growth stalls"
+    # Idea and Validation
+    - "How to know if your startup idea is actually worth building"
+    - "Customer discovery -- talking to users before writing any code"
+    - "The difference between a problem and a painkiller problem"
+    - "How to validate a startup idea with zero money in India"
+    - "Why most founders build solutions looking for problems"
+    - "Minimum viable product -- what it means vs what founders think it means"
+    # Product Market Fit
+    - "Product-market fit -- what it is and how you actually know you have it"
+    - "How Zerodha found PMF without a marketing budget"
+    - "Signs you have PMF vs signs you are convincing yourself you do"
+    - "Why Byju's had PMF and then destroyed it"
+    - "How to measure PMF with real retention metrics"
+    # Growth and Distribution
+    - "Why distribution beats product in the zero-to-one stage"
+    - "Product-led growth -- how Groww and Notion built without a sales team"
+    - "Virality loops -- how Meesho built organic growth"
+    - "Network effects -- why some startups get stronger as they grow"
+    - "How to acquire your first 1,000 customers in India without paid ads"
+    - "WhatsApp as a distribution channel for Indian D2C brands"
+    - "Building for Bharat -- why Tier 2 and 3 cities are the real opportunity"
+    - "Vernacular and regional language apps -- what most founders miss"
+    - "Referral programs that work for the Indian market"
+    # Business Models
+    - "Marketplace vs platform -- the structural difference that changes everything"
+    - "Why freemium fails for most Indian B2C startups"
+    - "D2C brands in India -- how Boat and Mamaearth built without retail"
+    - "Subscription models in India -- what categories work and what do not"
+    - "Unit economics explained for first-time founders"
+    - "CAC and LTV -- the math every Indian founder must understand early"
+    - "Why low ARPU is not always a problem in a large Indian market"
+    # Fundraising and Money
+    - "Bootstrapping vs VC -- how to make the right choice for your startup"
+    - "How Indian startup funding actually works -- Seed to Series A"
+    - "What early-stage investors look for before the first cheque"
+    - "How to pitch your startup in India -- what actually works"
+    - "Why most Indian startups die between Seed and Series A"
+    - "Runway management -- how to make your money last longer"
+    - "Angel investors in India -- how to find and approach them"
+    - "The truth about startup valuations -- what the number actually means"
+    # Team and Culture
+    - "How to hire your first 10 employees without destroying culture"
+    - "Co-founder conflicts -- the real reason most startups split"
+    - "When to hire generalists vs specialists in an early-stage team"
+    - "Why startup culture breaks down after 50 people"
+    # Scaling and Strategy
+    - "How to know when to pivot vs when to stay the course"
+    - "The biggest mistakes founders make in the 0 to 1 stage"
+    - "The biggest mistakes founders make in the 1 to 10 stage"
+    - "Competitive moats -- why most Indian startups do not actually have one"
+    - "When to expand to new cities vs go deeper in one market"
+    - "How Indian startups get disrupted by better-funded copycats"
+    # Founder Mindset
+    - "The psychological toll of founding a startup that nobody warns you about"
+    - "Why first-time founders overvalue ideas and undervalue execution"
+    - "Decision making under uncertainty -- how experienced founders think"
+    - "Founder burnout -- the signs and how to catch it before it breaks things"
 
   allow_ai_discovery: true
-
   visual_preferences:
     - "Minimal backgrounds"
     - "Bold readable typography"
@@ -131,30 +489,128 @@ startupcapsules:
     - "Subtle business icons"
 
 
+# =============================================================================
+
 worldinranks:
   name: "WorldInRanks"
-  theme: "Visualizing the hidden hierarchies and shifting global power dynamics."
-  brand_mission: "Provide clear, data-driven rankings. Focus on 'surprising winners' and 'hidden leaders'. Use relatable comparisons to make huge numbers easy to understand."
-  target_audience: "Curious professionals and trend-spotters (18-40) who want to see how the world is actually changing through data-backed comparisons."
-  cultural_context: "Ensure global rankings are relevant to an Indian audience. Where possible, highlight India's position or impact. Use Indian Rupees (INR) alongside USD for major figures. Use analogies relatable to the Indian subcontinent."
+  theme: "Explaining the world through rankings, comparisons, and data-driven insights"
+  brand_mission: >
+    Do not just list the top 10. Every post must provide a surprising comparison
+    or a counter-intuitive perspective. Focus on The David vs Goliath stories,
+    The Hidden Leaders, or The Fall of the Giants.
+    Make the data feel personal and impactful.
+  target_audience: "Curious learners, professionals, and people interested in global trends, business, technology, and economics (18-40)"
   posting_schedule: "1-2x daily"
-  tone: "analytical, neutral, scale-focused"
-  style_guidelines: "Clean carousel slides presenting rankings and comparisons with minimal design and bold numbers."
+  tone: "informative, engaging, curiosity-driven"
+  localization_type: "global"
+
+  style_guidelines: >
+    Clean carousel slides presenting rankings and comparisons with minimal design,
+    bold numbers, and easy-to-read data. Every number must be sourced.
+    Every comparison must be surprising.
+
+  strategist_persona: >
+    You are the Lead Analytical Strategist for WorldInRanks.
+    Your goal: find the Human Stake in every ranking.
+    Why does this data matter to someone scrolling at 11 PM?
+    Not the list -- the story hiding inside the list.
+
+  content_team_persona: >
+    You are the WorldInRanks content team executing the strategy brief below.
+    Tone: informative, engaging, curiosity-driven.
+    Audience: curious professionals and trend-spotters (18-40)
+    who want to see how the world is changing through data.
+
+  strategic_core: |
+    ### STRATEGIC CORE:
+    - **No Headlines:** Never write "Top 5 Facts about X."
+      Write the surprising insight the facts reveal.
+    - **Find the Core Tension:** Identify the single most counter-intuitive fact.
+      Best angles make the reader think "that cannot be right" -- then swipe to find out.
+    - **No False Tension:** Never call a top-ranked global company an underdog.
+      Never manufacture drama the data does not support.
+    - **Analytical Integrity:** Every number must come from a named report.
+    - **Human Entry Point:** Every hook must work for a zero-context reader.
+    - **India Lens:** Where India appears in a global ranking -- rising, falling,
+      or surprising -- highlight it. This audience cares where India stands.
+
+  copy_voice_examples: |
+    ### COPY VOICE:
+    WRONG: "Global renewable investment reached $2.3 trillion in 2025."
+    RIGHT: "The world just spent $2.3 trillion on clean energy. Emissions still went up. Let that sink in."
+
+    WRONG: "Key facts about luxury brand valuations."
+    RIGHT: "The brand ranked number 1 by value is not the one ranked number 1 by desirability.
+            Here is why that gap is widening."
+
+    WRONG: "Oil is dying -- but why are we not winning?"
+    RIGHT: "You paid more for petrol this year than ever before. The world spent $2.3 trillion on solar.
+            Something does not add up."
+
+    The test: show the hook to someone who knows nothing about the topic.
+    Do they want to know more? If not -- rewrite it.
 
   curated_topics:
-    - "Who really owns the world? (Top 5 Investment Firms)"
-    - "Where people earn the most (Top 5 Nations by Income)"
-    - "The fastest growing economies in 2025"
-    - "The most valuable tech companies in history"
-    - "The most downloaded apps of all time"
-    - "The largest cities by population in 2025"
-    - "The world's most profitable companies"
-    - "Which countries have the highest life expectancy?"
-    - "The top 5 most valuable luxury brands"
-    - "The biggest tech acquisitions ever made"
+    # Global Wealth and Business
+    - "Richest people in the world -- who topped 2024 and who fell"
+    - "Most valuable companies -- how the top 10 reshuffled in 5 years"
+    - "Largest companies by revenue vs market cap -- why they differ"
+    - "Most profitable companies in the world -- not who you expect"
+    - "Most valuable global brands -- the hidden leaders behind the famous names"
+    - "Countries with the most billionaires -- and who is rising fastest"
+    - "Cities with the most billionaires -- Mumbai vs the world"
+    # India in Global Rankings
+    - "India GDP rank -- where we stand and what the trajectory shows"
+    - "India vs China GDP -- the actual comparison and 2030 projections"
+    - "Indian companies in the Fortune 500 -- who made it and who fell off"
+    - "India rank in global startup ecosystems -- Bengaluru vs the world"
+    - "India rank in renewable energy capacity -- faster than most people think"
+    - "India internet user base -- second largest and what comes next"
+    - "India on the global innovation index -- where we lead and where we lag"
+    - "India rank in military spending -- the numbers and what they mean"
+    - "Indian cities in global quality of life rankings -- the honest picture"
+    - "India rank in ease of doing business -- what actually changed"
+    # Technology and Digital
+    - "Largest tech companies by market cap -- the 2024 order of power"
+    - "Most downloaded apps globally -- India outsized influence on rankings"
+    - "Most used social media platforms -- who is actually winning by users"
+    - "Most valuable AI companies -- the new entrants nobody predicted"
+    - "Countries with the fastest internet -- where India ranks and why"
+    - "Most popular programming languages -- what developers actually use in 2024"
+    - "Largest tech IPOs in history -- and how many are still standing"
+    - "Most visited websites globally -- the unchanged giants after 20 years"
+    # Economy and Finance
+    - "Largest economies by GDP -- the 2030 projections that surprise people"
+    - "Fastest growing major economies -- who is actually accelerating"
+    - "Countries with the highest GDP per capita -- the non-obvious winners"
+    - "Largest stock exchanges -- how Indian markets compare to global giants"
+    - "Largest investment firms -- who controls the most capital on earth"
+    - "Most valuable cryptocurrencies -- what survived the crash and why"
+    - "Largest banks in the world -- and India rising names"
+    - "Biggest tech acquisitions in history -- the deals that reshaped industries"
+    # People and Society
+    - "Countries with the highest life expectancy -- what they share"
+    - "Most populous countries -- India overtook China. What does that mean?"
+    - "Countries with the youngest populations -- the demographic dividend"
+    - "Most expensive cities to live in -- and which are actually worth it"
+    - "Cities with the highest quality of life -- the non-obvious winners"
+    - "Countries with the highest education rankings -- Asia quiet rise"
+    # Sports, Culture and Entertainment
+    - "Most valuable sports teams -- where IPL franchises rank globally"
+    - "Highest paid athletes in the world -- sport by sport breakdown"
+    - "Highest grossing movies ever -- Hollywood vs Bollywood by real numbers"
+    - "Most streamed music artists globally -- India growing footprint"
+    - "Most subscribed YouTube channels -- the creator economy rankings"
+    - "Most followed Instagram accounts -- who actually has real influence"
+    # Industry and Trade
+    - "Largest car manufacturers -- how EVs reshuffled the rankings"
+    - "Largest airlines by fleet size -- who recovered fastest post-pandemic"
+    - "Largest e-commerce companies -- Amazon vs regional challengers"
+    - "Largest venture capital firms -- who funds the future"
+    - "Most funded startups globally -- and how many became profitable"
+    - "Countries with the largest military budgets -- the 2024 picture"
 
   allow_ai_discovery: true
-
   visual_preferences:
     - "Minimal backgrounds"
     - "Bold numbers and rankings"
@@ -163,32 +619,119 @@ worldinranks:
     - "Clear data hierarchy"
 
 
+# =============================================================================
+
 fertilitycapsules:
   name: "FertilityCapsules"
-  theme: "Bridging the gap between medical science and the emotional journey of fertility."
-  brand_mission: "Provide a compassionate, science-first guide to reproductive health. Prioritize radical transparency and medical facts while maintaining a steadfast, empathetic tone."
-  target_audience: "Individuals and couples (25-45) navigating fertility or IVF. They value clinical evidence and emotional validation over surface-level advice."
+  theme: "Demystifying fertility, busting IVF myths, and providing evidence-based reproductive health education"
+  target_audience: "Individuals and couples planning families, and anyone curious about reproductive health (25-45)"
+  cultural_context: >
+    Audience includes Indian couples navigating fertility with family pressure,
+    stigma around infertility, and limited access to plain-language medical information.
+    Write with deep empathy. Infertility carries shame in many Indian families.
+    Posts that normalize the conversation without being preachy perform best.
   posting_schedule: "1-2x daily"
-  tone: "empathetic, clinical, transparent"
-  style_guidelines: "Use soft, calming visuals with clear, jargon-free medical facts. Balance accuracy with emotional intelligence."
+  tone: "empathetic, scientific, transparent, empowering"
+  localization_type: "global"
+
+  style_guidelines: >
+    Soft calming visuals with clear jargon-free medical facts.
+    Balance technical accuracy with emotional intelligence.
+    Every post should make readers feel more informed and less alone.
+
+  strategist_persona: >
+    You are the Lead Health Strategist for FertilityCapsules.
+    Your goal: find the one thing this audience most needs to hear
+    that they are least likely to be told -- by their doctor, their family, or the internet.
+    Not a list of facts. A moment of clarity in a confusing journey.
+
+  content_team_persona: >
+    You are the FertilityCapsules content team executing the strategy brief below.
+    Tone: empathetic, warm, scientifically grounded.
+    Audience: individuals and couples navigating fertility questions (25-45)
+    -- many of whom are scared, confused, or feeling alone.
+
+  strategic_core: |
+    ### STRATEGIC CORE:
+    - **Empathy Before Information:** Acknowledge emotional reality before medical fact.
+    - **Myth-Busting Priority:** Lead with what people believe, then show what evidence says.
+    - **No Fear Amplification:** If data is sobering, pair it with context and action.
+    - **Jargon-Free Always:** Explain every medical term in plain language in the same sentence.
+    - **Analytical Integrity:** All statistics must come from ICMR, WHO, or peer-reviewed studies.
+      Never invent success rates, statistics, or timelines.
+    - **No False Hope:** Do not overstate IVF success rates. Accuracy is the kindest thing.
+
+  copy_voice_examples: |
+    ### COPY VOICE:
+    WRONG: "IVF success rates vary based on age and ovarian reserve."
+    RIGHT: "IVF works. But not always. And nobody prepares you for the times it does not."
+
+    WRONG: "Fertility declines sharply after 35."
+    RIGHT: "Yes, fertility changes with age. But decline looks very different for different people.
+            Here is what the data actually shows -- not what the internet wants you to fear."
+
+    WRONG: "Male factor infertility is common."
+    RIGHT: "In nearly half of all infertility cases, the factor is male.
+            It is the half nobody talks about -- especially in Indian families."
+
+    The test: would a woman who just had a failed IVF cycle feel seen and informed
+    -- not more scared? If yes -- it works.
 
   curated_topics:
-    - "IVF Success Rates: What the numbers actually mean"
-    - "The physical toll of IVF (What nobody tells you)"
-    - "5 common IVF myths vs the medical reality"
-    - "Is egg freezing right for you? Timing and expectations"
-    - "The emotional rollercoaster of fertility treatments"
-    - "Understanding your biological clock: Facts vs Fear"
-    - "Male fertility: The ignored 50% of the equation"
-    - "Does stress actually impact fertility? (The Science)"
-    - "Navigating PCOS and Endometriosis hurdles"
-    - "How nutrition really impacts reproductive health"
+    # IVF Reality vs Myth
+    - "IVF success rates by age -- what the actual clinical numbers say"
+    - "What nobody tells you about the physical toll of an IVF cycle"
+    - "Common IVF myths that Indian couples still believe"
+    - "Why IVF fails -- the reasons doctors do not always take time to explain"
+    - "Fresh vs frozen embryo transfer -- which actually has better outcomes"
+    - "How many IVF cycles is reasonable -- when to consider stopping"
+    - "IVF costs in India -- what is included and what is charged separately"
+    - "IVF in government hospitals vs private clinics -- the real difference"
+    # Egg Freezing and Preservation
+    - "Egg freezing -- who it is actually designed for and who it is not"
+    - "The right age to freeze eggs -- what the clinical data recommends"
+    - "Egg freezing costs in India vs going abroad"
+    - "Embryo freezing vs egg freezing -- the practical difference"
+    # Understanding Fertility Basics
+    - "The biological clock -- separating fact from fearmongering"
+    - "AMH explained -- what your ovarian reserve number actually means"
+    - "FSH levels -- what the number tells you and what it does not"
+    - "Ovulation tracking -- what works beyond period-tracking apps"
+    - "What a semen analysis actually measures and how to read it"
+    - "When to see a fertility specialist -- the signs most couples miss"
+    # Male Fertility
+    - "Male factor infertility -- why Indian families rarely talk about it"
+    - "How lifestyle affects sperm quality -- heat, stress, alcohol, smoking"
+    - "Varicocele -- the most common treatable cause of male infertility"
+    - "Azoospermia -- what zero sperm count means and what options exist"
+    # Conditions Affecting Fertility
+    - "PCOS and fertility -- what a diagnosis actually means for conception"
+    - "Endometriosis and IVF -- how it affects treatment and outcomes"
+    - "Thyroid and fertility -- the connection most women are not told about"
+    - "Recurrent miscarriage -- causes that can be investigated and treated"
+    - "Secondary infertility -- struggling to conceive after a first child"
+    - "Unexplained infertility -- what the diagnosis actually means"
+    # Lifestyle and Environment
+    - "How stress affects fertility -- and how much is genuinely overstated"
+    - "Nutrition and fertility -- what actually has clinical evidence behind it"
+    - "Weight and fertility -- the honest relationship without judgment"
+    - "Environmental factors affecting reproductive health in Indian cities"
+    # Emotional and Relational
+    - "The emotional stages of an IVF journey -- what to expect cycle by cycle"
+    - "How infertility affects relationships -- and how couples navigate it"
+    - "Talking to family about fertility struggles in an Indian household"
+    - "The grief of a failed cycle -- and why it deserves to be named"
+    - "Mental health support during fertility treatment -- why it is not optional"
+    # India-Specific
+    - "ICMR guidelines on IVF in India -- what is regulated and what is not"
+    - "Surrogacy laws in India -- what the current law allows"
+    - "Donor egg IVF in India -- the legal and practical landscape"
+    - "Fertility treatment abroad -- when it makes financial sense and when it does not"
 
   allow_ai_discovery: true
-
   visual_preferences:
-    - "Soft, calming color palettes (muted teals, sage, warm neutrals)"
-    - "Clean, minimal typography"
+    - "Soft calming color palettes (muted teals, sage, warm neutrals)"
+    - "Clean minimal typography"
     - "Scientific yet approachable diagrams"
     - "Empathetic lifestyle imagery"
-    - "Clear 'Myth vs Fact' layouts"
+    - "Clear Myth vs Fact layouts"
