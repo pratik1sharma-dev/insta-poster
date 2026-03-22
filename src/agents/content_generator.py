@@ -189,8 +189,20 @@ Respond with ONLY JSON matching the CarouselSlide model.
 
     def _generate_hashtags(self, strategy, channel_config, system_prompt, master_brief, raw_output_dir):
         """Generate hashtags."""
-        prompt = f"{master_brief}\n\nGenerate 20-25 high-reach Indian hashtags for this topic."
-        return self._generate_text(prompt, system_prompt=system_prompt)
+        prompt = f"{master_brief}\n\nGenerate 20-25 high-reach Indian hashtags for this topic. Respond with ONLY the hashtags."
+        response_text = self._generate_text(prompt, system_prompt=system_prompt)
+        
+        # Parse response into a list
+        # Extract all hashtags (words starting with #)
+        tags = re.findall(r'#\w+', response_text)
+        
+        # If no hashtags were found, try splitting by spaces and cleaning
+        if not tags:
+            tags = [tag.strip() for tag in response_text.replace(',', ' ').split() if tag.strip()]
+            # Ensure every tag starts with #
+            tags = ["#" + tag.lstrip('#') for tag in tags]
+            
+        return tags[:30] # Limit to 30 max
 
     def _generate_smart_cta(self, strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir):
         """Generate final CTA text."""
