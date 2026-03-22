@@ -1,5 +1,5 @@
 """
-Content Generator Agent - Writes slide text, captions, and hashtags.
+Content Generator Agent - Creates captions, hashtags, and slide text.
 """
 import json
 import logging
@@ -93,7 +93,7 @@ class ContentGenerator:
 Goal: Transform data into visceral, scroll-stopping realizations.
 
 ### YOUR WRITING STYLE:
-- **Spoken Out Loud Rule:** Every text overlay MUST read like something a person would say to a friend in a casual conversation. No textbook "Chapter Titles" or "Milestones."
+- **Spoken Out Loud Rule:** Every text overlay MUST read like something a person would say to a friend. No textbook "Chapter Titles."
 - **Anticipation Mandate:** Every slide text should make the reader *feel* an emotion or want to know what comes next instantly.
 - **Pattern Interrupt:** Use the `---` separator on nearly every slide to create a massive bold headline and smaller sub-text. 
 
@@ -120,6 +120,8 @@ Post Details:
 4. **NO CITATIONS:** DO NOT include source citations (e.g. "Source: Brand Finance") in the text overlay. Keep the slides clean.
 5. **NO SPOILERS:** Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers. Save the "payoff" for the swipe.
 6. **LOCALIZATION:** Use INR/₹ and Lakh/Crore for Indian topics. NEVER use USD or Millions/Billions.
+7. **PATTERN INTERRUPT:** Use `---` to separate Massive Headline from Body Text on nearly every slide. 
+   - **STRICT RULE:** You are FORBIDDEN from starting a slide with `---`. There must always be a headline above it.
 
 ### THE TASK:
 Create exactly {strategy.carousel_length} slides telling a visceral story.
@@ -201,7 +203,7 @@ Respond with ONLY JSON matching the CarouselSlide model.
 
     def _generate_caption(self, strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir):
         """Generate Instagram caption."""
-        prompt = f"{master_brief}\n\nBased on the slides, write a 150-300 char Instagram caption. No hashtags. Include a driving question."
+        prompt = f"{master_brief}\n\nBased on the slides, write a high-converting 150-300 char Instagram caption. No hashtags. Include a driving question. STRICTOR: Stay under 300 characters."
         return self._generate_text(prompt, system_prompt=system_prompt)
 
     def _generate_hashtags(self, strategy, channel_config, system_prompt, master_brief, raw_output_dir):

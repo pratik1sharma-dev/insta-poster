@@ -131,83 +131,81 @@ class ImageGenerator:
         for slide in content.slides:
             image_path = output_dir / f"slide_{slide.slide_number:02d}.png"
 
-            # Slide 1: AI Hook Image (or placeholder)
-            if slide.slide_number == 1:
-                if skip_ai_image:
-                    logger.info("[Slide 1] SKIP-AI-IMAGE: Using HTML template for Slide 1")
-                    # Fall through to the template rendering logic below
-                    hook_image_path = image_path
-                else:
-                    logger.info(f"[Slide 1] Generating AI Hook Image: {strategy.topic}")
+            # Slide 1: AI Hook Image
+            if slide.slide_number == 1 and not skip_ai_image:
+                logger.info(f"[Slide 1] Generating AI Hook Image: {strategy.topic}")
+                
+                prompt = self._build_slide_prompt(
+                    slide.image_prompt,
+                    slide.text_overlay,
+                    slide.slide_number,
+                    style_context,
+                    strategy,
+                )
+
+                try:
+                    if self.provider == "gemini":
+                        # Add delay to avoid 2-images-per-minute free tier limit
+                        if slide.slide_number > 1:
+                            logger.info("Waiting 35s to respect Gemini free tier image rate limits...")
+                            time.sleep(35)
+
+                        response = self.client.models.generate_content(
+                            model=self.model,
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                response_modalities=["IMAGE"]
+                            ),
+                        )
+                        hook_image_path = self._save_gemini_image(response, slide.slide_number, output_dir)
                     
-                    prompt = self._build_slide_prompt(
-                        slide.image_prompt,
-                        slide.text_overlay,
-                        slide.slide_number,
-                        style_context,
-                        strategy,
-                    )
-
-                    try:
-                        if self.provider == "gemini":
-                            # Add delay to avoid 2-images-per-minute free tier limit
-                            if slide.slide_number > 1:
-                                logger.info("Waiting 35s to respect Gemini free tier image rate limits...")
-                                time.sleep(35)
-
-                            response = self.client.models.generate_content(
-                                model=self.model,
-                                contents=prompt,
-                                config=types.GenerateContentConfig(
-                                    response_modalities=["IMAGE"]
-                                ),
-                            )
-                            hook_image_path = self._save_gemini_image(response, slide.slide_number, output_dir)
+                    elif self.provider == "replicate":
+                        max_retries = 3
+                        retry_delay = 10
                         
-                        elif self.provider == "replicate":
-                            max_retries = 3
-                            retry_delay = 10
-                            
-                            output = None
-                            for attempt in range(max_retries):
-                                try:
-                                    input_params = {
-                                        "prompt": prompt,
-                                        "aspect_ratio": "1:1",
-                                    }
-                                    if "flux" in self.model:
-                                        input_params["output_format"] = "png"
+                        output = None
+                        for attempt in range(max_retries):
+                            try:
+                                input_params = {
+                                    "prompt": prompt,
+                                    "aspect_ratio": "1:1",
+                                }
+                                if "flux" in self.model:
+                                    input_params["output_format"] = "png"
 
-                                    output = replicate.run(
-                                        self.model,
-                                        input=input_params
-                                    )
-                                    break
-                                except Exception as e:
-                                    is_rate_limit = False
-                                    if isinstance(e, ReplicateError) and ("429" in str(e) or "throttled" in str(e).lower()):
-                                        is_rate_limit = True
-                                    
-                                    if is_rate_limit and attempt < max_retries - 1:
-                                        wait_time = retry_delay * (2 ** attempt)
-                                        logger.warning(f"Image rate limit hit. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
-                                        time.sleep(wait_time)
-                                        continue
-                                    raise e
+                                output = replicate.run(
+                                    self.model,
+                                    input=input_params
+                                )
+                                break
+                            except Exception as e:
+                                is_rate_limit = False
+                                if isinstance(e, ReplicateError) and ("429" in str(e) or "throttled" in str(e).lower()):
+                                    is_rate_limit = True
+                                
+                                if is_rate_limit and attempt < max_retries - 1:
+                                    wait_time = retry_delay * (2 ** attempt)
+                                    logger.warning(f"Image rate limit hit. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
+                                    time.sleep(wait_time)
+                                    continue
+                                raise e
 
-                            if not output:
-                                raise RuntimeError(f"Failed to generate image for slide {slide.slide_number} after retries")
+                        if not output:
+                            raise RuntimeError(f"Failed to generate image for slide {slide.slide_number} after retries")
 
-                            image_url = output[0] if isinstance(output, list) else str(output)
-                            hook_image_path = self._save_replicate_image(image_url, slide.slide_number, output_dir)
-                    except Exception as e:
-                        logger.error("Failed to generate AI image for slide %s: %s", slide.slide_number, e)
+                        image_url = output[0] if isinstance(output, list) else str(output)
+                        hook_image_path = self._save_replicate_image(image_url, slide.slide_number, output_dir)
+                except Exception as e:
+                    logger.error("Failed to generate AI image for slide %s: %s", slide.slide_number, e)
 
                 if hook_image_path:
                     image_paths.append(hook_image_path)
 
             # Slides 2+ (or Slide 1 if skipping AI): HTML/CSS Templated Images
-            if slide.slide_number > 1 or skip_ai_image:
+            elif slide.slide_number > 1 or skip_ai_image:
+                if skip_ai_image and slide.slide_number == 1:
+                    logger.info("[Slide 1] SKIP-AI-IMAGE: Using HTML template for Slide 1")
+                    hook_image_path = image_path # Used for blurred backgrounds later
                 template_name = slide.template_name if slide.template_name else "standard"
                 bg_style = slide.background_style if slide.background_style else "solid"
                 
