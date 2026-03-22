@@ -204,6 +204,11 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
         final_v = last_v
         final_a = last_a
 
+        # Prepare input list for final command
+        inputs = []
+        for cp in clip_paths:
+            inputs.extend(['-i', str(cp)])
+
         # 5. Optional Background Music Mixing
         music_path = Path("assets/music/background.mp3")
         if music_path.exists():
