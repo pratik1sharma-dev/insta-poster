@@ -202,17 +202,40 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
         final_v = last_v
         final_a = last_a
 
-        final_cmd = [
-            'ffmpeg', '-y'
-        ] + inputs + [
-            '-filter_complex', filter_str + audio_filter_str,
-            '-map', f"[{final_v}]", '-map', f"[{final_a}]",
-            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-            '-c:a', 'aac', '-b:a', '192k',
-            str(output_path)
-        ]
+        # 5. Optional Background Music Mixing
+        music_path = Path("assets/music/background.mp3")
+        if music_path.exists():
+            logger.info("Mixing background music...")
+            # We add the music as an additional input
+            # [final_a] is the narration
+            # [bg_music] is the looped, lowered volume music with fade out
+            total_duration = sum(durations) - (len(durations)-1)*transition_duration
+            
+            final_cmd = [
+                'ffmpeg', '-y'
+            ] + inputs + ['-i', str(music_path),
+                '-filter_complex', 
+                filter_str + audio_filter_str + 
+                f"[{len(clip_paths)}:a]aloop=loop=-1:size=2e+09,volume=0.15,afade=t=out:st={total_duration-2}:d=2[bg_m]; " +
+                f"[{final_a}][bg_m]amix=inputs=2:duration=first:dropout_transition=2[a_mixed]",
+                '-map', f"[{final_v}]", '-map', "[a_mixed]",
+                '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+                '-c:a', 'aac', '-b:a', '192k',
+                str(output_path)
+            ]
+        else:
+            logger.warning("No background music found at assets/music/background.mp3. Skipping mix.")
+            final_cmd = [
+                'ffmpeg', '-y'
+            ] + inputs + [
+                '-filter_complex', filter_str + audio_filter_str,
+                '-map', f"[{final_v}]", '-map', f"[{final_a}]",
+                '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+                '-c:a', 'aac', '-b:a', '192k',
+                str(output_path)
+            ]
         
-        logger.info("Assembling final video with transitions...")
+        logger.info("Assembling final video with transitions and music...")
         subprocess.run(final_cmd, check=True, capture_output=True)
         
         logger.info(f"Reel with transitions successfully generated at: {output_path}")
