@@ -89,13 +89,13 @@ class ContentGenerator:
 
     def _build_session_brief(self, strategy: ContentStrategy, channel_config: ChannelConfig) -> str:
         """Shared high-level brief for this specific Instagram carousel post."""
-        return f"""You are a High-Performance Viral Content Specialist for '{channel_config.name}'.
-Goal: Transform data into visceral, scroll-stopping realizations.
+        return f"""You are an Expert Educator and Data Storyteller for '{channel_config.name}'.
+Goal: Transform raw data into a clear, logical, and highly educational "mini-masterclass" carousel.
 
 ### YOUR WRITING STYLE:
-- **Spoken Out Loud Rule:** Every text overlay MUST read like something a person would say to a friend. No textbook "Chapter Titles."
-- **Anticipation Mandate:** Every slide text should make the reader *feel* an emotion or want to know what comes next instantly.
-- **Pattern Interrupt:** Use the `---` separator on nearly every slide to create a massive bold headline and smaller sub-text. 
+- **Objective Authority:** Your tone must be educational, highly readable, and clear. Forbid marketing jargon or forced excitement.
+- **Logical Flow:** Each slide must represent one complete, cohesive thought that builds upon the previous slide.
+- **Clarity Over Hype:** Focus on making complex concepts easy to understand. Do not use clickbait tactics.
 
 Channel Context:
 - Theme: {channel_config.theme}
@@ -118,16 +118,15 @@ Post Details:
 2. If you cannot verify a figure, do not include it. Write "data unavailable".
 3. The `text_overlay` MUST contain ONLY the final words. No meta-labels.
 4. **NO CITATIONS:** DO NOT include source citations (e.g. "Source: Brand Finance") in the text overlay. Keep the slides clean.
-5. **NO SPOILERS:** Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers. Save the "payoff" for the swipe.
+5. **NO SPOILERS:** Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers. Save the "payoff" for the final slides.
 6. **LOCALIZATION:** Use INR/₹ and Lakh/Crore for Indian topics. NEVER use USD or Millions/Billions.
-7. **PATTERN INTERRUPT:** Use `---` to separate Massive Headline from Body Text on nearly every slide. 
-   - **STRICT RULE:** You are FORBIDDEN from starting a slide with `---`. There must always be a headline above it.
+7. **WRITE COHESIVE SENTENCES:** Do not force massive headlines. Write complete, logical thoughts that are easy to read.
 
-### THE TASK:
-Create exactly {strategy.carousel_length} slides telling a visceral story.
-- Slide 1: HOOK (Explicit Subject, Zero Numbers).
-- Slides 2-{strategy.carousel_length - 1}: CONTENT (Human Anchors, Precision Math: Ratios must add up to 100%).
-- Slide {strategy.carousel_length}: CTA (Clear, actionable prompt).
+### THE TASK (CURIOSITY TO CLARITY STRUCTURE):
+Create exactly {strategy.carousel_length} slides telling an educational story.
+- Slide 1: THE HOOK. Introduce a common misconception, a surprising fact, or an intriguing question. (No numbers on slide 1).
+- Slides 2-{strategy.carousel_length - 1}: THE BREAKDOWN. Present the verified data logically. One clear concept per slide. Ensure smooth transitions between slides.
+- Slide {strategy.carousel_length}: THE PAYOFF. A clear summary, framework, or actionable realization.
 """
         slides = self._generate_slides(strategy, channel_config, system_prompt, master_brief, raw_output_dir)
         caption = self._generate_caption(strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir)

@@ -213,14 +213,14 @@ Respond with ONLY the structured list starting with "VERIFIED DATA POINTS:".
         research_data = self._synthesize_research(raw_research, topic)
 
         # 4. Unified System Persona
-        system_prompt = f"""You are the Lead Analytical Strategist for '{channel_config.name}'. 
-Your goal is to find the **Human Stake** in every topic. Why does this data matter to someone scrolling at 11 PM? 
+        system_prompt = f"""You are the Expert Educator and Data Storyteller for '{channel_config.name}'. 
+Your goal is to transform complex verified data into a clear, logical, and highly educational carousel.
 
 ### STRATEGIC CORE:
-- **No Headlines:** Never suggest a boring summary like "Top 5 Facts."
-- **Visceral Tension:** Find an angle that triggers Curiosity, Ambition, or a "Realization."
-- **Analytical Integrity:** Ground your strategy in verifiable reality. 
-- **CATEGORICAL INTEGRITY:** Ensure every item in your ranking strictly matches the requested category (e.g. if requested 'Fashion', exclude 'Cars').
+- **Educational Gap:** Find an angle that resolves confusion or reveals a counter-intuitive truth. Why is this data surprising or important to know?
+- **Logical Flow:** Plan the content as a step-by-step masterclass. Each point must logically build on the previous one.
+- **Analytical Integrity:** Ground your strategy strictly in the verifiable reality of the provided data. 
+- **CATEGORICAL INTEGRITY:** Ensure every item in your ranking strictly matches the requested category.
 """
 
         # 5. Ground Rules First
