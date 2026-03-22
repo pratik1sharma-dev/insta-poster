@@ -119,7 +119,7 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
         return float(result.stdout.strip())
 
     def generate_reel(self, content: GeneratedContent, strategy: ContentStrategy, channel_config: ChannelConfig, image_paths: List[Path], output_path: Path) -> Path:
-        """Complete pipeline to generate a Reel .mp4 file."""
+        """Complete pipeline to generate a Reel .mp4 file with smooth transitions."""
         logger.info(f"Starting Reel generation for: {strategy.topic}")
         
         # 1. Generate Script
@@ -130,26 +130,25 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
         audio_fragments_dir.mkdir(exist_ok=True)
         audio_paths = self._create_audio_segments(script_segments, audio_fragments_dir)
         
-        # 3. Assemble Video Fragments using FFmpeg
-        # We'll create individual clips for each slide synced to its audio
+        # 3. Assemble Video Fragments
         video_fragments_dir = self.temp_dir / "video"
         video_fragments_dir.mkdir(exist_ok=True)
         clip_paths = []
+        durations = []
+
+        transition_duration = 0.5 # seconds
 
         for i, (img_path, audio_path) in enumerate(zip(image_paths, audio_paths), 1):
-            duration = self._get_audio_duration(audio_path)
-            clip_path = video_fragments_dir / f"clip_{i:02d}.mp4"
+            audio_dur = self._get_audio_duration(audio_path)
+            # Add a small buffer for the transition overlap
+            clip_duration = audio_dur + transition_duration
+            durations.append(clip_duration)
             
-            # Refined FFmpeg command:
-            # 1. Force 25fps input loop
-            # 2. Scale background to 1080x1920 and blur
-            # 3. Scale foreground to 1080x1080 and overlay
-            # 4. Use a simpler zoom effect that is more stable
-            # 5. Force 44.1kHz Stereo AAC for maximum compatibility
+            clip_path = video_fragments_dir / f"clip_{i:02d}.mp4"
             
             ffmpeg_cmd = [
                 'ffmpeg', '-y', 
-                '-loop', '1', '-framerate', '25', '-t', str(duration), '-i', str(img_path),
+                '-loop', '1', '-framerate', '25', '-t', str(clip_duration), '-i', str(img_path),
                 '-i', str(audio_path),
                 '-filter_complex', 
                 f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:10[bg];" +
@@ -159,26 +158,65 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
                 '-map', '[v]', '-map', '1:a',
                 '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'stillimage',
                 '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
-                '-pix_fmt', 'yuv420p', '-shortest', str(clip_path)
+                '-pix_fmt', 'yuv420p', str(clip_path)
             ]
             
-            subprocess.run(ffmpeg_cmd, check=True)
+            subprocess.run(ffmpeg_cmd, check=True, capture_output=True)
             clip_paths.append(clip_path)
 
-        # 4. Concatenate Clips
-        concat_list_path = self.temp_dir / "clips.txt"
-        with open(concat_list_path, "w") as f:
-            for cp in clip_paths:
-                f.write(f"file '{cp.absolute()}'\n")
+        # 4. Concatenate with XFADE
+        # If only one clip, just copy it
+        if len(clip_paths) == 1:
+            subprocess.run(['ffmpeg', '-y', '-i', str(clip_paths[0]), '-c', 'copy', str(output_path)], check=True)
+            return output_path
+
+        # Build complex filter for transitions
+        # We process clips in pairs using xfade
+        filter_str = ""
+        inputs = []
+        for i, cp in enumerate(clip_paths):
+            inputs.extend(['-i', str(cp)])
         
-        # Re-encode during concat to ensure unified timestamps and fix "Non-monotonic DTS"
+        # Initial crossfade between clip 0 and 1
+        offset = durations[0] - transition_duration
+        filter_str += f"[0:v][1:v]xfade=transition=fade:duration={transition_duration}:offset={offset}[v1]; "
+        
+        # Audio needs to be concatenated too
+        audio_filter_str = "[0:a][1:a]concat=n=2:v=0:a=1[a1]; "
+
+        # Chain subsequent clips
+        last_v = "v1"
+        last_a = "a1"
+        current_offset = offset + (durations[1] - transition_duration)
+
+        for i in range(2, len(clip_paths)):
+            next_v = f"v{i}"
+            next_a = f"a{i}"
+            filter_str += f"[{last_v}][{i}:v]xfade=transition=fade:duration={transition_duration}:offset={current_offset}[{next_v}]; "
+            audio_filter_str += f"[{last_a}][{i}:a]concat=n=2:v=0:a=1[{next_a}]; "
+            
+            current_offset += (durations[i] - transition_duration)
+            last_v = next_v
+            last_a = next_a
+
+        final_v = last_v
+        final_a = last_a
+
         final_cmd = [
-            'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', str(concat_list_path),
+            'ffmpeg', '-y'
+        ] + inputs + [
+            '-filter_complex', filter_str + audio_filter_str,
+            '-map', f"[{final_v}]", '-map', f"[{final_a}]",
             '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
             '-c:a', 'aac', '-b:a', '192k',
             str(output_path)
         ]
-        subprocess.run(final_cmd, check=True)
+        
+        logger.info("Assembling final video with transitions...")
+        subprocess.run(final_cmd, check=True, capture_output=True)
+        
+        logger.info(f"Reel with transitions successfully generated at: {output_path}")
+        return output_path
         
         logger.info(f"Reel successfully generated at: {output_path}")
         return output_path
