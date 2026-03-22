@@ -21,6 +21,9 @@ pytest>=7.4.0
 pytest-asyncio>=0.21.0
 black>=24.0.0
 ruff>=0.1.0
-gTTS>=2.5.1
 gTTS>=2.5.4
-\n# AI Audio (Optional - for Bark)\ntransformers>=4.31.0\ntorch>=2.0.0\nscipy>=1.10.0
+
+# AI Audio (Optional - for Bark)
+transformers>=4.31.0
+torch>=2.0.0
+scipy>=1.10.0
