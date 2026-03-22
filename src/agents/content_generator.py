@@ -1,5 +1,5 @@
 """
-Content Generator Agent - Creates captions, hashtags, and slide text.
+Content Generator Agent - Writes slide text, captions, and hashtags.
 """
 import json
 import logging
@@ -48,7 +48,8 @@ class ContentGenerator:
     def _generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """Utility to generate text from the configured provider with retry logic and system instructions."""
         max_retries = 3
-        retry_delay = 5
+        retry_delay = 5  # seconds
+
         for attempt in range(max_retries):
             try:
                 raw_response = ""
@@ -80,6 +81,7 @@ class ContentGenerator:
                 elif self.provider == "groq" and ("429" in error_msg or "rate_limit" in error_msg): is_rate_limit = True
                 if is_rate_limit and attempt < max_retries - 1:
                     wait_time = retry_delay * (2 ** attempt)
+                    logging.getLogger(__name__).warning(f"Rate limited by {self.provider}. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
                     time.sleep(wait_time)
                     continue
                 raise e
@@ -91,10 +93,9 @@ class ContentGenerator:
 Goal: Transform data into visceral, scroll-stopping realizations.
 
 ### YOUR WRITING STYLE:
-- **Spoken Out Loud Rule:** Every text overlay MUST read like something a person would say to a friend. No "Chapter Titles."
-- **Anticipation Mandate:** Every slide should make the reader want to know what comes next.
-- **The Human Scale:** NEVER list raw numbers alone. Compare them to something human (e.g. "Enough to fill 3 pools").
-- **Precision:** If using percentages for a breakdown, they MUST add up to exactly 100%.
+- **Spoken Out Loud Rule:** Every text overlay MUST read like something a person would say to a friend in a casual conversation. No textbook "Chapter Titles" or "Milestones."
+- **Anticipation Mandate:** Every slide text should make the reader *feel* an emotion or want to know what comes next instantly.
+- **Pattern Interrupt:** Use the `---` separator on nearly every slide to create a massive bold headline and smaller sub-text. 
 
 Channel Context:
 - Theme: {channel_config.theme}
@@ -102,11 +103,10 @@ Channel Context:
 - Audience: {channel_config.target_audience}
 - Cultural Context: {channel_config.cultural_context}
 
-Strategy:
+Post Details:
 - Topic: {strategy.topic}
 - Angle: {strategy.angle}
-- Visual Metaphor: {strategy.visual_metaphor}
-- Character: {strategy.character_persona or "N/A"}
+- Character Persona: {strategy.character_persona or "N/A"}
 """
 
     def generate_content(self, strategy: ContentStrategy, channel_config: ChannelConfig, raw_output_dir: Optional[Path] = None) -> GeneratedContent:
@@ -119,9 +119,7 @@ Strategy:
 3. The `text_overlay` MUST contain ONLY the final words. No meta-labels.
 4. **NO CITATIONS:** DO NOT include source citations (e.g. "Source: Brand Finance") in the text overlay. Keep the slides clean.
 5. **NO SPOILERS:** Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers. Save the "payoff" for the swipe.
-6. **LOCALIZATION:** Use INR/₹ and Lakh/Crore for Indian topics. NEVER use USD.
-7. **PATTERN INTERRUPT:** Use `---` to separate Massive Headline from Body Text on nearly every slide.
-
+6. **LOCALIZATION:** Use INR/₹ and Lakh/Crore for Indian topics. NEVER use USD or Millions/Billions.
 
 ### THE TASK:
 Create exactly {strategy.carousel_length} slides telling a visceral story.
@@ -137,18 +135,33 @@ Create exactly {strategy.carousel_length} slides telling a visceral story.
 
     def _generate_slides(self, strategy, channel_config, system_prompt, master_brief, raw_output_dir) -> List[CarouselSlide]:
         """Generate slide content."""
-        style_context = self._build_style_context(strategy, strategy.carousel_length)
+        style_context = f"Visual Metaphor: {strategy.visual_metaphor}\nPalette: {strategy.color_palette}\nTypography: {strategy.typography_style}"
+        
         prompt = f"""{master_brief}
 
 **Visual Context:**
 {style_context}
 
-**Template Rules:**
-1. **standard**: Default for narratives. Use for slides with > 60 chars.
-2. **big_fact**: ONLY for single big stats or 1-3 word punchlines (< 60 chars).
-3. **split_comparison**: For direct "A vs B" comparisons.
-4. **cta**: ONLY for the final slide.
+**Template Selection Rules:**
+1. **standard** - Default for narratives. Use for character-driven story slides.
+2. **big_fact** - ONLY for single big numbers or punchlines.
+3. **split_comparison** - For direct comparisons.
+4. **cta** - ONLY for the final slide.
 
+**Output Format (JSON):**
+{{
+  "slides": [
+    {{
+      "slide_number": 1,
+      "purpose": "hook",
+      "text_overlay": "String (NO NUMBERS)",
+      "image_prompt": "Literal scene description (mood, lighting, objects)",
+      "template_name": "standard",
+      "background_style": "solid"
+    }},
+    ...
+  ]
+}}
 Respond with ONLY JSON matching the CarouselSlide model.
 """
         if raw_output_dir:
@@ -164,55 +177,45 @@ Respond with ONLY JSON matching the CarouselSlide model.
             except Exception: pass
         
         slides_data = self._parse_json_response(response_text)
-        purpose_map = {"hook": SlidePurpose.HOOK, "intro": SlidePurpose.HOOK, "cta": SlidePurpose.CTA, "action": SlidePurpose.CTA}
+        purpose_map = {
+            "hook": SlidePurpose.HOOK, "intro": SlidePurpose.HOOK, "introduction": SlidePurpose.HOOK,
+            "cta": SlidePurpose.CTA, "action": SlidePurpose.CTA, "conclusion": SlidePurpose.CTA, "call-to-action": SlidePurpose.CTA
+        }
         
         slides = []
         for i, slide_data in enumerate(slides_data.get("slides", []), 1):
             purpose_raw = str(slide_data.get("purpose", "")).lower()
             purpose = purpose_map.get(purpose_raw, SlidePurpose.CONTENT)
-            
-            # Ensure we have a valid slide number (AI sometimes omits it or uses wrong key)
             slide_num = slide_data.get("slide_number") or i
-
+            
             slides.append(CarouselSlide(
                 slide_number=int(slide_num),
                 purpose=purpose,
                 text_overlay=slide_data.get("text_overlay", ""),
                 image_prompt=slide_data.get("image_prompt", ""),
                 template_name=slide_data.get("template_name", "standard"),
-                background_style=slide_data.get("background_style", "solid")
+                background_style=slide_data.get("background_style", "solid"),
+                design_notes=slide_data.get("design_notes")
             ))
         return slides
 
     def _generate_caption(self, strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir):
         """Generate Instagram caption."""
-        prompt = f"{master_brief}\n\nWrite a 150-300 char Instagram caption based on these slides. No hashtags. Include a driving question."
+        prompt = f"{master_brief}\n\nBased on the slides, write a 150-300 char Instagram caption. No hashtags. Include a driving question."
         return self._generate_text(prompt, system_prompt=system_prompt)
 
     def _generate_hashtags(self, strategy, channel_config, system_prompt, master_brief, raw_output_dir):
         """Generate hashtags."""
-        prompt = f"{master_brief}\n\nGenerate 20-25 high-reach Indian hashtags for this topic. Respond with ONLY the hashtags."
+        prompt = f"{master_brief}\n\nGenerate 20-25 high-reach Indian hashtags for this topic."
         response_text = self._generate_text(prompt, system_prompt=system_prompt)
-        
-        # Parse response into a list
-        # Extract all hashtags (words starting with #)
         tags = re.findall(r'#\w+', response_text)
-        
-        # If no hashtags were found, try splitting by spaces and cleaning
         if not tags:
-            tags = [tag.strip() for tag in response_text.replace(',', ' ').split() if tag.strip()]
-            # Ensure every tag starts with #
-            tags = ["#" + tag.lstrip('#') for tag in tags]
-            
-        return tags[:30] # Limit to 30 max
+            tags = ["#" + tag.strip().lstrip('#') for tag in response_text.replace(',', ' ').split() if tag.strip()]
+        return tags[:30]
 
     def _generate_smart_cta(self, strategy, channel_config, slides, system_prompt, master_brief, raw_output_dir):
         """Generate final CTA text."""
         return "Save this post if you found it valuable."
-
-    def _build_style_context(self, strategy: ContentStrategy, total_slides: int) -> str:
-        """Helper to build visual context."""
-        return f"Metaphor: {strategy.visual_metaphor}\nPalette: {strategy.color_palette}\nTypography: {strategy.typography_style}\nConsistency: All {total_slides} slides must feel like one cinematic series."
 
     def _parse_json_response(self, response_text: str) -> dict:
         """Robust JSON parsing helper."""
