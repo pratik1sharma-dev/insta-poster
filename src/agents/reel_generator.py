@@ -6,6 +6,7 @@ import subprocess
 import logging
 import json
 import re
+import shutil
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from gtts import gTTS
@@ -119,7 +120,7 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
         return float(result.stdout.strip())
 
     def generate_reel(self, content: GeneratedContent, strategy: ContentStrategy, channel_config: ChannelConfig, image_paths: List[Path], output_path: Path) -> Path:
-        """Complete pipeline to generate a Reel .mp4 file with smooth transitions."""
+        """Complete pipeline to generate a Reel .mp4 file using sequential assembly for low RAM stability."""
         logger.info(f"Starting Reel generation for: {strategy.topic}")
         
         # 1. Generate Script
@@ -130,22 +131,21 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
         audio_fragments_dir.mkdir(exist_ok=True)
         audio_paths = self._create_audio_segments(script_segments, audio_fragments_dir)
         
-        # 3. Assemble Video Fragments
+        # 3. Assemble Individual Video Clips
         video_fragments_dir = self.temp_dir / "video"
         video_fragments_dir.mkdir(exist_ok=True)
         clip_paths = []
-        durations = []
-
-        transition_duration = 0.5 # seconds
+        transition_duration = 0.5
 
         for i, (img_path, audio_path) in enumerate(zip(image_paths, audio_paths), 1):
             audio_dur = self._get_audio_duration(audio_path)
-            # Add a small buffer for the transition overlap
-            clip_duration = audio_dur + transition_duration
-            durations.append(clip_duration)
+            # Add tail for transition (except last slide)
+            is_last = (i == len(image_paths))
+            clip_duration = audio_dur + (0 if is_last else transition_duration)
             
             clip_path = video_fragments_dir / f"clip_{i:02d}.mp4"
             
+            # Clip generation: Standardize to 1080x1920, 25fps, stereo 44.1k audio
             ffmpeg_cmd = [
                 'ffmpeg', '-y', 
                 '-loop', '1', '-framerate', '25', '-t', str(clip_duration), '-i', str(img_path),
@@ -153,108 +153,61 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
                 '-filter_complex', 
                 f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:10[bg];" +
                 f"[0:v]scale=1080:1080[fg];" +
-                f"[bg][fg]overlay=(W-w)/2:(H-h)/2[v]",
-                '-map', '[v]', '-map', '1:a',
-                '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'stillimage',
-                '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
-                '-pix_fmt', 'yuv420p', str(clip_path)
+                f"[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p[v];" +
+                f"[1:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[a]",
+                '-map', '[v]', '-map', '[a]',
+                '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23',
+                '-c:a', 'aac', '-b:a', '192k', '-shortest', str(clip_path)
             ]
-            
-            subprocess.run(ffmpeg_cmd, check=True, capture_output=True)
+            subprocess.run(ffmpeg_cmd, check=True)
             clip_paths.append(clip_path)
 
-        # 4. Concatenate with XFADE
-        # If only one clip, just copy it
-        if len(clip_paths) == 1:
-            subprocess.run(['ffmpeg', '-y', '-i', str(clip_paths[0]), '-c', 'copy', str(output_path)], check=True)
-            return output_path
-
-        # Build complex filter for transitions
-        # Standardize each input clip to ensure xfade doesn't fail due to subtle metadata diffs
-        input_prep = ""
-        for i in range(len(clip_paths)):
-            input_prep += f"[{i}:v]scale=1080:1920,setsar=1,format=yuv420p[v_in{i}]; "
-            # Add short audio fades to each segment so transitions aren't jarring
-            input_prep += f"[{i}:a]afade=t=in:st=0:d=0.2,afade=t=out:st={durations[i]-0.2}:d=0.2[a_in{i}]; "
-
-        # Build complex filter for transitions
-        input_prep = ""
-        for i in range(len(clip_paths)):
-            # Standardize video and audio streams
-            input_prep += f"[{i}:v]scale=1080:1920,setsar=1,format=yuv420p[v_in{i}]; "
-            input_prep += f"[{i}:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[a_in{i}]; "
-
-        filter_str = input_prep
+        # 4. Sequential Blending (Safe for 4GB RAM)
+        current_out = clip_paths[0]
         
-        # Initial crossfade between clip 0 and 1
-        offset = durations[0] - transition_duration
-        filter_str += f"[v_in0][v_in1]xfade=transition=fade:duration={transition_duration}:offset={offset}[v1]; "
-        # Audio crossfade
-        filter_str += f"[a_in0][a_in1]acrossfade=d={transition_duration}[a1]; "
-        
-        # Chain subsequent clips
-        last_v = "v1"
-        last_a = "a1"
-        current_offset = offset + (durations[1] - transition_duration)
-
-        for i in range(2, len(clip_paths)):
-            next_v = f"v{i}"
-            next_a = f"a{i}"
-            filter_str += f"[{last_v}][v_in{i}]xfade=transition=fade:duration={transition_duration}:offset={current_offset}[{next_v}]; "
-            filter_str += f"[{last_a}][a_in{i}]acrossfade=d={transition_duration}[{next_a}]; "
+        for i in range(1, len(clip_paths)):
+            next_clip = clip_paths[i]
+            temp_out = video_fragments_dir / f"blend_{i}.mp4"
             
-            current_offset += (durations[i] - transition_duration)
-            last_v = next_v
-            last_a = next_a
+            # Get current duration to set xfade offset
+            cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', str(current_out)]
+            curr_dur = float(subprocess.run(cmd, capture_output=True, text=True).stdout.strip())
+            
+            offset = curr_dur - transition_duration
+            
+            # Blend current result with next clip
+            blend_cmd = [
+                'ffmpeg', '-y',
+                '-i', str(current_out), '-i', str(next_clip),
+                '-filter_complex',
+                f"[0:v][1:v]xfade=transition=fade:duration={transition_duration}:offset={offset},format=yuv420p[v];" +
+                f"[0:a][1:a]acrossfade=d={transition_duration}[a]",
+                '-map', '[v]', '-map', '[a]',
+                '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23',
+                '-c:a', 'aac', '-b:a', '192k', str(temp_out)
+            ]
+            subprocess.run(blend_cmd, check=True)
+            current_out = temp_out
 
-        final_v = last_v
-        final_a = last_a
-
-        # Prepare input list for final command
-        inputs = []
-        for cp in clip_paths:
-            inputs.extend(['-i', str(cp)])
-
-        # 5. Optional Background Music Mixing
+        # 5. Final Music Mix
         music_path = Path("assets/music/background.mp3")
         if music_path.exists():
-            logger.info("Mixing background music...")
-            total_duration = current_offset + (durations[-1] - transition_duration)
-            
-            final_cmd = [
-                'ffmpeg', '-y'
-            ] + inputs + ['-i', str(music_path),
-                '-filter_complex', 
-                filter_str + 
-                f"[{len(clip_paths)}:a]aloop=loop=-1:size=100M,volume=0.12,afade=t=out:st={total_duration-2}:d=2[bg_m]; " +
-                f"[{final_a}][bg_m]amix=inputs=2:duration=first:dropout_transition=2[a_mixed]",
-                '-map', f"[{final_v}]", '-map', "[a_mixed]",
-                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
-                '-c:a', 'aac', '-b:a', '128k',
-                str(output_path)
+            logger.info("Adding background music...")
+            final_mix_cmd = [
+                'ffmpeg', '-y', '-i', str(current_out), '-i', str(music_path),
+                '-filter_complex',
+                "[1:a]aloop=loop=-1:size=100M,volume=0.12[bg];[0:a][bg]amix=inputs=2:duration=first[a]",
+                '-map', '0:v', '-map', '[a]',
+                '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', str(output_path)
             ]
+            subprocess.run(final_mix_cmd, check=True)
         else:
-            final_cmd = [
-                'ffmpeg', '-y'
-            ] + inputs + [
-                '-filter_complex', filter_str,
-                '-map', f"[{final_v}]", '-map', f"[{final_a}]",
-                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
-                '-c:a', 'aac', '-b:a', '128k',
-                str(output_path)
-            ]
+            shutil.copy(current_out, output_path)
         
-        logger.info("Assembling final video with transitions and music (optimized for server)...")
-        subprocess.run(final_cmd, check=True)
-        
-        logger.info(f"Reel successfully generated at: {output_path}")
-        return output_path
-        
-        logger.info(f"Reel successfully generated at: {output_path}")
+        logger.info(f"Reel successfully generated: {output_path}")
         return output_path
 
     def cleanup(self):
         """Clean up temporary files."""
-        import shutil
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir)
