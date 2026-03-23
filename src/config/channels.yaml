@@ -17,7 +17,7 @@ pagecapsules:
   posting_schedule: "1-2x daily"
   tone: "engaging, insightful, actionable, inspiring"
   localization_type: "global"
-  voice_id: "en-IN-NeerjaNeural"
+  voice_id: "en-IN-NeerjaExpressiveNeural"
 
   style_guidelines: >
     Clear and concise text overlays with minimal modern design.
@@ -241,7 +241,7 @@ mindcapsules:
   posting_schedule: "1-2x daily"
   tone: "thought-provoking, insightful, educational"
   localization_type: "india"
-  voice_id: "en-IN-AnanyaNeural"
+  voice_id: "en-IN-NeerjaExpressiveNeural"
 
   style_guidelines: >
     Explain psychological ideas clearly with simple visuals and relatable examples.
