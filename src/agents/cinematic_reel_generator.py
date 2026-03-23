@@ -209,6 +209,11 @@ Each image gets:
 Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_prompts."""
 
         response = self.generator._generate_text(prompt, system_prompt=system_prompt)
+        
+        # Log Prompts
+        logger.debug("Cinematic Script System Prompt: %s", system_prompt)
+        logger.debug("Cinematic Script User Prompt: %s", prompt)
+        logger.debug("Cinematic Script Raw Response: %s", response)
 
         try:
             data    = self.generator._parse_json_response(response)
@@ -298,6 +303,7 @@ Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_
             }
 
             logger.info("[SD Image %d/%d] Generating...", i, len(prompts))
+            logger.debug("[SD Image %d] Payload: %s", i, json.dumps(payload))
 
             try:
                 r = requests.post(api_url, json=payload, timeout=timeout)
