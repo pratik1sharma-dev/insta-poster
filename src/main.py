@@ -3,6 +3,7 @@ Main orchestrator for the content generation pipeline.
 """
 import argparse
 import sys
+from datetime import datetime
 from typing import Optional
 from src.agents import ContentStrategist, ContentGenerator, ImageGenerator
 from src.agents.reel_generator import ReelGenerator
@@ -29,9 +30,9 @@ class ContentPipeline:
         dry_run: bool = False,
         topic_hint: Optional[str] = None,
         skip_ai_image: bool = False,
-        reel_only: bool = False,
-        no_reel: bool = False,
-        cinematic: bool = False,
+        post_carousel: bool = True,
+        post_reel: bool = False,
+        post_cinematic: bool = False,
         cinematic_images: int = 4,
     ) -> PostResult:
         """
@@ -41,11 +42,10 @@ class ContentPipeline:
             channel_name:      Channel to post to
             dry_run:           Generate but don't post
             topic_hint:        Override AI topic selection
-            skip_ai_image:     Use HTML for all slides (no AI image for slide 1)
-            reel_only:         Generate and post Reel only, skip carousel
-            no_reel:           Skip all Reel generation
-            cinematic:         Generate a cinematic mood Reel (2-4 AI images +
-                               burned captions, no voice) instead of narrated Reel
+            skip_ai_image:     Use HTML for all slides
+            post_carousel:     Generate and post square carousel
+            post_reel:         Generate and post narrated portrait Reel
+            post_cinematic:    Generate and post cinematic mood Reel
             cinematic_images:  Number of images for cinematic Reel (2-4)
         """
         logger = ContentLogger(channel_name)
@@ -110,109 +110,134 @@ Angle: {strategy.angle}
             logger.log_content(content)
 
             # ── Phase 3: Image generation ──────────────────────────────
-            logger.logger.info("\n[Phase 3/4] Generating carousel images...")
+            image_paths = []
             images_dir  = logger.get_images_dir()
-            image_paths = self.image_generator.generate_carousel(
-                content, strategy, channel_config, images_dir, skip_ai_image
-            )
+            
+            # Narrated Reel needs the carousel images as its base
+            if post_carousel or post_reel:
+                logger.logger.info("\n[Phase 3/4] Generating carousel images...")
+                image_paths = self.image_generator.generate_carousel(
+                    content, strategy, channel_config, images_dir, skip_ai_image
+                )
 
-            for i, p in enumerate(image_paths, 1):
-                logger.log_image_generation(i, p)
+                for i, p in enumerate(image_paths, 1):
+                    logger.log_image_generation(i, p)
 
-            if not image_paths:
-                raise Exception("No images were generated")
+                if not image_paths:
+                    raise Exception("No images were generated")
 
             # ── Phase 3.5: Reel generation ─────────────────────────────
             reel_path = None
+            cinematic_path = None
 
-            if not no_reel:
-                if cinematic:
-                    # ── Cinematic mood Reel (AI images + burned captions) ──
-                    logger.logger.info(
-                        "\n[Phase 3.5] Generating cinematic Reel (%d images)...",
-                        cinematic_images
+            # 1. Narrated Reel
+            if post_reel:
+                logger.logger.info("\n[Phase 3.5] Generating narrated Reel...")
+                try:
+                    reel_output = images_dir / "reel.mp4"
+                    reel_path   = self.reel_generator.generate_reel(
+                        content=content,
+                        strategy=strategy,
+                        channel_config=channel_config,
+                        image_paths=image_paths,
+                        output_path=reel_output,
                     )
-                    try:
-                        reel_output = images_dir / "reel_cinematic.mp4"
-                        reel_path   = self.cinematic_reel_generator.generate(
-                            content=content,
-                            strategy=strategy,
-                            channel_config=channel_config,
-                            output_path=reel_output,
-                            num_images=cinematic_images,
-                        )
-                        logger.logger.info("Cinematic Reel: %s", reel_path)
-                    except Exception as e:
-                        logger.logger.error(
-                            "Cinematic Reel failed (continuing): %s", e
-                        )
-                        reel_path = None
-                    finally:
-                        try:
-                            self.cinematic_reel_generator.cleanup()
-                        except Exception:
-                            pass
+                    logger.logger.info("Narrated Reel generated successfully.")
+                except Exception as e:
+                    logger.logger.error("Narrated Reel failed: %s", e)
+                finally:
+                    self.reel_generator.cleanup()
 
-                else:
-                    # ── Narrated portrait Reel ─────────────────────────
-                    logger.logger.info("\n[Phase 3.5] Generating narrated Reel...")
-                    try:
-                        reel_output = images_dir / "reel.mp4"
-                        reel_path   = self.reel_generator.generate_reel(
-                            content=content,
-                            strategy=strategy,
-                            channel_config=channel_config,
-                            image_paths=image_paths,
-                            output_path=reel_output,
-                        )
-                        logger.logger.info("Narrated Reel: %s", reel_path)
-                    except Exception as e:
-                        logger.logger.error(
-                            "Narrated Reel failed (continuing): %s", e
-                        )
-                        reel_path = None
-                    finally:
-                        try:
-                            self.reel_generator.cleanup()
-                        except Exception:
-                            pass
+            # 2. Cinematic Reel
+            if post_cinematic:
+                logger.logger.info("\n[Phase 3.6] Generating cinematic Reel...")
+                try:
+                    cin_output = images_dir / "reel_cinematic.mp4"
+                    cinematic_path = self.cinematic_reel_generator.generate(
+                        content=content,
+                        strategy=strategy,
+                        channel_config=channel_config,
+                        output_path=cin_output,
+                        num_images=cinematic_images,
+                    )
+                    logger.logger.info("Cinematic Reel generated successfully.")
+                except Exception as e:
+                    logger.logger.error("Cinematic Reel failed: %s", e)
+                finally:
+                    self.cinematic_reel_generator.cleanup()
 
             # ── Phase 4: Publishing ────────────────────────────────────
             logger.logger.info("\n[Phase 4/4] Publishing...")
 
             if dry_run:
-                logger.logger.info("DRY RUN — skipping posting")
+                logger.logger.info("DRY RUN MODE — skipping actual posting")
 
-            publish_images = (
-                [reel_path] if (reel_only and reel_path) else image_paths
-            )
-
-            result = self.publisher.publish_post(
-                images=publish_images,
+            # Track overall result
+            final_result = PostResult(
+                post_id=None,
+                timestamp=datetime.now(),
+                channel=channel_name,
                 content=content,
                 strategy=strategy,
-                channel=channel_name,
-                dry_run=dry_run,
+                status="success",
             )
 
-            logger.log_post_result(result)
+            # 1. Post Carousel
+            if post_carousel:
+                logger.logger.info("Publishing carousel post...")
+                res = self.publisher.publish_post(
+                    images=image_paths,
+                    content=content,
+                    strategy=strategy,
+                    channel=channel_name,
+                    dry_run=dry_run,
+                )
+                logger.log_post_result(res)
+                if res.status == "success":
+                    logger.logger.info(f"Carousel posted! ID: {res.post_id}")
+                    final_result.post_id = res.post_id
+                else:
+                    final_result.status = "failed"
+                    final_result.error_message = res.error_message
+
+            # 2. Post Narrated Reel
+            if post_reel and reel_path and reel_path.exists():
+                logger.logger.info("Publishing narrated Reel...")
+                res = self.publisher.publish_reel(
+                    video_path=reel_path,
+                    content=content,
+                    strategy=strategy,
+                    channel=channel_name,
+                    dry_run=dry_run,
+                )
+                logger.log_post_result(res)
+                if res.status == "success":
+                    logger.logger.info(f"Narrated Reel posted! ID: {res.post_id}")
+                    if not final_result.post_id: final_result.post_id = res.post_id
+
+            # 3. Post Cinematic Reel
+            if post_cinematic and cinematic_path and cinematic_path.exists():
+                logger.logger.info("Publishing cinematic Reel...")
+                res = self.publisher.publish_reel(
+                    video_path=cinematic_path,
+                    content=content,
+                    strategy=strategy,
+                    channel=channel_name,
+                    dry_run=dry_run,
+                )
+                logger.log_post_result(res)
+                if res.status == "success":
+                    logger.logger.info(f"Cinematic Reel posted! ID: {res.post_id}")
+                    if not final_result.post_id: final_result.post_id = res.post_id
 
             # ── Summary ────────────────────────────────────────────────
             logger.logger.info("\n" + "=" * 80)
             logger.logger.info("Pipeline complete!")
-            logger.logger.info("Topic:     %s", strategy.topic)
-            logger.logger.info("Slides:    %d", len(content.slides))
-            logger.logger.info(
-                "Reel:      %s",
-                str(reel_path) if reel_path else "not generated"
-            )
-            logger.logger.info("Status:    %s", result.status)
-            if result.status == "success":
-                logger.logger.info("Post ID:   %s", result.post_id)
+            logger.logger.info("Status:    %s", final_result.status)
             logger.logger.info("Output:    %s", logger.get_output_dir())
             logger.logger.info("=" * 80)
 
-            return result
+            return final_result
 
         except Exception as e:
             logger.log_error(e, "Pipeline execution")
@@ -233,12 +258,12 @@ def main():
                         help="Specific topic (overrides AI selection)")
     parser.add_argument("--skip-ai-image", action="store_true",
                         help="Use HTML for all slides")
-    parser.add_argument("--reel-only",     action="store_true",
-                        help="Post Reel only, skip carousel")
-    parser.add_argument("--no-reel",       action="store_true",
-                        help="Skip all Reel generation")
-    parser.add_argument("--cinematic",     action="store_true",
-                        help="Generate cinematic mood Reel (AI images + captions)")
+    
+    # Content type toggles
+    parser.add_argument("--carousel",      action="store_true", help="Opt-in: Generate/Post Carousel")
+    parser.add_argument("--reel",          action="store_true", help="Opt-in: Generate/Post Narrated Reel")
+    parser.add_argument("--cinematic",     action="store_true", help="Opt-in: Generate/Post Cinematic Reel")
+    
     parser.add_argument("--cinematic-images", type=int, default=4,
                         choices=[2, 3, 4],
                         help="Number of images for cinematic Reel (default: 4)")
@@ -262,6 +287,14 @@ def main():
         print("\nError: --channel is required")
         sys.exit(1)
 
+    # Default logic: if no content type is specified, default to Carousel
+    do_carousel  = args.carousel
+    do_reel      = args.reel
+    do_cinematic = args.cinematic
+    
+    if not (do_carousel or do_reel or do_cinematic):
+        do_carousel = True
+
     try:
         pipeline = ContentPipeline()
         result   = pipeline.run(
@@ -269,9 +302,9 @@ def main():
             dry_run=args.dry_run,
             topic_hint=args.topic,
             skip_ai_image=args.skip_ai_image,
-            reel_only=args.reel_only,
-            no_reel=args.no_reel,
-            cinematic=args.cinematic,
+            post_carousel=do_carousel,
+            post_reel=do_reel,
+            post_cinematic=do_cinematic,
             cinematic_images=args.cinematic_images,
         )
         sys.exit(0 if result.status == "success" else 1)
