@@ -51,6 +51,9 @@ class ImageGenerator:
             self.model = settings.gemini_image_model
         elif self.provider == "replicate":
             self.model = settings.replicate_model
+        elif self.provider == "sd":
+            self.api_url = settings.sd_api_url
+            self.steps = settings.sd_steps
         else:
             raise ValueError(f"Unsupported image provider: {self.provider}")
 
@@ -136,6 +139,11 @@ class ImageGenerator:
 
                     elif self.provider == "replicate":
                         hook_image_path = self._generate_replicate_image(
+                            prompt, slide.slide_number, output_dir
+                        )
+
+                    elif self.provider == "sd":
+                        hook_image_path = self._generate_sd_image(
                             prompt, slide.slide_number, output_dir
                         )
 
@@ -344,6 +352,42 @@ ABSOLUTE RULES — violations will ruin the slide:
 5. Output a single 1080x1080 square image only.
 
 Generate the background scene now."""
+
+    def _generate_sd_image(
+        self,
+        prompt: str,
+        slide_number: int,
+        output_dir: Path,
+    ) -> Optional[Path]:
+        """Generate image via local Stable Diffusion API."""
+        payload = {
+            "prompt": prompt,
+            "steps": self.steps,
+            "width": 1080,
+            "height": 1080,
+        }
+        
+        try:
+            response = requests.post(
+                self.api_url,
+                json=payload,
+                timeout=120
+            )
+            response.raise_for_status()
+            r = response.json()
+            
+            image_data = base64.b64decode(r['images'][0])
+            image_path = output_dir / f"slide_{slide_number:02d}.png"
+            
+            with open(image_path, 'wb') as f:
+                f.write(image_data)
+                
+            logger.info("Saved SD image: slide %s → %s", slide_number, image_path)
+            return image_path
+            
+        except Exception as e:
+            logger.error("SD image generation failed: %s", e)
+            return None
 
     def _generate_replicate_image(
         self,

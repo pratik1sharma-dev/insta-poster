@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     postiz_api_url: str = "http://localhost:3000/api"
     postiz_api_key: str
 
+    # Image Generation (Replicate / SD)
+    image_provider: str = "replicate"  # 'replicate' or 'sd'
+    sd_api_url: str = "http://100.67.231.93:7860/sdapi/v1/txt2img"
+    sd_steps: int = 20
+
     # Reel / TTS Configuration
     tts_provider: str = "edge"  # 'gtts' or 'edge'
     edge_tts_voice: str = "en-IN-PrabhatNeural"  # Professional Indian Male Neural voice
