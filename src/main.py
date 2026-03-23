@@ -4,7 +4,9 @@ Main orchestrator for the content generation pipeline.
 import argparse
 import sys
 from typing import Optional
-from src.agents import ContentStrategist, ContentGenerator, ImageGenerator, ReelGenerator
+from src.agents import ContentStrategist, ContentGenerator, ImageGenerator
+from src.agents.reel_generator import ReelGenerator
+from src.agents.cinematic_reel_generator import CinematicReelGenerator
 from src.publishers import PostizClient
 from src.utils import ContentLogger, load_channel_config, list_available_channels
 from src.models import PostResult
@@ -14,211 +16,240 @@ class ContentPipeline:
     """Orchestrates the entire content generation and publishing pipeline."""
 
     def __init__(self):
-        """Initialize the pipeline with all agents."""
-        self.strategist = ContentStrategist()
-        self.generator = ContentGenerator()
-        self.image_generator = ImageGenerator()
-        self.reel_generator = ReelGenerator()
-        self.publisher = PostizClient()
+        self.strategist              = ContentStrategist()
+        self.generator               = ContentGenerator()
+        self.image_generator         = ImageGenerator()
+        self.reel_generator          = ReelGenerator()
+        self.cinematic_reel_generator = CinematicReelGenerator()
+        self.publisher               = PostizClient()
 
     def run(
-        self, channel_name: str, dry_run: bool = False, topic_hint: Optional[str] = None, skip_ai_image: bool = False, generate_reel: bool = False
+        self,
+        channel_name: str,
+        dry_run: bool = False,
+        topic_hint: Optional[str] = None,
+        skip_ai_image: bool = False,
+        reel_only: bool = False,
+        no_reel: bool = False,
+        cinematic: bool = False,
+        cinematic_images: int = 4,
     ) -> PostResult:
         """
         Run the complete content pipeline.
 
         Args:
-            channel_name: Name of the channel to post to
-            dry_run: If True, generate content but don't post
-            topic_hint: Optional specific topic to use
-            skip_ai_image: Skip AI image generation
-            generate_reel: Whether to generate a video Reel
-
-        Returns:
-            PostResult with all pipeline information
+            channel_name:      Channel to post to
+            dry_run:           Generate but don't post
+            topic_hint:        Override AI topic selection
+            skip_ai_image:     Use HTML for all slides (no AI image for slide 1)
+            reel_only:         Generate and post Reel only, skip carousel
+            no_reel:           Skip all Reel generation
+            cinematic:         Generate a cinematic mood Reel (2-4 AI images +
+                               burned captions, no voice) instead of narrated Reel
+            cinematic_images:  Number of images for cinematic Reel (2-4)
         """
-        # Initialize logger
         logger = ContentLogger(channel_name)
-        logger.logger.info("="*80)
+        logger.logger.info("=" * 80)
         logger.logger.info("Starting content pipeline")
-        logger.logger.info("="*80)
+        logger.logger.info("=" * 80)
 
         try:
-            # Load channel configuration
-            logger.logger.info(f"Loading configuration for channel: {channel_name}")
+            # ── Load config ────────────────────────────────────────────
+            logger.logger.info("Loading configuration: %s", channel_name)
             channel_config = load_channel_config(channel_name)
-            logger.logger.info(f"Channel theme: {channel_config.theme}")
+            logger.logger.info("Channel theme: %s", channel_config.theme)
 
-            # Phase 1: Content Strategy
+            # ── Phase 1: Strategy ──────────────────────────────────────
             logger.logger.info("\n[Phase 1/4] Determining content strategy...")
-            strategy = self.strategist.plan_content(channel_config, topic_hint, logger.raw_dir)
-            
-            if strategy.topic == "DATA INSUFFICIENT" or "DATA INSUFFICIENT" in strategy.angle:
-                logger.logger.error("Strategist reported insufficient data to proceed safely.")
-                raise ValueError("Aborting run: Insufficient research data found for this topic.")
-                
+            strategy = self.strategist.plan_content(
+                channel_config, topic_hint, logger.raw_dir
+            )
+
+            if (
+                strategy.topic == "DATA INSUFFICIENT"
+                or "DATA INSUFFICIENT" in strategy.angle
+            ):
+                raise ValueError("Aborting: insufficient research data.")
+
             logger.log_strategy(strategy)
 
-            # Validation Gate (Phase 1.5)
-            logger.logger.info("\n[Phase 1.5] Validating strategy logic and facts...")
+            # ── Phase 1.5: Validation ──────────────────────────────────
+            logger.logger.info("\n[Phase 1.5] Validating strategy...")
             validation_prompt = f"""### GROUND RULES:
 1. Appending a source label to an unverified number is a CRITICAL FAILURE.
-2. The angle must be grounded in real data. Educational summaries are encouraged.
+2. The angle must be grounded in real data.
 
-### STRATEGY TO VALIDATE:
+### STRATEGY:
 Topic: {strategy.topic}
 Angle: {strategy.angle}
 
 ### TASK:
 1. List the top 2 factual claims this post will make.
-2. Verify them against your latest knowledge base.
-3. If the angle is logical and factual, respond with "VALID".
-4. If it contains pure hallucinations, respond with "INVALID".
+2. Verify them.
+3. Respond "VALID" or "INVALID".
 """
             validation_result = self.generator._generate_text(validation_prompt)
-            
-            # Save raw validation response
+
             try:
                 with open(logger.raw_dir / "validation.txt", "w") as f:
                     f.write(validation_result)
-            except Exception: pass
-            
-            if "INVALID" in validation_result.upper():
-                logger.logger.error(f"Strategy validation failed: {validation_result}")
-                raise ValueError(f"Aborting run due to failed strategy validation: {validation_result[:200]}")
-            else:
-                logger.logger.info("Strategy validated successfully.")
+            except Exception:
+                pass
 
-            # Phase 2: Content Generation
+            if "INVALID" in validation_result.upper():
+                raise ValueError(
+                    f"Aborting: failed validation: {validation_result[:200]}"
+                )
+            logger.logger.info("Strategy validated.")
+
+            # ── Phase 2: Content generation ────────────────────────────
             logger.logger.info("\n[Phase 2/4] Generating content...")
-            content = self.generator.generate_content(strategy, channel_config, logger.raw_dir)
+            content = self.generator.generate_content(
+                strategy, channel_config, logger.raw_dir
+            )
             logger.log_content(content)
 
-            # Phase 3: Image Generation
-            logger.logger.info("\n[Phase 3/4] Generating images...")
-            images_dir = logger.get_images_dir()
+            # ── Phase 3: Image generation ──────────────────────────────
+            logger.logger.info("\n[Phase 3/4] Generating carousel images...")
+            images_dir  = logger.get_images_dir()
             image_paths = self.image_generator.generate_carousel(
                 content, strategy, channel_config, images_dir, skip_ai_image
             )
 
-            for i, image_path in enumerate(image_paths, 1):
-                logger.log_image_generation(i, image_path)
+            for i, p in enumerate(image_paths, 1):
+                logger.log_image_generation(i, p)
 
             if not image_paths:
                 raise Exception("No images were generated")
 
-            # Phase 3.5: Reel Generation (Optional)
-            if generate_reel:
-                logger.logger.info("\n[Phase 3.5] Generating video Reel...")
-                reel_path = logger.get_output_dir() / "reel.mp4"
-                self.reel_generator.generate_reel(
-                    content, strategy, channel_config, image_paths, reel_path
-                )
-                logger.logger.info(f"Reel generated successfully: {reel_path}")
-                self.reel_generator.cleanup()
+            # ── Phase 3.5: Reel generation ─────────────────────────────
+            reel_path = None
 
-            # Phase 4: Publishing
-            logger.logger.info("\n[Phase 4/4] Publishing to Instagram...")
+            if not no_reel:
+                if cinematic:
+                    # ── Cinematic mood Reel (AI images + burned captions) ──
+                    logger.logger.info(
+                        "\n[Phase 3.5] Generating cinematic Reel (%d images)...",
+                        cinematic_images
+                    )
+                    try:
+                        reel_output = images_dir / "reel_cinematic.mp4"
+                        reel_path   = self.cinematic_reel_generator.generate(
+                            content=content,
+                            strategy=strategy,
+                            channel_config=channel_config,
+                            output_path=reel_output,
+                            num_images=cinematic_images,
+                        )
+                        logger.logger.info("Cinematic Reel: %s", reel_path)
+                    except Exception as e:
+                        logger.logger.error(
+                            "Cinematic Reel failed (continuing): %s", e
+                        )
+                        reel_path = None
+                    finally:
+                        try:
+                            self.cinematic_reel_generator.cleanup()
+                        except Exception:
+                            pass
+
+                else:
+                    # ── Narrated portrait Reel ─────────────────────────
+                    logger.logger.info("\n[Phase 3.5] Generating narrated Reel...")
+                    try:
+                        reel_output = images_dir / "reel.mp4"
+                        reel_path   = self.reel_generator.generate_reel(
+                            content=content,
+                            strategy=strategy,
+                            channel_config=channel_config,
+                            image_paths=image_paths,
+                            output_path=reel_output,
+                        )
+                        logger.logger.info("Narrated Reel: %s", reel_path)
+                    except Exception as e:
+                        logger.logger.error(
+                            "Narrated Reel failed (continuing): %s", e
+                        )
+                        reel_path = None
+                    finally:
+                        try:
+                            self.reel_generator.cleanup()
+                        except Exception:
+                            pass
+
+            # ── Phase 4: Publishing ────────────────────────────────────
+            logger.logger.info("\n[Phase 4/4] Publishing...")
+
             if dry_run:
-                logger.logger.info("DRY RUN MODE - Skipping actual posting")
+                logger.logger.info("DRY RUN — skipping posting")
 
-            # Post Carousel
+            publish_images = (
+                [reel_path] if (reel_only and reel_path) else image_paths
+            )
+
             result = self.publisher.publish_post(
-                images=image_paths,
+                images=publish_images,
                 content=content,
                 strategy=strategy,
                 channel=channel_name,
                 dry_run=dry_run,
             )
+
             logger.log_post_result(result)
 
-            # Post Reel (Optional)
-            if generate_reel:
-                reel_path = logger.get_output_dir() / "reel.mp4"
-                if reel_path.exists():
-                    logger.logger.info("Publishing generated Reel...")
-                    reel_result = self.publisher.publish_reel(
-                        video_path=reel_path,
-                        content=content,
-                        strategy=strategy,
-                        channel=channel_name,
-                        dry_run=dry_run,
-                    )
-                    logger.log_post_result(reel_result)
-                    if reel_result.status == "success":
-                        logger.logger.info(f"Reel successfully posted! ID: {reel_result.post_id}")
-
-            # Summary
-            logger.logger.info("\n" + "="*80)
-            logger.logger.info("Pipeline completed successfully!")
-            logger.logger.info("="*80)
-            logger.logger.info(f"Topic: {strategy.topic}")
-            logger.logger.info(f"Slides: {len(content.slides)}")
-            logger.logger.info(f"Status: {result.status}")
+            # ── Summary ────────────────────────────────────────────────
+            logger.logger.info("\n" + "=" * 80)
+            logger.logger.info("Pipeline complete!")
+            logger.logger.info("Topic:     %s", strategy.topic)
+            logger.logger.info("Slides:    %d", len(content.slides))
+            logger.logger.info(
+                "Reel:      %s",
+                str(reel_path) if reel_path else "not generated"
+            )
+            logger.logger.info("Status:    %s", result.status)
             if result.status == "success":
-                logger.logger.info(f"Post ID: {result.post_id}")
-            logger.logger.info(f"Output directory: {logger.get_output_dir()}")
-            logger.logger.info("="*80)
+                logger.logger.info("Post ID:   %s", result.post_id)
+            logger.logger.info("Output:    %s", logger.get_output_dir())
+            logger.logger.info("=" * 80)
 
             return result
 
         except Exception as e:
             logger.log_error(e, "Pipeline execution")
-            logger.logger.error(f"\nPipeline failed: {e}")
+            logger.logger.error("\nPipeline failed: %s", e)
             raise
 
 
 def main():
-    """Main entry point for CLI."""
     parser = argparse.ArgumentParser(
         description="AI-Powered Instagram Content Generation and Posting"
     )
 
-    parser.add_argument(
-        "--channel",
-        type=str,
-        help="Channel name to post to (e.g., book_summaries)",
-    )
-
-    parser.add_argument(
-        "--list-channels",
-        action="store_true",
-        help="List all available channels",
-    )
-
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Generate content without posting",
-    )
-
-    parser.add_argument(
-        "--topic",
-        type=str,
-        help="Specific topic to use (overrides AI selection)",
-    )
-
-    parser.add_argument(
-        "--skip-ai-image",
-        action="store_true",
-        help="Skip expensive AI image generation and use placeholders for testing",
-    )
-
-    parser.add_argument(
-        "--generate-reel",
-        action="store_true",
-        help="Generate a vertical video Reel in addition to the carousel",
-    )
+    parser.add_argument("--channel",       type=str,  help="Channel name")
+    parser.add_argument("--list-channels", action="store_true")
+    parser.add_argument("--dry-run",       action="store_true",
+                        help="Generate without posting")
+    parser.add_argument("--topic",         type=str,
+                        help="Specific topic (overrides AI selection)")
+    parser.add_argument("--skip-ai-image", action="store_true",
+                        help="Use HTML for all slides")
+    parser.add_argument("--reel-only",     action="store_true",
+                        help="Post Reel only, skip carousel")
+    parser.add_argument("--no-reel",       action="store_true",
+                        help="Skip all Reel generation")
+    parser.add_argument("--cinematic",     action="store_true",
+                        help="Generate cinematic mood Reel (AI images + captions)")
+    parser.add_argument("--cinematic-images", type=int, default=4,
+                        choices=[2, 3, 4],
+                        help="Number of images for cinematic Reel (default: 4)")
 
     args = parser.parse_args()
 
-    # List channels if requested
     if args.list_channels:
         channels = list_available_channels()
         if not channels:
             print("No channels configured.")
             return
-
         print("\nAvailable channels:")
         print("-" * 80)
         for name, theme in channels.items():
@@ -226,27 +257,24 @@ def main():
         print("-" * 80)
         return
 
-    # Validate channel argument
     if not args.channel:
         parser.print_help()
-        print("\nError: --channel is required (or use --list-channels)")
+        print("\nError: --channel is required")
         sys.exit(1)
 
-    # Run pipeline
     try:
         pipeline = ContentPipeline()
-        result = pipeline.run(
+        result   = pipeline.run(
             channel_name=args.channel,
             dry_run=args.dry_run,
             topic_hint=args.topic,
             skip_ai_image=args.skip_ai_image,
-            generate_reel=args.generate_reel,
+            reel_only=args.reel_only,
+            no_reel=args.no_reel,
+            cinematic=args.cinematic,
+            cinematic_images=args.cinematic_images,
         )
-
-        if result.status == "success":
-            sys.exit(0)
-        else:
-            sys.exit(1)
+        sys.exit(0 if result.status == "success" else 1)
 
     except Exception as e:
         print(f"\nFatal error: {e}")
