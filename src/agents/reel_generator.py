@@ -73,20 +73,21 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
             logger.error(f"Failed to parse script: {e}")
             return [s.text_overlay for s in slides]
 
-    def _create_audio_segments(self, script_segments: List[str], output_dir: Path) -> List[Path]:
+    def _create_audio_segments(self, script_segments: List[str], output_dir: Path, channel_config: ChannelConfig) -> List[Path]:
         """Convert script segments into individual audio files using the configured provider."""
         provider = settings.tts_provider.lower()
         audio_paths = []
 
         if provider == "edge":
-            logger.info(f"Using Edge-TTS with voice: {settings.edge_tts_voice}")
+            voice = channel_config.voice_id or settings.edge_tts_voice
+            logger.info(f"Using Edge-TTS with voice: {voice}")
             import asyncio
             import edge_tts
 
             async def gen_edge():
                 for i, text in enumerate(script_segments, 1):
                     audio_path = output_dir / f"audio_{i:02d}.mp3"
-                    communicate = edge_tts.Communicate(text, settings.edge_tts_voice)
+                    communicate = edge_tts.Communicate(text, voice)
                     await communicate.save(str(audio_path))
                     audio_paths.append(audio_path)
 
@@ -129,7 +130,7 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
         # 2. Create Audio
         audio_fragments_dir = self.temp_dir / "audio"
         audio_fragments_dir.mkdir(exist_ok=True)
-        audio_paths = self._create_audio_segments(script_segments, audio_fragments_dir)
+        audio_paths = self._create_audio_segments(script_segments, audio_fragments_dir, channel_config)
         
         # 3. Assemble Individual Video Clips
         video_fragments_dir = self.temp_dir / "video"

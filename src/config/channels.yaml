@@ -17,6 +17,7 @@ pagecapsules:
   posting_schedule: "1-2x daily"
   tone: "engaging, insightful, actionable, inspiring"
   localization_type: "global"
+  voice_id: "en-IN-NeerjaNeural"
 
   style_guidelines: >
     Clear and concise text overlays with minimal modern design.
@@ -124,6 +125,7 @@ wealthcapsules:
   posting_schedule: "1-2x daily"
   tone: "practical, insightful, empowering"
   localization_type: "india"
+  voice_id: "en-IN-PrabhatNeural"
 
   style_guidelines: >
     Minimal modern design with clear actionable financial insights.
@@ -238,7 +240,8 @@ mindcapsules:
     Never force Hinglish.
   posting_schedule: "1-2x daily"
   tone: "thought-provoking, insightful, educational"
-  localization_type: "global"
+  localization_type: "india"
+  voice_id: "en-IN-AnanyaNeural"
 
   style_guidelines: >
     Explain psychological ideas clearly with simple visuals and relatable examples.
@@ -368,6 +371,7 @@ startupcapsules:
   posting_schedule: "1-2x daily"
   tone: "practical, insightful, entrepreneurial, inspiring"
   localization_type: "india"
+  voice_id: "en-IN-PrabhatNeural"
 
   style_guidelines: >
     Minimal modern carousel design with actionable startup insights.
@@ -502,7 +506,8 @@ worldinranks:
   target_audience: "Curious learners, professionals, and people interested in global trends, business, technology, and economics (18-40)"
   posting_schedule: "1-2x daily"
   tone: "informative, engaging, curiosity-driven"
-  localization_type: "global"
+  localization_type: "india"
+  voice_id: "en-IN-PrabhatNeural"
 
   style_guidelines: >
     Clean carousel slides presenting rankings and comparisons with minimal design,
@@ -633,6 +638,7 @@ fertilitycapsules:
   posting_schedule: "1-2x daily"
   tone: "empathetic, scientific, transparent, empowering"
   localization_type: "global"
+  voice_id: "en-IN-NeerjaNeural"
 
   style_guidelines: >
     Soft calming visuals with clear jargon-free medical facts.

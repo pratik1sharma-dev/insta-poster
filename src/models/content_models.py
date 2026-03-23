@@ -47,6 +47,7 @@ class ChannelConfig(BaseModel):
     content_team_persona: Optional[str] = None
     copy_voice_examples: Optional[str] = None
     localization_type: str = "global"
+    voice_id: Optional[str] = None  # Per-channel Edge-TTS voice ID
 
     class Config:
         frozen = False
