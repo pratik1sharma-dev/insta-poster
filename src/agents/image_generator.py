@@ -54,6 +54,7 @@ class ImageGenerator:
         elif self.provider == "sd":
             self.api_url = settings.sd_api_url
             self.steps = settings.sd_steps
+            self.timeout = settings.sd_timeout
         else:
             raise ValueError(f"Unsupported image provider: {self.provider}")
 
@@ -371,7 +372,7 @@ Generate the background scene now."""
             response = requests.post(
                 self.api_url,
                 json=payload,
-                timeout=120
+                timeout=self.timeout
             )
             response.raise_for_status()
             r = response.json()

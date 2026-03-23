@@ -36,7 +36,8 @@ class Settings(BaseSettings):
 
     # ── Stable Diffusion WebUI (via Tailscale) ────────────────────────
     sd_api_url: str = "http://100.67.231.93:7860/sdapi/v1/txt2img"
-    sd_steps: int = 25                              # bumped from 20 for better quality
+    sd_steps: int = 15                              # reduced from 25 for stability
+    sd_timeout: int = 600                           # 10 minutes for high-res portrait
     sd_width: int = 1080
     sd_height: int = 1080
     # Negative prompt applied to every SD generation

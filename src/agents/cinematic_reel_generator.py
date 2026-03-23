@@ -277,7 +277,8 @@ Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_
         """
         api_url  = getattr(settings, "sd_api_url",
                            "http://localhost:7860/sdapi/v1/txt2img")
-        steps    = getattr(settings, "sd_steps", 25)
+        steps    = getattr(settings, "sd_steps", 15)
+        timeout  = getattr(settings, "sd_timeout", 600)
         neg      = getattr(
             settings, "sd_negative_prompt",
             "text, watermark, logo, blurry, low quality, distorted"
@@ -299,7 +300,7 @@ Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_
             logger.info("[SD Image %d/%d] Generating...", i, len(prompts))
 
             try:
-                r = requests.post(api_url, json=payload, timeout=180)
+                r = requests.post(api_url, json=payload, timeout=timeout)
                 r.raise_for_status()
                 img_b64  = r.json()["images"][0]
                 img_data = base64.b64decode(img_b64)
