@@ -229,7 +229,7 @@ wealthcapsules:
 
 # =============================================================================
 
-mindcapsules:
+psychecapsules:
   name: "MindCapsules"
   theme: "Understanding human psychology and how the mind works"
   target_audience: "Curious Indian thinkers, professionals, and people interested in psychology and behavior (20-40)"
