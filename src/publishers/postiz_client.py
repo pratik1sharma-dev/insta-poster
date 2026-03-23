@@ -188,24 +188,28 @@ class PostizClient:
                 "type": "schedule",
                 "date": SCHEDULE_DATE,
                 "shortLink": False,
-                "tags": [], # Added missing tags array
+                "tags": [],
                 "posts": [
                     {
                         "integration": { "id": integration_id },
                         "value": [
                             {
                                 "content": full_caption,
-                                "image": [uploaded_video_object], # API expects 'image' key even for videos
+                                "image": [uploaded_video_object],
                             }
                         ],
                         "settings": {
                             "__type": "instagram",
-                            "post_type": "post", # API requires 'post' or 'story'
+                            "post_type": "post",
                         },
                         "channel": channel,
                     }
                 ]
             }
+
+            # DEBUG LOGGING
+            print(f"DEBUG: Scheduling Reel to {self.api_url}/public/v1/posts")
+            print(f"DEBUG: Request body for Reel: {json.dumps(reel_data, indent=2)}")
 
             response = requests.post(
                 f"{self.api_url}/public/v1/posts",
@@ -213,6 +217,9 @@ class PostizClient:
                 json=reel_data,
                 timeout=30,
             )
+
+            print(f"DEBUG: Reel response status: {response.status_code}")
+            print(f"DEBUG: Reel response body: {response.text}")
 
             if response.status_code in [200, 201]:
                 return PostResult(
@@ -243,12 +250,18 @@ class PostizClient:
         """Upload video file to Postiz."""
         with open(video_path, "rb") as f:
             files = {"file": (video_path.name, f, "video/mp4")}
+            print(f"DEBUG: Uploading video '{video_path.name}' to {self.api_url}/public/v1/upload")
+            
             response = requests.post(
                 f"{self.api_url}/public/v1/upload",
                 headers={"Authorization": self.api_key},
                 files=files,
-                timeout=60, # Videos need more time
+                timeout=120, # Increased timeout for video uploads
             )
+            
+            print(f"DEBUG: Video upload status: {response.status_code}")
+            print(f"DEBUG: Video upload body: {response.text}")
+
             if response.status_code in [200, 201]:
                 res = response.json()
                 return {
