@@ -177,15 +177,21 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
             # Add short audio fades to each segment so transitions aren't jarring
             input_prep += f"[{i}:a]afade=t=in:st=0:d=0.2,afade=t=out:st={durations[i]-0.2}:d=0.2[a_in{i}]; "
 
+        # Build complex filter for transitions
+        input_prep = ""
+        for i in range(len(clip_paths)):
+            # Standardize video and audio streams
+            input_prep += f"[{i}:v]scale=1080:1920,setsar=1,format=yuv420p[v_in{i}]; "
+            input_prep += f"[{i}:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[a_in{i}]; "
+
         filter_str = input_prep
         
         # Initial crossfade between clip 0 and 1
         offset = durations[0] - transition_duration
         filter_str += f"[v_in0][v_in1]xfade=transition=fade:duration={transition_duration}:offset={offset}[v1]; "
+        # Audio crossfade
+        filter_str += f"[a_in0][a_in1]acrossfade=d={transition_duration}[a1]; "
         
-        # Audio concatenation using standardized inputs
-        audio_filter_str = "[a_in0][a_in1]concat=n=2:v=0:a=1[a1]; "
-
         # Chain subsequent clips
         last_v = "v1"
         last_a = "a1"
@@ -195,7 +201,7 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
             next_v = f"v{i}"
             next_a = f"a{i}"
             filter_str += f"[{last_v}][v_in{i}]xfade=transition=fade:duration={transition_duration}:offset={current_offset}[{next_v}]; "
-            audio_filter_str += f"[{last_a}][a_in{i}]concat=n=2:v=0:a=1[{next_a}]; "
+            filter_str += f"[{last_a}][a_in{i}]acrossfade=d={transition_duration}[{next_a}]; "
             
             current_offset += (durations[i] - transition_duration)
             last_v = next_v
@@ -213,37 +219,35 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
         music_path = Path("assets/music/background.mp3")
         if music_path.exists():
             logger.info("Mixing background music...")
-            total_duration = sum(durations) - (len(durations)-1)*transition_duration
+            total_duration = current_offset + (durations[-1] - transition_duration)
             
-            # Note: Music is input index len(clip_paths)
             final_cmd = [
                 'ffmpeg', '-y'
             ] + inputs + ['-i', str(music_path),
                 '-filter_complex', 
-                filter_str + audio_filter_str + 
-                f"[{len(clip_paths)}:a]aloop=loop=-1:size=2e+09,volume=0.12,afade=t=out:st={total_duration-2}:d=2[bg_m]; " +
+                filter_str + 
+                f"[{len(clip_paths)}:a]aloop=loop=-1:size=100M,volume=0.12,afade=t=out:st={total_duration-2}:d=2[bg_m]; " +
                 f"[{final_a}][bg_m]amix=inputs=2:duration=first:dropout_transition=2[a_mixed]",
                 '-map', f"[{final_v}]", '-map', "[a_mixed]",
-                '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-                '-c:a', 'aac', '-b:a', '192k',
+                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
+                '-c:a', 'aac', '-b:a', '128k',
                 str(output_path)
             ]
         else:
-            logger.warning("No background music found at assets/music/background.mp3. Skipping mix.")
             final_cmd = [
                 'ffmpeg', '-y'
             ] + inputs + [
-                '-filter_complex', filter_str + audio_filter_str,
+                '-filter_complex', filter_str,
                 '-map', f"[{final_v}]", '-map', f"[{final_a}]",
-                '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-                '-c:a', 'aac', '-b:a', '192k',
+                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
+                '-c:a', 'aac', '-b:a', '128k',
                 str(output_path)
             ]
         
-        logger.info("Assembling final video with transitions and music...")
-        subprocess.run(final_cmd, check=True, capture_output=True)
+        logger.info("Assembling final video with transitions and music (optimized for server)...")
+        subprocess.run(final_cmd, check=True)
         
-        logger.info(f"Reel with transitions successfully generated at: {output_path}")
+        logger.info(f"Reel successfully generated at: {output_path}")
         return output_path
         
         logger.info(f"Reel successfully generated at: {output_path}")
