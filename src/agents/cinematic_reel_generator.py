@@ -7,6 +7,7 @@ import time
 import requests
 import base64
 import io
+import textwrap
 
 from src.models import ContentStrategy, ChannelConfig, GeneratedContent
 from src.agents.content_generator import ContentGenerator
@@ -93,6 +94,7 @@ class CinematicReelGenerator:
 
         for i, prompt in enumerate(prompts, 1):
             logger.info("[Cinematic Image %d/%d] Generating via %s...", i, len(prompts), self.provider)
+            logger.info("[Cinematic Image %d/%d] Prompt: %s", i, len(prompts), prompt)
             
             try:
                 path = None
@@ -226,15 +228,22 @@ class CinematicReelGenerator:
             clip_dur = duration + (0 if is_last else transition_dur)
             clip_path = output_dir / f"clip_{i:02d}.mp4"
 
-            # Escape text for FFmpeg
-            clean_text = text.replace("'", "").replace(":", "\\:")
+            # Manual text wrapping to prevent clipping
+            # 1080px wide, ~64px font, roughly 25-30 chars per line max
+            wrapped_lines = textwrap.wrap(text, width=28)
+            wrapped_text = "\n".join(wrapped_lines)
+            
+            # Escape text for FFmpeg drawtext
+            # We need to escape backslashes, single quotes, and colons
+            escaped_text = wrapped_text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:')
             
             # drawtext filter: centered, wrapped, high-end typography feel
+            # Using 'font' (system default) or 'Arial'
             filter_complex = (
                 f"scale={self.REEL_W}:{self.REEL_H},"
-                f"drawtext=text='{clean_text}':fontcolor=white:fontsize=64:"
-                f"x=(w-text_w)/2:y=(h-text_h)/2+200:box=1:boxcolor=black@0.4:boxborderw=20:"
-                f"line_spacing=10:fix_bounds=1"
+                f"drawtext=text='{escaped_text}':fontcolor=white:fontsize=72:"
+                f"x=(w-text_w)/2:y=(h-text_h)/2+200:box=1:boxcolor=black@0.5:boxborderw=40:"
+                f"line_spacing=15:fix_bounds=1"
             )
 
             cmd = [
@@ -332,42 +341,48 @@ class CinematicReelGenerator:
             f"Brand Mission: {channel_config.brand_mission}\n"
             f"Target Audience: {channel_config.target_audience}\n"
             f"Cultural Context: {channel_config.cultural_context}\n\n"
-            "Your goal is to create a 'Mood Film' Reel. We don't explain; we reveal. "
-            "We use 'spiky' insights—statements that are bold, slightly polarizing, or deeply personal—"
-            "to stop the scroll. Avoid generic advice."
+            "Your goal is to create a 'Mood Film' Reel. This is NOT a tutorial or an explanation. "
+            "It is a VISUAL POEM. We use 'spiky' insights—statements that are bold, slightly polarizing, or deeply personal—"
+            "to stop the scroll. We never say 'In this video' or 'Here is why'."
         )
 
-        prompt = f"""### TOPIC TO TRANSFORM: {strategy.topic}
+        prompt = f"""### TOPIC: {strategy.topic}
 ### CORE ANGLE: {strategy.angle}
 ### STRATEGY INSIGHT: {strategy.target_audience_insight}
+{f'### VERIFIED DATA: {strategy.verified_data}' if strategy.verified_data else ''}
 
 ### TASK:
-Create a {num_images}-image cinematic Reel. This is a high-end visual narrative.
+Create a {num_images}-image cinematic Reel script. Every line must be a standalone punch to the gut.
+The images and text must tell a COHESIVE narrative journey.
 
-### CAPTION RULES (8-12 words):
-- Use 'Spiky' Statements: Bold, counter-intuitive, or visceral.
-- No 'Intro' or 'Summary' lines. Every line must hit like a realization.
-- Tone: Cold, objective, and deeply observant.
-- Progression: Start with a common lie/behavior, end with a harsh but empowering truth.
+### NARRATIVE ARC:
+1. The Observation: A harsh truth about the topic.
+2. The Tension: Why most people ignore it.
+3. The Realization: The internal cost of ignoring it.
+4. The Resolution: A bold, empowering shift in perspective.
+
+### CAPTION RULES (8-14 words):
+- Second-person ("You"). Visceral and emotionally charged.
+- Every line must be a 'Spiky' Statement: Bold, counter-intuitive, and direct.
+- Progression: Must feel like a single connected thought across {num_images} images.
+- Tone: Noir, observant, and heavy with meaning.
 
 ### IMAGE PROMPT RULES (Stable Diffusion):
 - AVOID generic scenes like 'person thinking' or 'laptop on desk'.
-- USE Concrete Visual Metaphors: 
-  - Instead of 'Stress', use 'A single lit cigarette in a dark room with heavy smoke' or 'Clenched fists underwater'.
-  - Instead of 'Growth', use 'A single green sprout breaking through cracked concrete'.
+- USE Concrete Visual Metaphors linked to the text.
 - STYLE: Cinematic noir, neo-realism, moody lighting (chiaroscuro), 35mm film grain, 9:16 portrait.
 - ABSOLUTE: No text or typographic elements in the scene.
 
 ### OUTPUT FORMAT (JSON):
 {{
   "lines": [
-    "Spiky Line 1",
-    "Spiky Line 2",
+    "Line 1 (The Observation)",
+    "Line 2 (The Tension)",
     ...
   ],
   "image_prompts": [
-    "Concrete Visual Metaphor 1",
-    "Concrete Visual Metaphor 2",
+    "Prompt 1 (Visually matches Line 1)",
+    "Prompt 2 (Visually matches Line 2)",
     ...
   ]
 }}
@@ -377,8 +392,8 @@ Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_
         response = self.generator._generate_text(prompt, system_prompt=system_prompt)
         
         # Log Prompts
-        logger.debug("Cinematic Script System Prompt: %s", system_prompt)
-        logger.debug("Cinematic Script User Prompt: %s", prompt)
+        logger.info("Cinematic Script System Prompt: %s", system_prompt)
+        logger.info("Cinematic Script User Prompt: %s", prompt)
         logger.debug("Cinematic Script Raw Response: %s", response)
 
         try:
@@ -405,8 +420,8 @@ Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_
             trimmed_lines = []
             for line in lines:
                 words = str(line).split()
-                if len(words) > 14:
-                    line = " ".join(words[:12]) + "."
+                if len(words) > 16:
+                    line = " ".join(words[:14]) + "..."
                 trimmed_lines.append(str(line))
 
             # Append no-text instruction to every image prompt
@@ -419,6 +434,14 @@ Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_
                         "35mm film grain, 9:16 portrait, NO text NO watermarks"
                     )
                 clean_prompts.append(p)
+            
+            # Log the final Storyline
+            logger.info("=" * 40)
+            logger.info("GENERATED CINEMATIC STORYLINE:")
+            for i, (l, p) in enumerate(zip(trimmed_lines, clean_prompts), 1):
+                logger.info(f"{i}. TEXT: {l}")
+                logger.info(f"   IMG: {p[:100]}...")
+            logger.info("=" * 40)
 
             return trimmed_lines, clean_prompts
 
