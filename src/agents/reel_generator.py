@@ -1,24 +1,27 @@
 """
-Reel Generator Agent - Transforms carousel slides into high-impact Instagram Reels.
+Reel Generator Agent - Transforms carousel content into portrait Instagram Reels.
 
-Key improvements:
-- Hard 60-second cap: selects best 5 slides, writes 5-7 second narration per slide
-- Ken Burns zoom effect on every slide — no more static slideshow feel
-- Slide duration driven by actual audio length, not fixed seconds
-- ElevenLabs support ready (set tts_provider=elevenlabs in config)
-- gTTS kept as free fallback with Indian English accent
-- Portrait 1080x1920 output for Reels
+Key design decisions:
+- Renders slides natively at 1080x1920 using portrait HTML templates
+  (no square→portrait conversion, no blurred padding hacks)
+- No Ken Burns — slides are information-dense, zoom distorts readability
+- Narration strictly capped at 12-18 words per slide → 45-60s total
+- Slide duration driven by actual audio length + configurable tail
+- Sequential cross-fade blend safe for 4GB RAM
+- TTS: edge (default, free, good quality) → elevenlabs → gtts fallback
 """
 
-import os
 import asyncio
 import subprocess
 import shutil
 import logging
-import re
 from pathlib import Path
 from typing import List, Optional, Tuple
 from gtts import gTTS
+
+from jinja2 import Template
+from html2image import Html2Image
+from PIL import Image
 
 from src.models import CarouselSlide, ContentStrategy, ChannelConfig, GeneratedContent
 from src.config import settings
@@ -27,52 +30,39 @@ from src.agents.content_generator import ContentGenerator
 
 logger = logging.getLogger(__name__)
 
-# ------------------------------------------------------------------
-# Constants
-# ------------------------------------------------------------------
-
-# Maximum number of slides to include in the Reel.
-# Keeping this at 5 targets ~45-60 seconds total.
-MAX_REEL_SLIDES = 5
-
-# Pause between narration ending and slide transition (seconds)
-SLIDE_TAIL = 0.3
-
-# Cross-fade transition duration (seconds)
-TRANSITION_DURATION = 0.4
-
-# Ken Burns zoom: start scale and end scale (subtle zoom in)
-KB_SCALE_START = 1.05
-KB_SCALE_END   = 1.15
-
-# Background music volume (0.0 - 1.0)
-MUSIC_VOLUME = 0.10
-
-# Output resolution
-REEL_WIDTH  = 1080
-REEL_HEIGHT = 1920
-
-# Square slide size when centred in portrait frame
-SLIDE_SIZE  = 1080
-
 
 class ReelGenerator:
     """
-    Converts carousel slides + narration into a portrait Instagram Reel.
+    Converts carousel slides into a portrait 1080x1920 Instagram Reel.
 
     Pipeline:
-      1. Select best 5 slides from the carousel
-      2. Generate short narration script (5-7 sec per slide)
-      3. Synthesise audio per slide (gTTS or ElevenLabs)
-      4. Build individual video clips with Ken Burns zoom
-      5. Sequential cross-fade blend (safe for 4 GB RAM)
-      6. Mix in background music
+      1. Select best N slides (hook + strongest content + CTA)
+      2. Render each slide as a native 1080x1920 portrait PNG
+      3. Generate short narration script (12-18 words per slide)
+      4. Synthesise audio per slide
+      5. Build individual video clips (static slide + audio)
+      6. Sequential cross-fade blend
+      7. Mix background music
     """
 
+    REEL_W = 1080
+    REEL_H = 1920
+    FPS    = 25
+
     def __init__(self):
-        self.generator = ContentGenerator()
-        self.temp_dir = Path("temp_reel")
+        self.generator  = ContentGenerator()
+        self.temp_dir   = Path("temp_reel")
         self.temp_dir.mkdir(exist_ok=True)
+
+        # html2image renderer for portrait slides
+        self.hti = Html2Image(size=(self.REEL_W, self.REEL_H))
+        self.hti.browser.flags = [
+            "--no-sandbox", "--disable-setuid-sandbox",
+            "--disable-gpu", "--hide-scrollbars",
+            f"--window-size={self.REEL_W},{self.REEL_H}",
+            "--force-device-scale-factor=1",
+            "--disable-dev-shm-usage",
+        ]
 
     # ------------------------------------------------------------------
     # Public API
@@ -83,58 +73,79 @@ class ReelGenerator:
         content: GeneratedContent,
         strategy: ContentStrategy,
         channel_config: ChannelConfig,
-        image_paths: List[Path],
+        image_paths: List[Path],        # carousel square images (for blurred_hook bg)
         output_path: Path,
     ) -> Path:
         """
-        Full pipeline: slides → narration → audio → video → reel.
-
-        Args:
-            content:        Generated carousel content (slides, CTA etc.)
-            strategy:       Content strategy (topic, angle etc.)
-            channel_config: Channel config (name, voice settings etc.)
-            image_paths:    Paths to rendered slide PNGs (in slide order)
-            output_path:    Where to save the final .mp4
-
-        Returns:
-            Path to the generated Reel .mp4
+        Full pipeline: select slides → render portrait PNGs → narrate →
+        audio → clips → blend → music → reel.mp4
         """
-        logger.info("Starting Reel generation: %s", strategy.topic)
+        logger.info("Starting Reel: %s", strategy.topic)
 
-        # ── 1. Select slides ───────────────────────────────────────────
-        selected_slides, selected_images = self._select_slides(
-            content.slides, image_paths
+        max_slides       = getattr(settings, "reel_max_slides", 5)
+        transition_dur   = getattr(settings, "reel_transition_duration", 0.4)
+        slide_tail       = getattr(settings, "reel_slide_tail", 0.3)
+        music_volume     = getattr(settings, "reel_music_volume", 0.10)
+
+        # ── 1. Select slides ──────────────────────────────────────────
+        selected_slides, selected_sq_images = self._select_slides(
+            content.slides, image_paths, max_slides
         )
         logger.info(
-            "Selected %d slides for Reel: %s",
-            len(selected_slides),
-            [s.slide_number for s in selected_slides],
+            "Selected slides: %s", [s.slide_number for s in selected_slides]
         )
 
-        # ── 2. Generate narration script ───────────────────────────────
+        # ── 2. Extract colors from strategy ──────────────────────────
+        bg_color     = self._extract_color(strategy.color_palette, "background", "#111827")
+        text_color   = self._extract_color(strategy.color_palette, "text", None) or \
+                       self._contrast(bg_color)
+        accent_color = self._extract_color(strategy.color_palette, "accent", "#3b82f6")
+
+        # ── 3. Render portrait slides ─────────────────────────────────
+        reel_frames_dir = self.temp_dir / "frames"
+        reel_frames_dir.mkdir(exist_ok=True)
+
+        # The hook image (slide 1 square PNG) is used as blurred background
+        hook_image_path = selected_sq_images[0] if selected_sq_images else None
+
+        reel_image_paths = self._render_portrait_slides(
+            slides=selected_slides,
+            strategy=strategy,
+            channel_config=channel_config,
+            bg_color=bg_color,
+            text_color=text_color,
+            accent_color=accent_color,
+            hook_image_path=hook_image_path,
+            output_dir=reel_frames_dir,
+        )
+
+        # ── 4. Generate narration script ──────────────────────────────
         script_segments = self._generate_narration_script(
             selected_slides, strategy, channel_config
         )
 
-        # ── 3. Synthesise audio ────────────────────────────────────────
+        # ── 5. Synthesise audio ───────────────────────────────────────
         audio_dir = self.temp_dir / "audio"
         audio_dir.mkdir(exist_ok=True)
         audio_paths = self._create_audio_segments(
             script_segments, audio_dir, channel_config
         )
 
-        # ── 4. Build individual clips with Ken Burns ───────────────────
+        # ── 6. Build clips ────────────────────────────────────────────
         video_dir = self.temp_dir / "video"
         video_dir.mkdir(exist_ok=True)
-        clip_paths = self._build_clips(selected_images, audio_paths, video_dir)
+        clip_paths = self._build_clips(
+            reel_image_paths, audio_paths, video_dir,
+            slide_tail, transition_dur
+        )
 
-        # ── 5. Cross-fade blend ────────────────────────────────────────
-        blended = self._blend_clips(clip_paths, video_dir)
+        # ── 7. Blend ──────────────────────────────────────────────────
+        blended = self._blend_clips(clip_paths, video_dir, transition_dur)
 
-        # ── 6. Add background music ────────────────────────────────────
-        self._mix_music(blended, output_path)
+        # ── 8. Music ──────────────────────────────────────────────────
+        self._mix_music(blended, output_path, music_volume)
 
-        logger.info("Reel generated: %s", output_path)
+        logger.info("Reel complete: %s", output_path)
         return output_path
 
     def cleanup(self):
@@ -150,46 +161,144 @@ class ReelGenerator:
         self,
         slides: List[CarouselSlide],
         image_paths: List[Path],
+        max_slides: int,
     ) -> Tuple[List[CarouselSlide], List[Path]]:
         """
-        Pick the best slides for the Reel, capped at MAX_REEL_SLIDES.
-
-        Strategy:
-        - Always include slide 1 (hook)
-        - Always include the last slide (CTA)
-        - Fill the middle with the highest-value content slides
-          (currently: first N content slides after hook)
+        Select best slides capped at max_slides.
+        Always includes: hook (slide 1) + CTA (last) + best middle slides.
+        Middle priority: big_fact > split_comparison > standard.
         """
-        if len(slides) <= MAX_REEL_SLIDES:
-            return slides, image_paths[:len(slides)]
+        path_by_num = {s.slide_number: p for s, p in zip(slides, image_paths)}
 
-        # Build a path lookup keyed by slide number
-        path_by_num = {}
-        for slide, path in zip(slides, image_paths):
-            path_by_num[slide.slide_number] = path
+        if len(slides) <= max_slides:
+            return slides, [path_by_num[s.slide_number] for s in slides]
 
         hook   = [s for s in slides if s.slide_number == 1]
         cta    = [s for s in slides if s.purpose.value == "cta"]
-        middle = [
-            s for s in slides
-            if s.slide_number != 1 and s.purpose.value != "cta"
-        ]
+        middle = [s for s in slides if s.slide_number != 1 and s.purpose.value != "cta"]
 
-        # Take the strongest middle slides (favour big_fact and split_comparison)
-        priority_order = {"big_fact": 0, "split_comparison": 1, "standard": 2}
+        priority = {"big_fact": 0, "split_comparison": 1, "standard": 2}
         middle_sorted = sorted(
             middle,
-            key=lambda s: (priority_order.get(s.template_name or "standard", 2), s.slide_number)
+            key=lambda s: (priority.get(s.template_name or "standard", 2), s.slide_number)
         )
 
-        slots = MAX_REEL_SLIDES - len(hook) - len(cta)
-        selected = hook + middle_sorted[:slots] + cta
+        slots    = max_slides - len(hook) - len(cta)
+        selected = sorted(hook + middle_sorted[:slots] + cta, key=lambda s: s.slide_number)
 
-        # Re-sort by original slide number to preserve story order
-        selected.sort(key=lambda s: s.slide_number)
+        return selected, [path_by_num[s.slide_number] for s in selected]
 
-        selected_paths = [path_by_num[s.slide_number] for s in selected]
-        return selected, selected_paths
+    # ------------------------------------------------------------------
+    # Portrait slide rendering
+    # ------------------------------------------------------------------
+
+    def _render_portrait_slides(
+        self,
+        slides: List[CarouselSlide],
+        strategy: ContentStrategy,
+        channel_config: ChannelConfig,
+        bg_color: str,
+        text_color: str,
+        accent_color: str,
+        hook_image_path: Optional[Path],
+        output_dir: Path,
+    ) -> List[Path]:
+        """
+        Render each slide as a native 1080x1920 portrait PNG using
+        reel-specific HTML templates in src/templates/reel/.
+        """
+        import base64, io as _io
+        from PIL import ImageFilter, ImageEnhance
+
+        # Pre-build blurred hook b64 once (used by blurred_hook slides)
+        bg_image_b64 = None
+        if hook_image_path and hook_image_path.exists():
+            with Image.open(hook_image_path) as img:
+                blurred  = img.filter(ImageFilter.GaussianBlur(radius=35))
+                darkened = ImageEnhance.Brightness(blurred).enhance(0.35)
+                buf = _io.BytesIO()
+                darkened.save(buf, format="PNG")
+                bg_image_b64 = "data:image/png;base64," + \
+                               base64.b64encode(buf.getvalue()).decode()
+
+        total = len(slides)
+        image_paths: List[Path] = []
+
+        for idx, slide in enumerate(slides, 1):
+            template_name = slide.template_name or "standard"
+            bg_style      = slide.background_style or "solid"
+
+            # Load reel template
+            template_file = Path(f"src/templates/reel/{template_name}.html")
+            if not template_file.exists():
+                logger.warning("Reel template '%s' not found, using standard", template_name)
+                template_file = Path("src/templates/reel/standard.html")
+            if not template_file.exists():
+                raise FileNotFoundError(f"No reel template at {template_file}")
+
+            with open(template_file) as f:
+                jinja_tpl = Template(f.read())
+
+            # Derive action_text for CTA slide
+            action_text = slide.action_text or (
+                "Comment below" if slide.purpose.value == "cta" else None
+            )
+
+            # slide_label: short descriptor shown above topic title
+            slide_labels = {
+                "hook": "Mind check",
+                "content": "Deep dive",
+                "cta": "Your turn",
+            }
+            slide_label = slide_labels.get(slide.purpose.value, "")
+
+            html = jinja_tpl.render(
+                bg_color=bg_color,
+                text_color=text_color,
+                accent_color=accent_color,
+                bg_style=bg_style,
+                bg_image_b64=bg_image_b64 if bg_style == "blurred_hook" else None,
+                channel_name=channel_config.name,
+                topic_title=strategy.topic,
+                slide_label=slide_label,
+                current_slide=idx,
+                total_slides=total,
+                headline=slide.headline,
+                subtext=slide.subtext,
+                pre_label=slide.pre_label,
+                left_content=slide.left_content,
+                right_content=slide.right_content,
+                action_text=action_text,
+                text_overlay=slide.text_overlay,
+            )
+
+            temp_name = f"reel_frame_{idx:02d}.png"
+            self.hti.screenshot(
+                html_str=html,
+                save_as=temp_name,
+                size=(self.REEL_W, self.REEL_H),
+            )
+
+            temp_path = Path(temp_name)
+            out_path  = output_dir / f"frame_{idx:02d}.png"
+
+            if not temp_path.exists():
+                raise FileNotFoundError(f"html2image failed for reel frame {idx}")
+
+            # Ensure exact dimensions
+            img = Image.open(temp_path)
+            if img.size != (self.REEL_W, self.REEL_H):
+                logger.info("Cropping reel frame %d from %s", idx, img.size)
+                if img.size[0] >= self.REEL_W and img.size[1] >= self.REEL_H:
+                    l = (img.size[0] - self.REEL_W) // 2
+                    t = (img.size[1] - self.REEL_H) // 2
+                    img = img.crop((l, t, l + self.REEL_W, t + self.REEL_H))
+            img.save(temp_path)
+            temp_path.replace(out_path)
+            image_paths.append(out_path)
+            logger.info("Reel frame %d/%d rendered: %s", idx, total, out_path)
+
+        return image_paths
 
     # ------------------------------------------------------------------
     # Narration script
@@ -202,10 +311,8 @@ class ReelGenerator:
         channel_config: ChannelConfig,
     ) -> List[str]:
         """
-        Generate ultra-short narration per slide (5-7 seconds = ~15-20 words).
-
-        The key difference from the old version: we enforce a strict word
-        count so the total Reel stays under 60 seconds.
+        Generate ultra-short narration — 12-18 words per slide max.
+        Total target: 45-60 seconds.
         """
         slides_text = "\n".join(
             f"Slide {s.slide_number}: {s.text_overlay}" for s in slides
@@ -213,7 +320,8 @@ class ReelGenerator:
 
         system_prompt = (
             f"You are a voiceover writer for '{channel_config.name}' Instagram Reels. "
-            "You write ultra-short, punchy spoken lines — not paragraphs."
+            "You write ultra-short, punchy spoken lines — not paragraphs. "
+            "Every line must be under 18 words."
         )
 
         prompt = f"""### SLIDES:
@@ -226,65 +334,62 @@ class ReelGenerator:
 Write ONE spoken line per slide for a 45-60 second Instagram Reel.
 
 STRICT RULES:
-1. Each line must be 12-18 words MAXIMUM — this is non-negotiable.
-   Count the words. If over 18 words, cut it.
-2. Write how a person talks, not how they write.
-3. Use natural spoken rhythm: short punchy sentences, natural pauses with "..."
-4. NO filler phrases: no "In this video", "Today we'll explore", "Stay tuned"
-5. The hook line (slide 1) must create immediate curiosity in under 5 seconds.
-6. The CTA line must ask one specific question the viewer wants to answer.
+1. MAXIMUM 18 WORDS PER LINE — count every word before submitting.
+2. Write how a person actually talks, not how they write.
+3. Use natural rhythm: short sentences, pauses with "..."
+4. NO filler: no "In this video", "Today we explore", "Stay tuned"
+5. Slide 1 hook line: create immediate curiosity in under 5 seconds.
+6. CTA line: ask ONE specific question the viewer wants to answer in comments.
 
-GOOD examples (count the words — all under 18):
-- "Your brain is lying to you right now. And it calls that loyalty." (15 words)
-- "Here's what nobody tells you about sunk cost." (8 words)
-- "The number that changed how I think about saving." (9 words)
+GOOD examples (word count shown):
+- "Your brain is lying to you right now. It calls that loyalty." (13)
+- "Here's what nobody tells you about sunk cost." (8)
+- "The number that changed how I think about saving." (9)
+- "What's the one thing you'd do differently?" (8)
 
-BAD examples (too long):
-- "In today's video we're going to explore the fascinating psychology behind why humans continue to invest..."
-- "This is a really interesting concept that many people don't fully understand..."
+BAD examples (too long — DO NOT do this):
+- "In today's video we're going to explore the fascinating psychology behind why humans continue..."
+- "This is a really interesting concept that many people don't fully understand or appreciate..."
 
-Return exactly {len(slides)} lines as a JSON array:
+Return exactly {len(slides)} lines as JSON:
 {{"segments": ["line 1", "line 2", ...]}}
 
-Respond with ONLY JSON."""
+Respond with ONLY JSON. Count your words."""
 
-        response_text = self.generator._generate_text(prompt, system_prompt=system_prompt)
+        response_text = self.generator._generate_text(
+            prompt, system_prompt=system_prompt
+        )
 
         try:
-            data = self.generator._parse_json_response(response_text)
+            data     = self.generator._parse_json_response(response_text)
             segments = data.get("segments", [])
 
-            # Validate and trim each segment to 18 words max as a safety net
             trimmed = []
             for i, seg in enumerate(segments):
-                words = seg.split()
+                words = str(seg).split()
                 if len(words) > 20:
                     logger.warning(
-                        "Narration segment %d too long (%d words), trimming: %s",
-                        i + 1, len(words), seg
+                        "Segment %d too long (%d words), trimming", i + 1, len(words)
                     )
                     seg = " ".join(words[:18]) + "."
-                trimmed.append(seg)
+                trimmed.append(str(seg))
 
             if len(trimmed) != len(slides):
                 logger.warning(
-                    "Segment count mismatch (%d vs %d), falling back to slide text",
+                    "Segment count mismatch (%d vs %d), using slide text fallback",
                     len(trimmed), len(slides)
                 )
-                return [self._shorten_text(s.text_overlay) for s in slides]
+                return [self._shorten(s.text_overlay) for s in slides]
 
             return trimmed
 
         except Exception as e:
-            logger.error("Failed to parse narration script: %s", e)
-            return [self._shorten_text(s.text_overlay) for s in slides]
+            logger.error("Narration parse failed: %s", e)
+            return [self._shorten(s.text_overlay) for s in slides]
 
-    def _shorten_text(self, text: str, max_words: int = 15) -> str:
-        """Trim text to max_words as a fallback for narration."""
+    def _shorten(self, text: str, max_words: int = 15) -> str:
         words = text.split()
-        if len(words) <= max_words:
-            return text
-        return " ".join(words[:max_words]) + "."
+        return text if len(words) <= max_words else " ".join(words[:max_words]) + "."
 
     # ------------------------------------------------------------------
     # Audio synthesis
@@ -292,106 +397,71 @@ Respond with ONLY JSON."""
 
     def _create_audio_segments(
         self,
-        script_segments: List[str],
+        segments: List[str],
         output_dir: Path,
         channel_config: ChannelConfig,
     ) -> List[Path]:
-        """
-        Synthesise audio for each narration segment.
-
-        Providers (set tts_provider in config):
-          - elevenlabs  : Best quality, requires API key + Starter plan
-          - edge        : Good quality, free (Microsoft Edge TTS)
-          - gtts        : Free, robotic (default fallback)
-        """
-        provider = getattr(settings, "tts_provider", "gtts").lower()
-        audio_paths: List[Path] = []
+        provider = getattr(settings, "tts_provider", "edge").lower()
 
         if provider == "elevenlabs":
-            audio_paths = self._synthesise_elevenlabs(
-                script_segments, output_dir, channel_config
-            )
-
+            return self._tts_elevenlabs(segments, output_dir, channel_config)
         elif provider == "edge":
-            audio_paths = self._synthesise_edge(
-                script_segments, output_dir, channel_config
-            )
-
+            return self._tts_edge(segments, output_dir, channel_config)
         else:
-            # gTTS — free, Indian English accent
-            for i, text in enumerate(script_segments, 1):
-                audio_path = output_dir / f"audio_{i:02d}.mp3"
-                tts = gTTS(text=text, lang="en", tld="co.in")
-                tts.save(str(audio_path))
-                audio_paths.append(audio_path)
-                logger.info("gTTS audio %d: %s", i, audio_path)
+            return self._tts_gtts(segments, output_dir)
 
-        return audio_paths
-
-    def _synthesise_edge(
+    def _tts_edge(
         self,
         segments: List[str],
         output_dir: Path,
         channel_config: ChannelConfig,
     ) -> List[Path]:
-        """Microsoft Edge TTS — free, much better quality than gTTS."""
+        """Microsoft Edge TTS — free, good Indian English quality."""
         try:
             import edge_tts
         except ImportError:
             logger.warning("edge-tts not installed, falling back to gTTS")
-            return self._synthesise_gtts(segments, output_dir)
+            return self._tts_gtts(segments, output_dir)
 
-        voice = getattr(channel_config, "voice_id", None) or getattr(
-            settings, "edge_tts_voice", "en-IN-NeerjaNeural"
+        voice = (
+            getattr(channel_config, "voice_id", None)
+            or getattr(settings, "edge_tts_voice", "en-IN-PrabhatNeural")
         )
-        audio_paths: List[Path] = []
+        paths: List[Path] = []
 
         async def _gen():
             for i, text in enumerate(segments, 1):
-                audio_path = output_dir / f"audio_{i:02d}.mp3"
-                communicate = edge_tts.Communicate(text, voice)
-                await communicate.save(str(audio_path))
-                audio_paths.append(audio_path)
-                logger.info("Edge-TTS audio %d: %s", i, audio_path)
+                p = output_dir / f"audio_{i:02d}.mp3"
+                await edge_tts.Communicate(text, voice).save(str(p))
+                paths.append(p)
+                logger.info("Edge-TTS %d: %s", i, p)
 
         asyncio.run(_gen())
-        return audio_paths
+        return paths
 
-    def _synthesise_gtts(
-        self,
-        segments: List[str],
-        output_dir: Path,
-    ) -> List[Path]:
-        """gTTS fallback."""
-        audio_paths = []
+    def _tts_gtts(self, segments: List[str], output_dir: Path) -> List[Path]:
+        paths = []
         for i, text in enumerate(segments, 1):
-            audio_path = output_dir / f"audio_{i:02d}.mp3"
-            tts = gTTS(text=text, lang="en", tld="co.in")
-            tts.save(str(audio_path))
-            audio_paths.append(audio_path)
-        return audio_paths
+            p = output_dir / f"audio_{i:02d}.mp3"
+            gTTS(text=text, lang="en", tld="co.in").save(str(p))
+            paths.append(p)
+            logger.info("gTTS %d: %s", i, p)
+        return paths
 
-    def _synthesise_elevenlabs(
+    def _tts_elevenlabs(
         self,
         segments: List[str],
         output_dir: Path,
         channel_config: ChannelConfig,
     ) -> List[Path]:
-        """
-        ElevenLabs TTS — best quality.
-        Requires: pip install elevenlabs
-                  settings.elevenlabs_api_key
-                  settings.elevenlabs_voice_id  (or channel_config.voice_id)
-        Commercial use requires Starter plan ($5/month minimum).
-        """
         try:
             from elevenlabs.client import ElevenLabs
             from elevenlabs import save as el_save
         except ImportError:
-            logger.warning("elevenlabs package not installed, falling back to gTTS")
-            return self._synthesise_gtts(segments, output_dir)
+            logger.warning("elevenlabs not installed, falling back to gTTS")
+            return self._tts_gtts(segments, output_dir)
 
-        api_key  = getattr(settings, "elevenlabs_api_key", None)
+        api_key  = getattr(settings, "elevenlabs_api_key", "")
         voice_id = (
             getattr(channel_config, "voice_id", None)
             or getattr(settings, "elevenlabs_voice_id", "21m00Tcm4TlvDq8ikWAM")
@@ -399,121 +469,83 @@ Respond with ONLY JSON."""
 
         if not api_key:
             logger.warning("elevenlabs_api_key not set, falling back to gTTS")
-            return self._synthesise_gtts(segments, output_dir)
+            return self._tts_gtts(segments, output_dir)
 
         client = ElevenLabs(api_key=api_key)
-        audio_paths: List[Path] = []
+        paths: List[Path] = []
 
         for i, text in enumerate(segments, 1):
-            audio_path = output_dir / f"audio_{i:02d}.mp3"
+            p = output_dir / f"audio_{i:02d}.mp3"
             try:
                 audio = client.text_to_speech.convert(
-                    voice_id=voice_id,
-                    text=text,
+                    voice_id=voice_id, text=text,
                     model_id="eleven_multilingual_v2",
                 )
-                el_save(audio, str(audio_path))
-                audio_paths.append(audio_path)
-                logger.info("ElevenLabs audio %d: %s", i, audio_path)
+                el_save(audio, str(p))
+                paths.append(p)
+                logger.info("ElevenLabs %d: %s", i, p)
             except Exception as e:
-                logger.error("ElevenLabs failed for segment %d: %s", i, e)
-                # Fallback for this segment
-                tts = gTTS(text=text, lang="en", tld="co.in")
-                tts.save(str(audio_path))
-                audio_paths.append(audio_path)
+                logger.error("ElevenLabs segment %d failed: %s", i, e)
+                gTTS(text=text, lang="en", tld="co.in").save(str(p))
+                paths.append(p)
 
-        return audio_paths
+        return paths
 
     # ------------------------------------------------------------------
     # Video clip building
     # ------------------------------------------------------------------
 
-    def _get_audio_duration(self, audio_path: Path) -> float:
-        """Get audio duration via ffprobe."""
+    def _get_duration(self, path: Path, default: float = 5.0) -> float:
         cmd = [
             "ffprobe", "-v", "error",
             "-show_entries", "format=duration",
             "-of", "default=noprint_wrappers=1:nokey=1",
-            str(audio_path),
+            str(path),
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        r = subprocess.run(cmd, capture_output=True, text=True)
         try:
-            return float(result.stdout.strip())
+            return float(r.stdout.strip())
         except ValueError:
-            logger.warning("Could not parse audio duration for %s, using 5.0s", audio_path)
-            return 5.0
+            return default
 
     def _build_clips(
         self,
         image_paths: List[Path],
         audio_paths: List[Path],
         output_dir: Path,
+        slide_tail: float,
+        transition_dur: float,
     ) -> List[Path]:
         """
-        Build one video clip per slide with:
-        - Portrait 1080x1920 frame
-        - Square slide centred vertically (blurred version fills top/bottom)
-        - Ken Burns slow zoom on the slide
-        - Audio narration synced exactly
+        Build one video clip per slide.
+        Portrait frame comes directly from the rendered 1080x1920 PNG —
+        no scaling or padding needed.
+        Slide stays static (no Ken Burns — text must remain readable).
         """
         clip_paths = []
         n = len(image_paths)
 
-        for i, (img_path, audio_path) in enumerate(zip(image_paths, audio_paths), 1):
-            is_last = (i == n)
-            audio_dur = self._get_audio_duration(audio_path)
-            # Add tail for transition overlap on all but last slide
-            clip_dur = audio_dur + SLIDE_TAIL + (0 if is_last else TRANSITION_DURATION)
+        for i, (img, audio) in enumerate(zip(image_paths, audio_paths), 1):
+            is_last  = (i == n)
+            audio_dur = self._get_duration(audio)
+            clip_dur  = audio_dur + slide_tail + (0 if is_last else transition_dur)
 
             clip_path = output_dir / f"clip_{i:02d}.mp4"
 
-            # ── FFmpeg filter chain ──────────────────────────────────────
-            #
-            # [bg]: blurred, darkened version of the slide fills 1080x1920
-            #       (fills the top/bottom black bars with a matching blur)
-            # [fg]: Ken Burns zoom on the actual slide (1080x1080)
-            # Overlay fg centred vertically on bg
-            #
-            # Ken Burns: zoompan filter
-            #   z = zoom level, d = total frames, x/y = pan offsets
-            #   We zoom from KB_SCALE_START to KB_SCALE_END over the clip
-            #   x/y kept at centre of the image
-
-            fps = 25
-            total_frames = int(clip_dur * fps)
-
-            # zoompan zoom expression: linearly interpolate from start to end
-            zoom_expr = (
-                f"'min({KB_SCALE_START}+({KB_SCALE_END}-{KB_SCALE_START})*on/{total_frames},{KB_SCALE_END})'"
-            )
-            x_expr = "'iw/2-(iw/zoom/2)'"
-            y_expr = "'ih/2-(ih/zoom/2)'"
-
+            # Simple filter: static portrait image + normalised audio
             filter_complex = (
-                # Background: scale slide to fill portrait frame, blur+darken
-                f"[0:v]scale={REEL_WIDTH}:{REEL_HEIGHT}:force_original_aspect_ratio=increase,"
-                f"crop={REEL_WIDTH}:{REEL_HEIGHT},"
-                f"boxblur=25:5,"
-                f"colorchannelmixer=rr=0.5:gg=0.5:bb=0.5[bg];"
-
-                # Foreground: Ken Burns zoom on 1080x1080 slide
-                f"[0:v]scale={SLIDE_SIZE}:{SLIDE_SIZE},"
-                f"zoompan=z={zoom_expr}:x={x_expr}:y={y_expr}"
-                f":d={total_frames}:s={SLIDE_SIZE}x{SLIDE_SIZE}:fps={fps}[fg];"
-
-                # Overlay fg centred on bg
-                f"[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p[v];"
-
-                # Audio: normalise format
-                f"[1:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[a]"
+                f"[0:v]scale={self.REEL_W}:{self.REEL_H},"
+                f"format=yuv420p[v];"
+                f"[1:a]aresample=44100,"
+                f"aformat=sample_fmts=fltp:channel_layouts=stereo[a]"
             )
 
             cmd = [
                 "ffmpeg", "-y",
-                "-loop", "1", "-framerate", str(fps),
+                "-loop", "1", "-framerate", str(self.FPS),
                 "-t", str(clip_dur),
-                "-i", str(img_path),
-                "-i", str(audio_path),
+                "-i", str(img),
+                "-i", str(audio),
                 "-filter_complex", filter_complex,
                 "-map", "[v]", "-map", "[a]",
                 "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
@@ -521,10 +553,10 @@ Respond with ONLY JSON."""
                 "-shortest", str(clip_path),
             ]
 
-            logger.info("[Clip %d/%d] Building %.1fs clip with Ken Burns", i, n, clip_dur)
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                logger.error("FFmpeg clip error (slide %d):\n%s", i, result.stderr[-500:])
+            logger.info("[Clip %d/%d] %.1fs — %s", i, n, clip_dur, img.name)
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0:
+                logger.error("FFmpeg clip %d error:\n%s", i, r.stderr[-500:])
                 raise RuntimeError(f"FFmpeg failed for clip {i}")
 
             clip_paths.append(clip_path)
@@ -539,34 +571,28 @@ Respond with ONLY JSON."""
         self,
         clip_paths: List[Path],
         output_dir: Path,
+        transition_dur: float,
     ) -> Path:
-        """
-        Sequential cross-fade blend — safe for 4 GB RAM.
-        Processes one pair at a time instead of all clips simultaneously.
-        """
+        """Sequential cross-fade — processes one pair at a time (4GB RAM safe)."""
         if len(clip_paths) == 1:
             return clip_paths[0]
 
         current = clip_paths[0]
 
         for i in range(1, len(clip_paths)):
-            next_clip = clip_paths[i]
             blended = output_dir / f"blend_{i:02d}.mp4"
-
-            # Get current clip duration for xfade offset
-            dur = self._get_video_duration(current)
-            offset = max(0.0, dur - TRANSITION_DURATION)
+            dur     = self._get_duration(current)
+            offset  = max(0.0, dur - transition_dur)
 
             cmd = [
                 "ffmpeg", "-y",
-                "-i", str(current),
-                "-i", str(next_clip),
+                "-i", str(current), "-i", str(clip_paths[i]),
                 "-filter_complex",
                 (
                     f"[0:v][1:v]xfade=transition=fade"
-                    f":duration={TRANSITION_DURATION}:offset={offset:.3f},"
+                    f":duration={transition_dur}:offset={offset:.3f},"
                     f"format=yuv420p[v];"
-                    f"[0:a][1:a]acrossfade=d={TRANSITION_DURATION}[a]"
+                    f"[0:a][1:a]acrossfade=d={transition_dur}[a]"
                 ),
                 "-map", "[v]", "-map", "[a]",
                 "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
@@ -574,10 +600,10 @@ Respond with ONLY JSON."""
                 str(blended),
             ]
 
-            logger.info("[Blend %d/%d] Cross-fading clips", i, len(clip_paths) - 1)
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                logger.error("FFmpeg blend error:\n%s", result.stderr[-500:])
+            logger.info("[Blend %d/%d]", i, len(clip_paths) - 1)
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0:
+                logger.error("FFmpeg blend error:\n%s", r.stderr[-500:])
                 raise RuntimeError(f"FFmpeg blend failed at step {i}")
 
             current = blended
@@ -588,59 +614,69 @@ Respond with ONLY JSON."""
     # Music mixing
     # ------------------------------------------------------------------
 
-    def _mix_music(self, video_path: Path, output_path: Path) -> None:
-        """
-        Mix background music into the final video at low volume.
-        Falls back to copying the video if music file is missing.
-        """
-        music_path = Path("assets/music/background.mp3")
+    def _mix_music(
+        self, video_path: Path, output_path: Path, volume: float
+    ) -> None:
+        music = Path("assets/music/background.mp3")
 
-        if not music_path.exists():
-            logger.info("No background music found, skipping mix")
+        if not music.exists():
+            logger.info("No background music, skipping mix")
             shutil.copy(video_path, output_path)
             return
 
-        logger.info("Mixing background music at volume %.2f", MUSIC_VOLUME)
-
         cmd = [
             "ffmpeg", "-y",
-            "-i", str(video_path),
-            "-i", str(music_path),
+            "-i", str(video_path), "-i", str(music),
             "-filter_complex",
             (
-                f"[1:a]aloop=loop=-1:size=100M,"
-                f"volume={MUSIC_VOLUME}[bg];"
+                f"[1:a]aloop=loop=-1:size=100M,volume={volume}[bg];"
                 f"[0:a][bg]amix=inputs=2:duration=first[a]"
             ),
-            "-map", "0:v",
-            "-map", "[a]",
-            "-c:v", "copy",
-            "-c:a", "aac", "-b:a", "192k",
+            "-map", "0:v", "-map", "[a]",
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             str(output_path),
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            logger.error(
-                "Music mix failed, copying unmixed video:\n%s",
-                result.stderr[-300:]
-            )
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0:
+            logger.error("Music mix failed, copying without music")
             shutil.copy(video_path, output_path)
 
     # ------------------------------------------------------------------
-    # Utilities
+    # Color utilities
     # ------------------------------------------------------------------
 
-    def _get_video_duration(self, video_path: Path) -> float:
-        """Get video duration via ffprobe."""
-        cmd = [
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            str(video_path),
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        try:
-            return float(result.stdout.strip())
-        except ValueError:
-            return 0.0
+    def _extract_color(
+        self, palette, key: str, fallback: Optional[str]
+    ) -> Optional[str]:
+        import json, re
+        if isinstance(palette, dict):
+            val = palette.get(key)
+            if val and str(val).startswith("#"):
+                return val
+            aliases = {
+                "background": ["bg", "background_color"],
+                "text": ["primary", "text_color", "foreground"],
+                "accent": ["secondary", "highlight", "accent_color"],
+            }
+            for alias in aliases.get(key, []):
+                val = palette.get(alias)
+                if val and str(val).startswith("#"):
+                    return val
+        if isinstance(palette, str):
+            try:
+                return self._extract_color(json.loads(palette), key, fallback)
+            except Exception:
+                pass
+            if key == "background":
+                m = re.search(r"#(?:[0-9a-fA-F]{3}){1,2}", palette)
+                if m:
+                    return m.group(0)
+        return fallback
+
+    def _contrast(self, hex_color: str) -> str:
+        h = hex_color.lstrip("#")
+        if len(h) == 3:
+            h = "".join(c * 2 for c in h)
+        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+        return "#000000" if (0.299*r + 0.587*g + 0.114*b) / 255 > 0.5 else "#ffffff"

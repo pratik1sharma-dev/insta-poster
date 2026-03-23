@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            width: 1080px; height: 1920px; overflow: hidden;
+            background-color: {{ bg_color }};
+            font-family: 'Montserrat', sans-serif;
+            color: {{ text_color }};
+            position: relative;
+        }
+
+        /* ── Background ── */
+        .bg-base {
+            position: absolute; inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 35%, rgba(0,0,0,0.15) 65%, rgba(0,0,0,0.7) 100%);
+            z-index: 1;
+        }
+        .bg-image { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: 0; }
+        body::before {
+            content: ""; position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            opacity: 0.05; pointer-events: none; z-index: 2;
+        }
+
+        /* ── Zones ── */
+        .zone-top {
+            position: absolute; top: 0; left: 0; right: 0; height: 280px;
+            display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+            padding: 60px 70px 40px; z-index: 5;
+        }
+        .zone-middle {
+            position: absolute; top: 280px; left: 0; right: 0; height: 1360px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 60px 70px; z-index: 5;
+        }
+        .zone-bottom {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 280px;
+            display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
+            padding: 40px 70px 50px; z-index: 5;
+        }
+
+        /* ── Top zone ── */
+        .topic-label { font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; color: {{ accent_color }}; margin-bottom: 10px; }
+        .topic-title { font-size: 38px; font-weight: 800; line-height: 1.2; opacity: 0.92; }
+
+        /* ── CTA card ── */
+        .cta-card {
+            width: 940px;
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 36px;
+            padding: 60px 64px;
+            text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .cta-card::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0;
+            height: 5px; background: {{ accent_color }};
+        }
+        #headline {
+            font-size: 64px; font-weight: 800; line-height: 1.25;
+            margin-bottom: 36px; white-space: pre-wrap;
+        }
+        #body-text {
+            font-size: 36px; font-weight: 400; line-height: 1.4;
+            opacity: 0.85; margin-bottom: 48px; white-space: pre-wrap;
+        }
+        .action-btn {
+            display: inline-block;
+            padding: 24px 60px;
+            background: {{ accent_color }};
+            color: {{ bg_color }};
+            font-size: 30px; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            border-radius: 10px;
+        }
+        .follow-line {
+            margin-top: 32px;
+            font-size: 28px; font-weight: 600;
+            opacity: 0.65; letter-spacing: 0.05em;
+        }
+
+        /* ── Bottom zone ── */
+        .channel-row { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+        .channel-dot { width: 12px; height: 12px; background: {{ accent_color }}; border-radius: 2px; }
+        .channel-name { font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.9; }
+        .slide-counter { font-size: 24px; font-weight: 400; opacity: 0.5; margin-left: auto; }
+        .progress-track { width: 100%; height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: {{ accent_color }}; width: 100%; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    {% if bg_style == 'blurred_hook' and bg_image_b64 %}
+        <img src="{{ bg_image_b64 }}" class="bg-image">
+    {% endif %}
+    <div class="bg-base"></div>
+
+    <div class="zone-top">
+        <div class="topic-label">{{ slide_label or 'Your turn' }}</div>
+        <div class="topic-title">{{ topic_title }}</div>
+    </div>
+
+    <div class="zone-middle">
+        <div class="cta-card">
+            {% if headline %}
+                <div id="headline">{{ headline }}</div>
+                {% if subtext %}<div id="body-text">{{ subtext }}</div>{% endif %}
+            {% elif '---' in text_overlay %}
+                {% set parts = text_overlay.split('---') %}
+                <div id="headline">{{ parts[0].strip() }}</div>
+                {% if parts | length > 1 %}<div id="body-text">{{ parts[1].strip() }}</div>{% endif %}
+            {% else %}
+                <div id="headline">{{ text_overlay }}</div>
+            {% endif %}
+            <div class="action-btn">{{ action_text or 'Comment below' }}</div>
+            <div class="follow-line">@{{ channel_name | lower | replace(' ', '') }}</div>
+        </div>
+    </div>
+
+    <div class="zone-bottom">
+        <div class="channel-row">
+            <div class="channel-dot"></div>
+            <div class="channel-name">{{ channel_name }}</div>
+            <div class="slide-counter">{{ current_slide }} / {{ total_slides }}</div>
+        </div>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+    </div>
+
+    <script>
+        function fitText() {
+            const card = document.querySelector('.cta-card');
+            const zone = document.querySelector('.zone-middle');
+            const headline = document.getElementById('headline');
+            const bodyText = document.getElementById('body-text');
+            if (!headline) return;
+            let hSize = 64, bSize = 36, iter = 0;
+            while (zone.scrollHeight > zone.offsetHeight && iter < 120) {
+                if (hSize > 32) hSize -= 2;
+                if (bodyText && bSize > 20) bSize -= 1;
+                headline.style.fontSize = hSize + 'px';
+                if (bodyText) bodyText.style.fontSize = bSize + 'px';
+                iter++;
+            }
+        }
+        window.onload = fitText;
+    </script>
+</body>
+</html>

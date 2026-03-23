@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            width: 1080px; height: 1920px; overflow: hidden;
+            background-color: {{ bg_color }};
+            font-family: 'Montserrat', sans-serif;
+            color: {{ text_color }};
+            position: relative;
+        }
+
+        /* ── Background ── */
+        .bg-base {
+            position: absolute; inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.6) 100%);
+            z-index: 1;
+        }
+        .bg-image { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: 0; }
+        body::before {
+            content: ""; position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            opacity: 0.05; pointer-events: none; z-index: 2;
+        }
+
+        /* ── Zones ── */
+        .zone-top {
+            position: absolute; top: 0; left: 0; right: 0; height: 280px;
+            display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+            padding: 60px 70px 40px; z-index: 5;
+        }
+        .zone-middle {
+            position: absolute; top: 280px; left: 0; right: 0; height: 1360px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 40px 60px; z-index: 5;
+        }
+        .zone-bottom {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 280px;
+            display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
+            padding: 40px 70px 50px; z-index: 5;
+        }
+
+        /* ── Top zone ── */
+        .topic-label { font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; color: {{ accent_color }}; margin-bottom: 10px; }
+        .topic-title { font-size: 38px; font-weight: 800; line-height: 1.2; opacity: 0.92; }
+
+        /* ── Comparison card ── */
+        .card {
+            width: 960px;
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 32px;
+            overflow: hidden;
+            position: relative;
+        }
+        .card::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0;
+            height: 5px; background: {{ accent_color }};
+        }
+        .card-header {
+            padding: 44px 56px 32px;
+            font-size: 34px; font-weight: 700;
+            text-align: center; line-height: 1.3;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .cols {
+            display: flex; align-items: stretch;
+        }
+        .col {
+            flex: 1; padding: 44px 40px;
+            display: flex; flex-direction: column;
+            align-items: center; text-align: center;
+        }
+        .col + .col {
+            border-left: 2px solid {{ accent_color }};
+            opacity-adjustment: 0.4;
+        }
+        .col-label {
+            font-size: 24px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.12em;
+            color: {{ accent_color }}; margin-bottom: 18px;
+        }
+        .col-value {
+            font-size: 72px; font-weight: 900; line-height: 1;
+            margin-bottom: 16px; word-break: break-word;
+        }
+        .col-desc {
+            font-size: 28px; font-weight: 400; line-height: 1.3; opacity: 0.8;
+        }
+
+        /* Fallback headline/body */
+        #headline { font-size: 72px; font-weight: 900; line-height: 1.1; text-align: center; white-space: pre-wrap; }
+        #body-text { font-size: 42px; font-weight: 400; line-height: 1.35; opacity: 0.88; text-align: center; margin-top: 28px; white-space: pre-wrap; }
+
+        /* ── Bottom zone ── */
+        .channel-row { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+        .channel-dot { width: 12px; height: 12px; background: {{ accent_color }}; border-radius: 2px; }
+        .channel-name { font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.9; }
+        .slide-counter { font-size: 24px; font-weight: 400; opacity: 0.5; margin-left: auto; }
+        .progress-track { width: 100%; height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: {{ accent_color }}; width: {{ (current_slide / total_slides * 100) | round(1) }}%; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    {% if bg_style == 'blurred_hook' and bg_image_b64 %}
+        <img src="{{ bg_image_b64 }}" class="bg-image">
+    {% endif %}
+    <div class="bg-base"></div>
+
+    <div class="zone-top">
+        <div class="topic-label">{{ slide_label or 'Comparison' }}</div>
+        <div class="topic-title">{{ topic_title }}</div>
+    </div>
+
+    <div class="zone-middle">
+        {% if left_content and right_content %}
+            <div class="card">
+                {% if headline %}
+                    <div class="card-header">{{ headline }}</div>
+                {% endif %}
+                <div class="cols">
+                    <div class="col">
+                        {% set lp = left_content.split('|') %}
+                        {% if lp | length >= 2 %}
+                            <div class="col-label">{{ lp[0].strip() }}</div>
+                            <div class="col-value">{{ lp[1].strip() }}</div>
+                            {% if lp | length >= 3 %}<div class="col-desc">{{ lp[2].strip() }}</div>{% endif %}
+                        {% else %}
+                            <div class="col-value">{{ left_content }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        {% set rp = right_content.split('|') %}
+                        {% if rp | length >= 2 %}
+                            <div class="col-label">{{ rp[0].strip() }}</div>
+                            <div class="col-value">{{ rp[1].strip() }}</div>
+                            {% if rp | length >= 3 %}<div class="col-desc">{{ rp[2].strip() }}</div>{% endif %}
+                        {% else %}
+                            <div class="col-value">{{ right_content }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% elif '---' in text_overlay %}
+            {% set parts = text_overlay.split('---') %}
+            <div id="headline">{{ parts[0].strip() }}</div>
+            <div id="body-text">{{ parts[1].strip() }}</div>
+        {% else %}
+            <div id="headline">{{ text_overlay }}</div>
+        {% endif %}
+    </div>
+
+    <div class="zone-bottom">
+        <div class="channel-row">
+            <div class="channel-dot"></div>
+            <div class="channel-name">{{ channel_name }}</div>
+            <div class="slide-counter">{{ current_slide }} / {{ total_slides }}</div>
+        </div>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+    </div>
+
+    <script>
+        function fitText() {
+            const zone = document.querySelector('.zone-middle');
+            const colValues = document.querySelectorAll('.col-value');
+            const headline = document.getElementById('headline');
+            const bodyText = document.getElementById('body-text');
+            let iter = 0;
+            if (colValues.length > 0) {
+                let vSize = 72;
+                while (zone.scrollHeight > zone.offsetHeight && iter < 100) {
+                    if (vSize > 36) vSize -= 3;
+                    colValues.forEach(el => el.style.fontSize = vSize + 'px');
+                    iter++;
+                }
+            }
+            if (headline) {
+                let hSize = 72, bSize = 42; iter = 0;
+                while (zone.scrollHeight > zone.offsetHeight && iter < 100) {
+                    if (hSize > 36) hSize -= 2;
+                    if (bodyText && bSize > 26) bSize -= 1;
+                    headline.style.fontSize = hSize + 'px';
+                    if (bodyText) bodyText.style.fontSize = bSize + 'px';
+                    iter++;
+                }
+            }
+        }
+        window.onload = fitText;
+    </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            width: 1080px; height: 1920px; overflow: hidden;
+            background-color: {{ bg_color }};
+            font-family: 'Poppins', sans-serif;
+            color: {{ text_color }};
+            position: relative;
+        }
+
+        /* ── Background ── */
+        .bg-base {
+            position: absolute; inset: 0;
+            background: linear-gradient(180deg,
+                rgba(0,0,0,0.5) 0%,
+                rgba(0,0,0,0.2) 40%,
+                rgba(0,0,0,0.2) 60%,
+                rgba(0,0,0,0.6) 100%);
+            z-index: 1;
+        }
+        .bg-image {
+            position: absolute; inset: 0;
+            width: 1080px; height: 1920px;
+            object-fit: cover; z-index: 0;
+        }
+        body::before {
+            content: ""; position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            opacity: 0.06; pointer-events: none; z-index: 2;
+        }
+
+        /* ── Layout zones ── */
+        .zone-top {
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 280px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: flex-start;
+            padding: 60px 70px 40px;
+            z-index: 5;
+        }
+        .zone-middle {
+            position: absolute;
+            top: 280px; left: 0; right: 0;
+            height: 1360px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: flex-start;
+            padding: 60px 70px;
+            z-index: 5;
+        }
+        .zone-bottom {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            height: 280px;
+            display: flex; flex-direction: column;
+            justify-content: flex-end; align-items: flex-start;
+            padding: 40px 70px 50px;
+            z-index: 5;
+        }
+
+        /* ── Top zone: topic title ── */
+        .topic-label {
+            font-size: 26px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.16em;
+            color: {{ accent_color }};
+            margin-bottom: 10px;
+        }
+        .topic-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 38px; font-weight: 800;
+            line-height: 1.2;
+            opacity: 0.92;
+        }
+
+        /* ── Accent divider ── */
+        .divider {
+            width: 80px; height: 5px;
+            background: {{ accent_color }};
+            border-radius: 3px;
+            margin: 48px 0 36px;
+        }
+
+        /* ── Main content ── */
+        #headline {
+            font-family: 'Anton', sans-serif;
+            font-size: 96px; font-weight: 400;
+            line-height: 1.05;
+            text-transform: uppercase;
+            letter-spacing: 0.01em;
+            text-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            white-space: pre-wrap;
+            margin-bottom: 0;
+        }
+        #subtext {
+            font-size: 42px; font-weight: 400;
+            line-height: 1.4; opacity: 0.88;
+            margin-top: 32px;
+            white-space: pre-wrap;
+            padding-left: 24px;
+            border-left: 5px solid {{ accent_color }};
+        }
+
+        /* ── Bottom zone: channel + progress ── */
+        .channel-row {
+            display: flex; align-items: center; gap: 16px;
+            margin-bottom: 28px;
+        }
+        .channel-dot {
+            width: 12px; height: 12px;
+            background: {{ accent_color }}; border-radius: 2px;
+        }
+        .channel-name {
+            font-size: 28px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 0.12em;
+            opacity: 0.9;
+        }
+        .slide-counter {
+            font-size: 24px; font-weight: 400;
+            opacity: 0.5; margin-left: auto;
+        }
+        .progress-track {
+            width: 100%; height: 6px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 3px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; background: {{ accent_color }};
+            width: {{ (current_slide / total_slides * 100) | round(1) }}%;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    {% if bg_style == 'blurred_hook' and bg_image_b64 %}
+        <img src="{{ bg_image_b64 }}" class="bg-image">
+    {% endif %}
+    <div class="bg-base"></div>
+
+    <!-- Top zone: topic title -->
+    <div class="zone-top">
+        <div class="topic-label">{{ slide_label or 'Deep dive' }}</div>
+        <div class="topic-title">{{ topic_title }}</div>
+    </div>
+
+    <!-- Middle zone: main content -->
+    <div class="zone-middle">
+        <div class="divider"></div>
+        {% if headline %}
+            <div id="headline">{{ headline }}</div>
+            {% if subtext %}
+                <div id="subtext">{{ subtext }}</div>
+            {% endif %}
+        {% elif '---' in text_overlay %}
+            {% set parts = text_overlay.split('---') %}
+            <div id="headline">{{ parts[0].strip() }}</div>
+            <div id="subtext">{{ parts[1].strip() }}</div>
+        {% else %}
+            <div id="headline">{{ text_overlay }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Bottom zone: channel + progress -->
+    <div class="zone-bottom">
+        <div class="channel-row">
+            <div class="channel-dot"></div>
+            <div class="channel-name">{{ channel_name }}</div>
+            <div class="slide-counter">{{ current_slide }} / {{ total_slides }}</div>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill"></div>
+        </div>
+    </div>
+
+    <script>
+        function fitText() {
+            const zone = document.querySelector('.zone-middle');
+            const headline = document.getElementById('headline');
+            const subtext = document.getElementById('subtext');
+            if (!headline) return;
+            let hSize = 96, sSize = 42, iter = 0;
+            while (zone.scrollHeight > zone.offsetHeight && iter < 120) {
+                if (hSize > 48) hSize -= 3;
+                if (subtext && sSize > 26) sSize -= 1;
+                headline.style.fontSize = hSize + 'px';
+                if (subtext) subtext.style.fontSize = sSize + 'px';
+                iter++;
+            }
+        }
+        window.onload = fitText;
+    </script>
+</body>
+</html>
