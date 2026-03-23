@@ -188,18 +188,19 @@ class PostizClient:
                 "type": "schedule",
                 "date": SCHEDULE_DATE,
                 "shortLink": False,
+                "tags": [], # Added missing tags array
                 "posts": [
                     {
                         "integration": { "id": integration_id },
                         "value": [
                             {
                                 "content": full_caption,
-                                "video": [uploaded_video_object],
+                                "image": [uploaded_video_object], # API expects 'image' key even for videos
                             }
                         ],
                         "settings": {
                             "__type": "instagram",
-                            "post_type": "reel",
+                            "post_type": "post", # API requires 'post' or 'story'
                         },
                         "channel": channel,
                     }
