@@ -193,14 +193,18 @@ Return exactly {len(slides)} segments in a JSON array. Each segment should be th
         music_path = Path("assets/music/background.mp3")
         if music_path.exists():
             logger.info("Adding background music...")
-            final_mix_cmd = [
-                'ffmpeg', '-y', '-i', str(current_out), '-i', str(music_path),
-                '-filter_complex',
-                "[1:a]aloop=loop=-1:size=100M,volume=0.12[bg];[0:a][bg]amix=inputs=2:duration=first[a]",
-                '-map', '0:v', '-map', '[a]',
-                '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', str(output_path)
-            ]
-            subprocess.run(final_mix_cmd, check=True)
+            try:
+                final_mix_cmd = [
+                    'ffmpeg', '-y', '-i', str(current_out), '-i', str(music_path),
+                    '-filter_complex',
+                    "[1:a]aloop=loop=-1:size=100M,volume=0.12[bg];[0:a][bg]amix=inputs=2:duration=first[a]",
+                    '-map', '0:v', '-map', '[a]',
+                    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', str(output_path)
+                ]
+                subprocess.run(final_mix_cmd, check=True, capture_output=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Music mixing failed, falling back to unmixed video: {e.stderr.decode() if e.stderr else str(e)}")
+                shutil.copy(current_out, output_path)
         else:
             shutil.copy(current_out, output_path)
         
