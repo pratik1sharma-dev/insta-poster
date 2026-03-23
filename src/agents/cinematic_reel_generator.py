@@ -11,56 +11,47 @@
         Image prompts: cinematic human moment, portrait 9:16, no text.
         """
         system_prompt = (
-            f"You are the Creative Director for '{channel_config.name}'.\n"
+            f"You are the Visionary Creative Director for '{channel_config.name}'.\n"
             f"Channel Theme: {channel_config.theme}\n"
-            f"Brand Mission: {channel_config.brand_mission}\n\n"
-            "Your goal is to create short, cinematic mood Reels that emotionally reinforce our brand mission. "
-            "You transform specific data-driven topics into powerful human realizations."
+            f"Brand Mission: {channel_config.brand_mission}\n"
+            f"Target Audience: {channel_config.target_audience}\n"
+            f"Cultural Context: {channel_config.cultural_context}\n\n"
+            "Your goal is to create a 'Mood Film' Reel. We don't explain; we reveal. "
+            "We use 'spiky' insights—statements that are bold, slightly polarizing, or deeply personal—"
+            "to stop the scroll. Avoid generic advice."
         )
 
         prompt = f"""### TOPIC TO TRANSFORM: {strategy.topic}
 ### CORE ANGLE: {strategy.angle}
-### TARGET AUDIENCE: {channel_config.target_audience}
+### STRATEGY INSIGHT: {strategy.target_audience_insight}
 
 ### TASK:
-Create a {num_images}-image cinematic Instagram Reel that brings the above topic to life emotionally. 
-It must feel like an atmospheric extension of the main carousel post.
+Create a {num_images}-image cinematic Reel. This is a high-end visual narrative.
 
-Each image gets:
-1. ONE caption line (the text burned onto the image)
-2. ONE image prompt (the visual scene description for Stable Diffusion)
+### CAPTION RULES (8-12 words):
+- Use 'Spiky' Statements: Bold, counter-intuitive, or visceral.
+- No 'Intro' or 'Summary' lines. Every line must hit like a realization.
+- Tone: Cold, objective, and deeply observant.
+- Progression: Start with a common lie/behavior, end with a harsh but empowering truth.
 
-### CAPTION RULES:
-- 8-12 words MAXIMUM per line — be extremely punchy.
-- Second person ("you", "your") — make the reader the protagonist of the story.
-- Progressive storytelling: 
-  - Line 1: The Tension or Myth
-  - Line 2-3: The Shift or Insight
-  - Final Line: The Resolution (align this with our brand mission)
-- No hashtags, no emojis, no labels. Just raw, powerful text.
-
-### IMAGE PROMPT RULES:
-- Cinematic, high-quality, portrait 9:16.
-- NO text, letters, or logos in the image.
-- Visual metaphor: The scene must visually represent the *emotion* of the caption line.
-- Human-centric: Hands, faces, movement, shadows, natural light.
-
-### GOOD EXAMPLES FOR '{channel_config.name}':
-- "You're waiting for the perfect moment."
-- "The market doesn't care about your timing."
-- "Start before you're ready."
-- "That's how wealth is actually built."
+### IMAGE PROMPT RULES (Stable Diffusion):
+- AVOID generic scenes like 'person thinking' or 'laptop on desk'.
+- USE Concrete Visual Metaphors: 
+  - Instead of 'Stress', use 'A single lit cigarette in a dark room with heavy smoke' or 'Clenched fists underwater'.
+  - Instead of 'Growth', use 'A single green sprout breaking through cracked concrete'.
+- STYLE: Cinematic noir, neo-realism, moody lighting (chiaroscuro), 35mm film grain, 9:16 portrait.
+- ABSOLUTE: No text or typographic elements in the scene.
 
 ### OUTPUT FORMAT (JSON):
 {{
   "lines": [
-    "Line 1",
-    "Line 2",
+    "Spiky Line 1",
+    "Spiky Line 2",
     ...
   ],
   "image_prompts": [
-    "Stable Diffusion prompt 1",
-    "Stable Diffusion prompt 2",
+    "Concrete Visual Metaphor 1",
+    "Concrete Visual Metaphor 2",
     ...
   ]
 }}
@@ -108,9 +99,8 @@ Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_
                 p = str(p)
                 if "no text" not in p.lower():
                     p += (
-                        ", cinematic, photorealistic, film grain, "
-                        "shallow depth of field, natural lighting, "
-                        "9:16 portrait, NO text NO watermarks NO logos"
+                        ", cinematic noir, neo-realism, moody lighting, "
+                        "35mm film grain, 9:16 portrait, NO text NO watermarks"
                     )
                 clean_prompts.append(p)
 
