@@ -187,7 +187,7 @@ class PostizClient:
             reel_data = {
                 "type": "schedule",
                 "date": SCHEDULE_DATE,
-                "shortLink": false,
+                "shortLink": False,
                 "posts": [
                     {
                         "integration": { "id": integration_id },
@@ -200,7 +200,8 @@ class PostizClient:
                         "settings": {
                             "__type": "instagram",
                             "post_type": "reel",
-                        }
+                        },
+                        "channel": channel,
                     }
                 ]
             }
