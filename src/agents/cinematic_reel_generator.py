@@ -9,6 +9,7 @@ import base64
 import io
 import textwrap
 import asyncio
+import random
 
 from src.models import ContentStrategy, ChannelConfig, GeneratedContent
 from src.agents.content_generator import ContentGenerator
@@ -19,15 +20,38 @@ logger = logging.getLogger(__name__)
 
 class CinematicReelGenerator:
     """
-    Generates a cinematic mood Reel:
-    - AI-generated background images (9:16, no text)
-    - High-impact 'spiky' captions overlaid
-    - Moody background music
-    - No narration (mood film style)
+    Virality Engine - Generates high-impact, relatable Indian stories.
+    Upgraded for growth: Variation buckets, Hook engineering, and Pattern interrupts.
     """
     REEL_W = 1080
     REEL_H = 1920
     FPS    = 25
+
+    # Style Variation Buckets to prevent visual fatigue
+    VISUAL_STYLES = [
+        "Raw iPhone footage - shaky, handheld, authentic Indian setting",
+        "Documentary / CCTV style - gritty, grainy, low-angle, real-life feel",
+        "Cinematic Noir - high contrast, moody, 35mm film grain, heavy shadows",
+        "Minimalist / Text-Heavy - blurred realistic background, focus on bold typography",
+        "Street Photography style - vibrant, high detail, candid Indian street moments"
+    ]
+
+    # Proven Viral Hook Patterns
+    HOOK_PATTERNS = [
+        "Nobody tells you this about {topic}...",
+        "You're not {negative_state}, you're just {real_cause}...",
+        "This is exactly why you're still {struggle}...",
+        "The lie we all tell ourselves about {topic}...",
+        "I was {age} when I realized {topic} was a trap..."
+    ]
+
+    # Tone Buckets for variation
+    TONES = [
+        "Brutally Honest / Spiky",
+        "Empathetic / Smart Friend",
+        "Controversial / Opinionated",
+        "Action-Oriented / Direct"
+    ]
 
     def __init__(self):
         self.generator = ContentGenerator()
@@ -44,33 +68,36 @@ class CinematicReelGenerator:
         num_images: int = 4,
         with_voice: bool = False,
     ) -> Path:
-        """
-        Full pipeline: generate script → generate 9:16 images →
-        overlay text → (optional voice) → blend → music.
+        """Full Virality Pipeline."""
+        logger.info("Starting Virality Engine: %s (voice=%s)", strategy.topic, with_voice)
 
-        Args:
-            with_voice: If True, adds voiceover narration to the reel
-        """
-        logger.info("Starting Cinematic Reel: %s (voice=%s)", strategy.topic, with_voice)
+        # 1. Randomly select Engine parameters for this specific run
+        selected_style = random.choice(self.VISUAL_STYLES)
+        selected_hook  = random.choice(self.HOOK_PATTERNS)
+        selected_tone  = random.choice(self.TONES)
+        
+        logger.info("Engine Settings | Style: %s | Hook: %s | Tone: %s", 
+                    selected_style.split(" - ")[0], selected_hook[:30], selected_tone)
 
-        # 1. Generate Script and Prompts
+        # 2. Generate Script and Prompts
         lines, prompts = self._generate_script_and_prompts(
-            strategy, channel_config, num_images
+            strategy, channel_config, num_images, 
+            selected_style, selected_hook, selected_tone
         )
 
-        # 2. Generate Cinematic Images (9:16)
+        # 3. Generate Cinematic Images (9:16)
         image_dir = self.temp_dir / "images"
         image_dir.mkdir(exist_ok=True)
         image_paths = self._generate_cinematic_images(prompts, image_dir)
 
-        # 3. Generate Voice (if enabled)
+        # 4. Generate Voice (if enabled)
         audio_paths = None
         if with_voice:
             audio_dir = self.temp_dir / "audio"
             audio_dir.mkdir(exist_ok=True)
             audio_paths = self._generate_voice(lines, audio_dir, channel_config)
 
-        # 4. Build Clips with Text Overlays (and optional voice)
+        # 5. Build Clips with Text Overlays (and optional voice)
         video_dir = self.temp_dir / "video"
         video_dir.mkdir(exist_ok=True)
 
@@ -81,15 +108,14 @@ class CinematicReelGenerator:
             image_paths, lines, video_dir, slide_duration, transition_dur, audio_paths
         )
 
-        # 5. Blend Clips
+        # 6. Blend Clips
         blended = self._blend_clips(clip_paths, video_dir, transition_dur)
 
-        # 6. Add Music
-        # Lower music volume if voice is present
+        # 7. Add Music
         music_volume = getattr(settings, "cinematic_music_volume", 0.08 if with_voice else 0.15)
         self._mix_music(blended, output_path, music_volume)
 
-        logger.info("Cinematic Reel complete: %s", output_path)
+        logger.info("Virality Reel complete: %s", output_path)
         return output_path
 
     def cleanup(self):
@@ -499,44 +525,7 @@ class CinematicReelGenerator:
             shutil.copy(video_path, output_path)
 
     # ------------------------------------------------------------------
-    # Story Validation
-    # ------------------------------------------------------------------
-
-    def _validate_story_coherence(self, lines: List[str], story_spine: str) -> None:
-        """Basic validation to check if story makes sense."""
-
-        # Check for abstract/philosophical keywords that indicate poor storytelling
-        abstract_keywords = [
-            'illusion', 'mirror', 'mask', 'journey', 'destination',
-            'perception', 'construct', 'authentic', 'identity'
-        ]
-
-        abstract_count = 0
-        for line in lines:
-            line_lower = line.lower()
-            for keyword in abstract_keywords:
-                if keyword in line_lower:
-                    abstract_count += 1
-                    logger.warning(f"⚠️  Abstract language detected: '{keyword}' in '{line}'")
-
-        if abstract_count >= 2:
-            logger.warning("⚠️  Story may be too abstract. Consider more concrete examples.")
-
-        # Check for numbers (good sign of concrete storytelling)
-        has_numbers = any(char.isdigit() for line in lines for char in line)
-        if not has_numbers:
-            logger.warning("⚠️  No specific numbers found. Story may lack concrete examples.")
-
-        # Check word count consistency
-        for i, line in enumerate(lines, 1):
-            word_count = len(line.split())
-            if word_count < 5:
-                logger.warning(f"⚠️  Line {i} too short ({word_count} words): {line}")
-            elif word_count > 16:
-                logger.warning(f"⚠️  Line {i} too long ({word_count} words): {line}")
-
-    # ------------------------------------------------------------------
-    # Script Generation
+    # Script Generation (The Engine)
     # ------------------------------------------------------------------
 
     def _generate_script_and_prompts(
@@ -544,71 +533,56 @@ class CinematicReelGenerator:
         strategy: ContentStrategy,
         channel_config: ChannelConfig,
         num_images: int,
+        selected_style: str,
+        selected_hook: str,
+        selected_tone: str
     ) -> Tuple[List[str], List[str]]:
         """
-        Generate caption lines and matching SD image prompts in one call.
-
-        Caption lines: 8-14 words, clear narrative progression.
-        Image prompts: cinematic, story-driven, 9:16, no text.
+        AI Creative Brief - Generates stories based on Engine parameters.
         """
         system_prompt = (
-            f"You are the Visionary Creative Director for '{channel_config.name}'.\n"
-            f"Channel Theme: {channel_config.theme}\n"
-            f"Brand Mission: {channel_config.brand_mission}\n"
-            f"Target Audience: {channel_config.target_audience}\n"
-            f"Cultural Context: {channel_config.cultural_context}\n\n"
-            "Your goal is NOT to create 'Art'. Your goal is to create RECOGNITION.\n"
-            "People share reels when they think: 'Bhai, this is literally my life.'\n"
-            "CRITICAL: Use SIMPLE language (10th pass level). No poetry. No abstract metaphors.\n"
-            "Use REAL Indian situations: Swiggy prices, 80k salary, 2-hour traffic, EMI pressure, rent due dates."
+            f"You are the Lead Creative Director for '{channel_config.name}'.\n"
+            f"Persona: Simple but sharp. You sound like a smart, brutally honest friend, not a teacher.\n"
+            f"Visual Style: {selected_style}\n"
+            f"Core Tone: {selected_tone}\n\n"
+            "Your goal is to build an Indian Virality Engine. People don't share because it's 'beautiful'. "
+            "They share when they feel 'attacked' by the truth. "
+            "Use 'Pattern Interrupts': surprise the reader, contradict common beliefs, and spike the tension."
         )
 
-        prompt = f"""### TOPIC: {strategy.topic}
-### CORE ANGLE: {strategy.angle}
-### INSIGHT: {strategy.target_audience_insight}
-{f'### DATA TO TRANSLATE: {strategy.verified_data}' if strategy.verified_data else ''}
+        prompt = f"""### THE GROWTH BRIEF:
+Topic: {strategy.topic}
+The Hook Pattern: {selected_hook}
+The Realization: {strategy.angle}
+Target Audience: {channel_config.target_audience}
 
-### TASK:
-Create a {num_images}-image cinematic Reel script. Every line must make the reader feel "attacked" by how true it is.
-The goal is "Recognition"—not "Aesthetics."
+### YOUR TASK:
+Create a {num_images}-image cinematic story that delivers RECOGNITION.
 
-### STRUCTURE (Escalation):
-1. THE HOOK: A very common, relatable Indian situation.
-2. THE UNCOMFORTABLE TRUTH: A slightly deeper observation.
-3. THE TENSION: The financial or emotional reality most ignore.
-4. THE HARSH REALITY: The brutal truth based on the data.
-5. THE FINAL PUNCH: A sharp shift in perspective that hits home.
+### SCRIPT RULES (CRITICAL):
+1. **Hook Engineering:** You MUST start with the pattern: "{selected_hook}".
+2. **Simple but Sharp:** Use words an Indian 10th-pass student understands, but with a 'smart' edge. 
+   (e.g., Use "EMI trap" instead of "Financial liability").
+3. **Pattern Interrupts:** In the middle of the story, spike the tension. Contradict what they believe.
+4. **No Art/Poetry:** Forbid abstract metaphors. Use: "Swiggy prices," "2-hour traffic," "80k salary," "Bank balance."
+5. **Human Realization:** The final line must be a "Punch to the gut" that they can't ignore.
 
-### CAPTION RULES (CRITICAL):
-- Describe REAL, SPECIFIC Indian life situations.
-- Use numbers, money, jobs, daily life (salary, EMI, rent, Swiggy, traffic).
-- Language: SIMPLE enough for a 10th pass audience.
-- NO POETRY. NO ABSTRACT METAPHORS.
-- Every line should feel like: "Damn... this is literally me."
-
-### GOOD EXAMPLES:
-- "You earn 80k. But still check Swiggy prices twice."
-- "Your salary increased. Your savings didn't."
-- "EMI starts. Freedom ends."
-- "You bought the car. Now it owns you."
-
-### IMAGE RULES:
-- Show REAL Indian scenarios, not aesthetic shots.
-- FACES: Natural, slightly tired, worried, or focused. NOT AI-perfect or model-like.
-- SCENARIOS: 
-  - Man checking bank balance on phone in a dim room.
-  - Woman scrolling Swiggy and hesitating.
-  - Traffic jam inside a car with a tired face.
-  - Family dinner with subtle tension.
-- STYLE: Cinematic noir, 35mm film grain, 9:16 portrait.
+### IMAGE PROMPT RULES:
+- **Style Variation Bucket:** {selected_style}.
+- **Real Indian Scenarios:** Show tired faces, dim rooms, traffic jams, checking phones, plastic chairs.
+- **Single Character Continuity:** Use one consistent Indian character (e.g., 'A tired 30yo man in a worn formal shirt') across all prompts.
+- **No AI Perfection:** Forbid model-like faces. Use 'realistic skin texture', 'sweat', 'tired eyes'.
 
 ### OUTPUT FORMAT (JSON):
 {{
-  "visual_anchor": "The object (e.g. smartphone, wallet, keys)",
+  "story_title": "The emotional core",
+  "visual_anchor": "The character used for continuity",
   "lines": [
-    "Line 1",
-    "Line 2",
-    ...
+    "Punchy Line 1 (Hook)",
+    "Punchy Line 2 (The Lie/Tension)",
+    "Punchy Line 3 (The Pattern Interrupt)",
+    "Punchy Line 4 (The Harsh Reality)",
+    "Punchy Line 5 (The Realization)"
   ],
   "image_prompts": [
     "Realistic Indian prompt for Line 1",
@@ -621,89 +595,40 @@ Respond with ONLY valid JSON. Exactly {num_images} lines and prompts."""
 
         response = self.generator._generate_text(prompt, system_prompt=system_prompt)
         
-        # Log Prompts
-        logger.info("Cinematic Script System Prompt: %s", system_prompt)
-        logger.info("Cinematic Script User Prompt: %s", prompt)
-        logger.debug("Cinematic Script Raw Response: %s", response)
+        # Log Engine Output
+        logger.info("Engine Generation complete. Tone: %s, Hook: %s", selected_tone, selected_hook)
 
         try:
             data    = self.generator._parse_json_response(response)
             lines   = data.get("lines", [])
             prompts = data.get("image_prompts", [])
-            visual_anchor = data.get("visual_anchor", "hands")
-            story_spine = data.get("story_spine", strategy.topic)
+            visual_anchor = data.get("visual_anchor", "character")
 
             # Validate counts
             if len(lines) != num_images or len(prompts) != num_images:
-                logger.warning(
-                    "Count mismatch (lines=%d, prompts=%d, expected=%d)",
-                    len(lines), len(prompts), num_images
-                )
-                # Pad or trim to match
-                while len(lines)   < num_images: lines.append(strategy.topic)
-                while len(prompts) < num_images: prompts.append(
-                    f"Cinematic portrait of a person in thought, natural light, "
-                    f"film grain, shallow depth of field, 9:16"
-                )
-                lines   = lines[:num_images]
-                prompts = prompts[:num_images]
+                logger.warning("Count mismatch. Padding/Trimming to %d", num_images)
+                lines = (lines + [strategy.topic]*num_images)[:num_images]
+                prompts = (prompts + [f"Cinematic portrait of {visual_anchor}, 9:16"]*num_images)[:num_images]
 
-            # Enforce word count on captions
-            trimmed_lines = []
-            for line in lines:
-                words = str(line).split()
-                if len(words) > 16:
-                    line = " ".join(words[:14]) + "..."
-                trimmed_lines.append(str(line))
-
-            # Append no-text instruction to every image prompt
+            # Append style-specific instructions to every image prompt
             clean_prompts = []
             for p in prompts:
                 p = str(p)
-                if "no text" not in p.lower():
-                    p += (
-                        ", cinematic noir, neo-realism, moody lighting, "
-                        "35mm film grain, 9:16 portrait, NO text NO watermarks"
-                    )
+                if "9:16" not in p:
+                    p += f", {selected_style.split(' - ')[0]}, 9:16 portrait, photorealistic, NO text"
                 clean_prompts.append(p)
             
             # Log the final Storyline
             logger.info("=" * 60)
-            logger.info("GENERATED CINEMATIC STORY:")
-            logger.info(f"STORY SPINE: {story_spine}")
-            logger.info(f"VISUAL ANCHOR: {visual_anchor}")
-            logger.info("-" * 60)
-            for i, (l, p) in enumerate(zip(trimmed_lines, clean_prompts), 1):
-                logger.info(f"{i}. CAPTION: {l}")
-                logger.info(f"   IMAGE: {p[:120]}...")
-                logger.info("")
+            logger.info("GENERATED VIRALITY STORY:")
+            for i, (l, p) in enumerate(zip(lines, clean_prompts), 1):
+                logger.info(f"{i}. [{selected_tone}] {l}")
             logger.info("=" * 60)
 
-            # Validate story coherence
-            self._validate_story_coherence(trimmed_lines, story_spine)
-
-            return trimmed_lines, clean_prompts
+            return lines, clean_prompts
 
         except Exception as e:
-            logger.error("Script generation failed: %s", e)
-            logger.error("Using fallback story structure")
-
-            # Fallback: Create a simple coherent story
-            topic_short = strategy.topic[:50]
-            fallback_lines = [
-                f"Let's talk about {topic_short}",
-                "Here's what most people don't know",
-                "This changes everything",
-                "Think about that"
-            ][:num_images]
-
-            # Ensure we have exactly num_images lines
-            while len(fallback_lines) < num_images:
-                fallback_lines.append(topic_short)
-
-            fallback_prompts = [
-                f"Close-up of hands holding {topic_short.split()[0] if topic_short.split() else 'book'}, "
-                "warm natural lighting, contemplative mood, 35mm film grain, 9:16 portrait, NO text"
-            ] * num_images
-
-            return fallback_lines, fallback_prompts
+            logger.error("Engine failed: %s", e)
+            fallback_line   = [strategy.topic[:60]] * num_images
+            fallback_prompt = [f"Realistic portrait of an Indian person, 9:16, {selected_style}"] * num_images
+            return fallback_line, fallback_prompt
