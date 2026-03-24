@@ -552,136 +552,72 @@ class CinematicReelGenerator:
         Image prompts: cinematic, story-driven, 9:16, no text.
         """
         system_prompt = (
-            f"You are a Story Architect for '{channel_config.name}'.\n"
+            f"You are the Visionary Creative Director for '{channel_config.name}'.\n"
             f"Channel Theme: {channel_config.theme}\n"
             f"Brand Mission: {channel_config.brand_mission}\n"
             f"Target Audience: {channel_config.target_audience}\n"
             f"Cultural Context: {channel_config.cultural_context}\n\n"
-            "Your goal: Tell a clear, coherent story in {num_images} lines that the audience can follow and learn from.\n"
-            "Priority: STORY COHERENCE over shock value. Each line must logically connect to the next.\n"
-            "Use concrete examples and specific situations the audience recognizes."
+            "Your goal is NOT to create 'Art'. Your goal is to create RECOGNITION.\n"
+            "People share reels when they think: 'Bhai, this is literally my life.'\n"
+            "CRITICAL: Use SIMPLE language (10th pass level). No poetry. No abstract metaphors.\n"
+            "Use REAL Indian situations: Swiggy prices, 80k salary, 2-hour traffic, EMI pressure, rent due dates."
         )
 
         prompt = f"""### TOPIC: {strategy.topic}
 ### CORE ANGLE: {strategy.angle}
-### TARGET AUDIENCE: {channel_config.target_audience}
-### AUDIENCE INSIGHT: {strategy.target_audience_insight}
-{f'### VERIFIED DATA (USE THESE FACTS): {strategy.verified_data}' if strategy.verified_data else ''}
+### INSIGHT: {strategy.target_audience_insight}
+{f'### DATA TO TRANSLATE: {strategy.verified_data}' if strategy.verified_data else ''}
 
-### YOUR TASK:
-Create a {num_images}-line story that teaches the audience something valuable about {strategy.topic}.
+### TASK:
+Create a {num_images}-image cinematic Reel script. Every line must make the reader feel "attacked" by how true it is.
+The goal is "Recognition"—not "Aesthetics."
 
-The story must be:
-1. **Easy to Follow** - Each line builds logically on the previous one
-2. **Relevant** - Addresses a real situation the audience faces
-3. **Concrete** - Uses specific examples, not abstract concepts
-4. **Coherent** - The {num_images} lines together deliver ONE clear insight
+### STRUCTURE (Escalation):
+1. THE HOOK: A very common, relatable Indian situation.
+2. THE UNCOMFORTABLE TRUTH: A slightly deeper observation.
+3. THE TENSION: The financial or emotional reality most ignore.
+4. THE HARSH REALITY: The brutal truth based on the data.
+5. THE FINAL PUNCH: A sharp shift in perspective that hits home.
 
-### STORY STRUCTURE:
+### CAPTION RULES (CRITICAL):
+- Describe REAL, SPECIFIC Indian life situations.
+- Use numbers, money, jobs, daily life (salary, EMI, rent, Swiggy, traffic).
+- Language: SIMPLE enough for a 10th pass audience.
+- NO POETRY. NO ABSTRACT METAPHORS.
+- Every line should feel like: "Damn... this is literally me."
 
-**Line 1 - THE SETUP:**
-Introduce the situation in concrete terms. Use a specific example or number.
-Example: "Your parents saved ₹50 lakh in FDs over 30 years"
-NOT: "Safety is an illusion we cling to"
+### GOOD EXAMPLES:
+- "You earn 80k. But still check Swiggy prices twice."
+- "Your salary increased. Your savings didn't."
+- "EMI starts. Freedom ends."
+- "You bought the car. Now it owns you."
 
-**Line 2 - THE CONTEXT:**
-Build understanding. Show why this matters or what people believe.
-Example: "It grew to ₹1.2 crore. They felt safe."
-NOT: "The mirror shows what others want to see"
-
-**Line 3 - THE INSIGHT:**
-Reveal the key learning or comparison. This is the "aha" moment.
-Example: "The same amount in Nifty 50? ₹8.7 crore."
-NOT: "Behind every mask is another mask"
-
-**Line 4 - THE TAKEAWAY:**
-Complete the thought. What does this mean for them?
-Example: "Playing it safe cost them ₹7.5 crore."
-NOT: "Authenticity is the final illusion"
-
-### CAPTION REQUIREMENTS (8-14 words each):
-- Use clear, conversational language
-- Include specific numbers from VERIFIED DATA when available
-- Each line must answer: "What happens next in this story?"
-- Avoid abstract philosophical statements
-- Write like you're explaining to a friend over coffee
-
-### GOOD STORY EXAMPLES:
-
-**Topic: Compound Interest**
-Line 1: "₹5,000 monthly SIP starting at age 25"
-Line 2: "By age 60, it becomes ₹2.3 crore"
-Line 3: "Start the same SIP at 35 instead"
-Line 4: "You end with ₹67 lakh. That's just 10 years."
-
-**Topic: Career Growth**
-Line 1: "You switched jobs 3 times in 5 years"
-Line 2: "Salary went from ₹8L to ₹22L"
-Line 3: "Your friend stayed at one company"
-Line 4: "Still at ₹12L after 5 years"
-
-Notice: Concrete numbers, clear progression, relatable situations.
-
-### BAD EXAMPLES (DO NOT DO THIS):
-❌ "Your identity is a construct of perception"
-❌ "Success hides behind the mask of failure"
-❌ "The journey is the destination we never reach"
-→ Abstract, confusing, no concrete learning
-
-### VISUAL ANCHOR:
-Choose ONE concrete object/element that appears in ALL {num_images} images to create visual continuity.
-Examples: hands, a specific object (phone, notebook, wallet), same location
-
-### IMAGE PROMPT REQUIREMENTS:
-
-Each image must:
-1. **Feature the visual anchor** in different contexts
-2. **Support the story beat** - visually show what the caption describes
-3. **Be cinematically specific** - include shot type, lighting, mood
-
-**Format Template:**
-"[Shot type] of [visual anchor] [doing what], [lighting style], [emotional mood],
-35mm film grain, 9:16 portrait, photorealistic, NO text NO watermarks"
-
-**Shot Types:** Extreme close-up | Close-up | Medium shot | Wide shot
-**Lighting:** Soft natural light | Warm side light | Golden hour | Dramatic side light
-**Mood:** Hopeful | Contemplative | Tense | Relieved | Nostalgic
-
-**GOOD Image Prompt:**
-"Close-up of elderly hands holding worn bank passbook, warm soft side lighting,
-nostalgic mood, shallow depth, 35mm film grain, 9:16 portrait, NO text"
-
-**BAD Image Prompt:**
-"Person thinking about money" ❌ Generic, no specifics, no visual anchor
+### IMAGE RULES:
+- Show REAL Indian scenarios, not aesthetic shots.
+- FACES: Natural, slightly tired, worried, or focused. NOT AI-perfect or model-like.
+- SCENARIOS: 
+  - Man checking bank balance on phone in a dim room.
+  - Woman scrolling Swiggy and hesitating.
+  - Traffic jam inside a car with a tired face.
+  - Family dinner with subtle tension.
+- STYLE: Cinematic noir, 35mm film grain, 9:16 portrait.
 
 ### OUTPUT FORMAT (JSON):
 {{
-  "visual_anchor": "The one object/element appearing in all images (e.g., 'elderly hands', 'smartphone', 'notebook')",
-  "story_spine": "One sentence: what does this {num_images}-line story teach?",
+  "visual_anchor": "The object (e.g. smartphone, wallet, keys)",
   "lines": [
-    "Line 1 - The concrete setup",
-    "Line 2 - The context or belief",
-    "Line 3 - The key insight or comparison",
-    "Line 4 - The takeaway"
+    "Line 1",
+    "Line 2",
+    ...
   ],
   "image_prompts": [
-    "Close-up of [visual_anchor] in Context A, [lighting], [mood], 35mm film grain, 9:16 portrait, NO text",
-    "Medium shot of [visual_anchor] in Context B, [lighting], [mood], 35mm film grain, 9:16 portrait, NO text",
-    "Close-up of [visual_anchor] in Context C, [lighting], [mood], 35mm film grain, 9:16 portrait, NO text",
-    "Wide shot of [visual_anchor] in Context D, [lighting], [mood], 35mm film grain, 9:16 portrait, NO text"
+    "Realistic Indian prompt for Line 1",
+    "Realistic Indian prompt for Line 2",
+    ...
   ]
 }}
 
-### FINAL CHECKLIST:
-Before responding, verify:
-- [ ] Each line logically follows from the previous one
-- [ ] A new viewer can understand the story without prior context
-- [ ] You used specific numbers/examples from VERIFIED DATA
-- [ ] Visual anchor appears in all {num_images} image prompts
-- [ ] No abstract philosophical statements
-- [ ] Story teaches something concrete and actionable
-
-Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_prompts."""
+Respond with ONLY valid JSON. Exactly {num_images} lines and prompts."""
 
         response = self.generator._generate_text(prompt, system_prompt=system_prompt)
         
