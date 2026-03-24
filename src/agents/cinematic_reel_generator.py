@@ -156,22 +156,32 @@ class CinematicReelGenerator:
         return None
 
     def _generate_sd_image(self, prompt: str, index: int, output_dir: Path) -> Optional[Path]:
+        # Generate at lower resolution (768x1344) for speed on Mac hardware, then upscale
+        gen_w, gen_h = 768, 1344
+        target_w, target_h = 1080, 1920
+
         payload = {
             "prompt": prompt,
             "negative_prompt": settings.sd_negative_prompt,
             "steps": settings.sd_steps,
-            "width": 1080,
-            "height": 1920, # Native portrait for cinematic reel
+            "width": gen_w,
+            "height": gen_h,
         }
         
+        logger.info("SD Generation: %dx%d -> Up-scaling to %dx%d", gen_w, gen_h, target_w, target_h)
         response = requests.post(settings.sd_api_url, json=payload, timeout=settings.sd_timeout)
         response.raise_for_status()
         r = response.json()
         
         image_data = base64.b64decode(r['images'][0])
         p = output_dir / f"image_{index:02d}.png"
-        with open(p, 'wb') as f:
-            f.write(image_data)
+        
+        # Load and upscale using Pillow
+        img = Image.open(io.BytesIO(image_data))
+        if img.size != (target_w, target_h):
+            img = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+        
+        img.save(p, "PNG")
         return p
 
     def _generate_gemini_image(self, prompt: str, index: int, output_dir: Path) -> Optional[Path]:
