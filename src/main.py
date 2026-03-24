@@ -34,6 +34,7 @@ class ContentPipeline:
         post_reel: bool = False,
         post_cinematic: bool = False,
         cinematic_images: int = 4,
+        with_voice: bool = False,
     ) -> PostResult:
         """
         Run the complete content pipeline.
@@ -150,7 +151,7 @@ Angle: {strategy.angle}
 
             # 2. Cinematic Reel
             if post_cinematic:
-                logger.logger.info("\n[Phase 3.6] Generating cinematic Reel...")
+                logger.logger.info("\n[Phase 3.6] Generating cinematic Reel (voice=%s)...", with_voice)
                 try:
                     cin_output = images_dir / "reel_cinematic.mp4"
                     cinematic_path = self.cinematic_reel_generator.generate(
@@ -159,6 +160,7 @@ Angle: {strategy.angle}
                         channel_config=channel_config,
                         output_path=cin_output,
                         num_images=cinematic_images,
+                        with_voice=with_voice,
                     )
                     logger.logger.info("Cinematic Reel generated successfully.")
                 except Exception as e:
@@ -265,8 +267,11 @@ def main():
     parser.add_argument("--cinematic",     action="store_true", help="Opt-in: Generate/Post Cinematic Reel")
     
     parser.add_argument("--cinematic-images", type=int, default=4,
-                        choices=[2, 3, 4],
+                        choices=[2, 3, 4, 5, 6],
                         help="Number of images for cinematic Reel (default: 4)")
+
+    parser.add_argument("--voice", action="store_true",
+                        help="Add voiceover narration to cinematic/reel (requires TTS)")
 
     args = parser.parse_args()
 
@@ -306,6 +311,7 @@ def main():
             post_reel=do_reel,
             post_cinematic=do_cinematic,
             cinematic_images=args.cinematic_images,
+            with_voice=args.voice,
         )
         sys.exit(0 if result.status == "success" else 1)
 
