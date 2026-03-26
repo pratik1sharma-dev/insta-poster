@@ -334,7 +334,8 @@ Evaluate the image on these criteria and provide scores:
    - Composition: Is the framing and arrangement visually pleasing?
    - Artifacts: Are there any visual glitches, distortions, or AI artifacts?
 
-3. **Text/Watermarks** (Yes/No): Are there any text, captions, watermarks, or logos visible?
+3. **Watermarks/Logos** (Yes/No): Are there any real watermarks, brand logos, or readable captions overlaid ON the image (e.g. Shutterstock, Getty, site URLs)?
+   NOTE: Garbled/illegible AI text artifacts on phone screens, documents, or newspapers in the scene do NOT count — only flag actual overlaid watermarks or logos.
 
 4. **Cinematic Style** (0-100): Does it have a cinematic, film-like quality with proper lighting and mood?
 
@@ -451,10 +452,14 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                     issues.append(f"Artifacts: {data['artifact_notes']}")
 
             # Decide if regeneration is needed
-            # Visual anchor missing alone does NOT trigger regen if quality is acceptable
-            regenerate = quality_score < 70 or has_text
+            # has_text = actual watermark/logo — always regen
+            # has_text = garbled AI artifacts on screens → validator prompt now excludes these,
+            #   but even if flagged, only regen if quality is also poor (SD can't fix screen artifacts)
+            regenerate = quality_score < 70 or (has_text and quality_score < 75)
             if not has_visual_anchor and quality_score >= 70:
                 logger.info("Visual anchor not detected but quality acceptable (score: %d), skipping regen", quality_score)
+            if has_text and not regenerate:
+                logger.info("Text/watermark flagged but quality acceptable (score: %d), skipping regen", quality_score)
 
             return {
                 'quality_score': quality_score,
