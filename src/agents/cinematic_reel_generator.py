@@ -735,7 +735,8 @@ Be strict but fair. If the image is acceptable for social media, scores should b
         # Manual text wrapping
         wrapped_lines = textwrap.wrap(text, width=28)
         wrapped_text = "\n".join(wrapped_lines)
-        escaped_wrapped = wrapped_text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:')
+        # Replace actual newlines with FFmpeg drawtext escape sequence (\n = two chars)
+        escaped_wrapped = wrapped_text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:').replace('\n', '\\n')
 
         # Animation speed configuration
         speed_multipliers = {
@@ -959,6 +960,7 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                         "-map", "[v]", "-map", "[a]",
                         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
                         "-c:a", "aac", "-b:a", "192k",
+                        "-t", str(round(clip_dur, 3)),  # output cap: zoompan can exceed input -t
                         "-shortest",
                         str(clip_path)
                     ]
@@ -972,6 +974,7 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                         "-filter_complex", filter_complex,
                         "-map", "[v]",
                         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+                        "-t", str(round(clip_dur, 3)),  # output cap: zoompan can exceed input -t
                         str(clip_path)
                     ]
 
@@ -1224,9 +1227,13 @@ Psychology: Hidden danger + urgency = emotional trigger
 ### REQUIREMENTS:
 - Use specific numbers from VERIFIED DATA when available
 - Keep hooks under 14 words
-- Make it immediately understandable (no jargon)
+- Must be immediately understandable with ZERO prior context — a stranger must get it in 1 second
 - Focus on OUTCOME, not process
 - Each hook must use a DIFFERENT pattern
+- If comparing two numbers, state WHAT causes the difference in the hook itself
+  BAD: "₹42 lakh in 7 years—but ₹28 crore by 60?" (viewer doesn't know why the jump)
+  GOOD: "Same ₹3,000 SIP: ₹42 lakh at 29, ₹28 crore at 60"
+- Avoid "X—but Y?" patterns where Y has no standalone meaning
 
 ### OUTPUT FORMAT (JSON):
 {{
@@ -1748,7 +1755,8 @@ Scene 4 [zoom_in]:
 - [ ] Last line tells viewer exactly what to do today
 - [ ] No screen-content image prompts (no "dashboard showing X" or "screen with numbers")
 - [ ] No hands close-up as main subject
-- [ ] 3-5 scenes, 6-12 total lines
+- [ ] 3-5 scenes, MINIMUM 6 total lines (a reel with 5 lines is too sparse — add detail)
+- [ ] Most scenes have 2 lines (1-line scenes are only for single punchy statements)
 {f'- [ ] All monetary values in ₹/lakh/crore (NO $)' if is_india else ''}
 
 Respond with ONLY valid JSON."""
@@ -1815,6 +1823,13 @@ Respond with ONLY valid JSON."""
             logger.info("  IMAGE: %s...", sc["image_prompt"][:120])
             logger.info("")
         logger.info("=" * 60)
+
+        # Enforce minimum lines (too few = reel too short / story incomplete)
+        if len(all_lines_flat) < 6:
+            raise RuntimeError(
+                f"Story has only {len(all_lines_flat)} lines (minimum 6 required for a 30-60s reel). "
+                f"Prompt returned too few lines. Raw response: {response[:300]}"
+            )
 
         # Validate story coherence (warnings only, using flat lines)
         self._validate_story_coherence(all_lines_flat, story_spine)
