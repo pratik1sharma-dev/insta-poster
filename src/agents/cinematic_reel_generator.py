@@ -1880,10 +1880,20 @@ Exactly {num_images} prompts. JSON only."""
                 return refined
 
             logger.warning(
-                "SD prompt refinement returned wrong count (%d vs %d), using initial prompts",
+                "SD prompt refinement returned wrong count (%d vs %d) — falling back to initial prompts",
                 len(refined), num_images,
             )
         except Exception as e:
-            logger.warning("SD prompt refinement failed (%s), using initial prompts", e)
+            logger.warning(
+                "SD prompt refinement failed (%s) — falling back to initial prompts.\n"
+                "Initial prompts that will be used:\n%s",
+                e,
+                "\n".join(f"  {i+1}. {p}" for i, p in enumerate(initial_prompts)),
+            )
+            return initial_prompts
 
+        logger.warning(
+            "Falling back to initial prompts:\n%s",
+            "\n".join(f"  {i+1}. {p}" for i, p in enumerate(initial_prompts)),
+        )
         return initial_prompts

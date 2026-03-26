@@ -224,9 +224,15 @@ Respond with ONLY formatted list starting with "VERIFIED DATA POINTS:"
 
         return synthesized
 
-    def _assess_research_quality(self, research_data: str) -> dict:
+    def _assess_research_quality(self, research_data: str, channel_config=None) -> dict:
         """
         Score research quality before using it.
+
+        Scoring is channel-aware:
+        - Financial/data channels (wealthcapsules, worldinranks): strict — require
+          financial-unit numbers (crore, lakh, %, $) and named sources.
+        - Non-financial channels (psychecapsules, pagecapsules, fertilitycapsules,
+          startupcapsules): relaxed — any numeric value counts, fail threshold is lower.
 
         Returns:
             {
@@ -240,6 +246,10 @@ Respond with ONLY formatted list starting with "VERIFIED DATA POINTS:"
         """
         import re
 
+        # Determine channel type from theme keywords
+        theme = (channel_config.theme if channel_config else "").lower()
+        is_financial = any(kw in theme for kw in ("money", "investing", "wealth", "ranking", "data"))
+
         score = 0
         issues = []
 
@@ -250,19 +260,26 @@ Respond with ONLY formatted list starting with "VERIFIED DATA POINTS:"
         if not has_sources:
             issues.append("Fewer than 3 named sources")
 
-        # Check specific numbers
-        numbers = re.findall(
-            r'\d+(?:\.\d+)?(?:\s*(?:crore|lakh|million|billion|%|₹|\$))',
-            research_data
-        )
-        has_numbers = len(numbers) >= 4
+        # Check specific numbers — strict for financial channels, relaxed for others
+        if is_financial:
+            numbers = re.findall(
+                r'\d+(?:\.\d+)?(?:\s*(?:crore|lakh|million|billion|%|₹|\$))',
+                research_data
+            )
+            required_count = 4
+        else:
+            # Accept any number (study percentages, age ranges, years, page counts)
+            numbers = re.findall(r'\b\d+(?:\.\d+)?(?:\s*%|\s+(?:percent|people|patients|studies|years?))?\b', research_data)
+            required_count = 3
+
+        has_numbers = len(numbers) >= required_count
         score += 30 if has_numbers else 0
         if not has_numbers:
-            issues.append("Fewer than 4 specific numbers")
+            issues.append(f"Fewer than {required_count} specific numbers")
 
         # Check dates
-        dates = re.findall(r'(?:20\d{2}|Year:\s*\d{4})', research_data)
-        has_dates = len(dates) >= 3
+        dates = re.findall(r'(?:20\d{2}|19\d{2}|Year:\s*\d{4})', research_data)
+        has_dates = len(dates) >= 2  # relaxed from 3 — non-financial research may cite fewer years
         score += 20 if has_dates else 0
         if not has_dates:
             issues.append("Missing time references")
@@ -281,7 +298,8 @@ Respond with ONLY formatted list starting with "VERIFIED DATA POINTS:"
             'has_numbers': has_numbers,
             'has_dates': has_dates,
             'confidence': confidence,
-            'issues': issues
+            'issues': issues,
+            'channel_type': 'financial' if is_financial else 'general',
         }
 
     def plan_content(
@@ -304,14 +322,23 @@ Respond with ONLY formatted list starting with "VERIFIED DATA POINTS:"
         research_data = self._synthesize_research(raw_research, topic)
 
         # 4. Research Quality Assessment
-        quality = self._assess_research_quality(research_data)
-        logger.info("Research quality: %s (score: %d/100)", quality['confidence'], quality['score'])
+        quality = self._assess_research_quality(research_data, channel_config)
+        logger.info(
+            "Research quality: %s (score: %d/100, channel_type: %s)",
+            quality['confidence'], quality['score'], quality['channel_type'],
+        )
 
         if quality['confidence'] == 'low':
             logger.warning("Research quality is low. Issues: %s", quality['issues'])
 
-            if quality['score'] < 30:
-                raise ValueError(f"Research quality too low (score: {quality['score']}): {quality['issues']}")
+            # Financial channels require stronger data — fail fast at 30
+            # Non-financial channels (psychology, books, health) — fail only at 20
+            fail_threshold = 30 if quality['channel_type'] == 'financial' else 20
+            if quality['score'] < fail_threshold:
+                raise ValueError(
+                    f"Research quality too low (score: {quality['score']}, "
+                    f"threshold: {fail_threshold}): {quality['issues']}"
+                )
 
         # 5. Unified System Persona
         system_prompt = f"""You are the Expert Educator and Data Storyteller for '{channel_config.name}'. 
