@@ -216,10 +216,14 @@ class ContentGenerator:
         """
 
         # Verified data block — prevents fabrication
+        # Truncate to ~2000 chars to stay within Groq TPM limits (model cap ~6000 tokens/request)
         if strategy.verified_data:
+            verified_data_trimmed = strategy.verified_data[:2000]
+            if len(strategy.verified_data) > 2000:
+                verified_data_trimmed += "\n[... truncated for brevity ...]"
             data_block = (
                 "### VERIFIED DATA (use ONLY these figures — no others):\n"
-                f"{strategy.verified_data}\n\n"
+                f"{verified_data_trimmed}\n\n"
                 "If a slide needs a number not in this list, write the "
                 "insight without a figure rather than inventing one."
             )
