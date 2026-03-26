@@ -151,9 +151,6 @@ class VariantGenerator:
             output_path = output_dir / f"variant_{variant_id}.mp4"
 
             try:
-                # Store original generator settings
-                original_provider = self.generator.provider
-
                 # Generate with variant parameters
                 self.generator.generate(
                     content=content,
@@ -162,11 +159,8 @@ class VariantGenerator:
                     output_path=output_path,
                     num_images=num_images,
                     with_voice=with_voice,
+                    music_volume=music_volume,
                 )
-
-                # Note: Music volume would ideally be a parameter to generate()
-                # For now, variants use the default volume from CinematicReelGenerator
-                # Future enhancement: Allow music_volume parameter in generate()
 
                 # Collect variant metadata
                 variant_metadata = {

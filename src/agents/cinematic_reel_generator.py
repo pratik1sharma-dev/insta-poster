@@ -66,13 +66,15 @@ class CinematicReelGenerator:
         output_path: Path,
         num_images: int = 4,
         with_voice: bool = False,
+        music_volume: float = None,
     ) -> Path:
         """
         Full pipeline: generate script → generate 9:16 images →
         overlay text → (optional voice) → blend → music.
 
         Args:
-            with_voice: If True, adds voiceover narration to the reel
+            with_voice:    If True, adds voiceover narration to the reel
+            music_volume:  Override background music volume (0.0–1.0); defaults to settings
         """
         logger.info("Starting Cinematic Reel: %s (voice=%s)", strategy.topic, with_voice)
 
@@ -111,8 +113,8 @@ class CinematicReelGenerator:
         blended = self._blend_clips(clip_paths, video_dir, transition_dur)
 
         # 6. Add Music
-        # Lower music volume if voice is present
-        music_volume = getattr(settings, "cinematic_music_volume", 0.08 if with_voice else 0.15)
+        if music_volume is None:
+            music_volume = getattr(settings, "cinematic_music_volume", 0.08 if with_voice else 0.15)
         self._mix_music(blended, output_path, music_volume)
 
         logger.info("Cinematic Reel complete: %s", output_path)
