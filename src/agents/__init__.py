@@ -3,6 +3,7 @@ from .content_generator import ContentGenerator
 from .image_generator import ImageGenerator
 from .reel_generator import ReelGenerator
 from .cinematic_reel_generator import CinematicReelGenerator
+from .variant_generator import VariantGenerator
 
 __all__ = [
     "ContentStrategist",
@@ -10,4 +11,5 @@ __all__ = [
     "ImageGenerator",
     "ReelGenerator",
     "CinematicReelGenerator",
+    "VariantGenerator",
 ]

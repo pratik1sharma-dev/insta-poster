@@ -175,23 +175,114 @@ Respond with ONLY a comma-separated list of the 3 queries.
         if not raw_research or len(raw_research) < 100:
             return "No verifiable data found."
 
-        prompt = f"""You are a Research Analyst. Your task is to extract only the most authoritative and specific data points from the raw search results below.
+        prompt = f"""You are a Research Analyst with focus on DATA INTEGRITY.
 
 Topic: "{topic}"
 
 RAW SEARCH DATA:
 {raw_research}
 
-### INSTRUCTIONS:
-1. Extract exactly 5-8 "VERIFIED DATA POINTS".
-2. Prioritize named sources (e.g. "McKinsey", "World Bank", "Forbes").
-3. Format each point as: "- [Source]: [Specific Fact/Number]"
-4. Strip out all conversational fluff, ads, and irrelevant site text.
-5. If you find math (like compound interest), show the equation logic.
+### TASK:
+Extract 5-8 VERIFIED DATA POINTS in STRICT FORMAT:
 
-Respond with ONLY the structured list starting with "VERIFIED DATA POINTS:".
+**Format per point:**
+[SOURCE NAME]: [SPECIFIC FACT with NUMBER] (Year: YYYY)
+
+### REQUIREMENTS:
+1. Every data point MUST include:
+   - Named source (McKinsey, World Bank, specific study)
+   - Specific number (not "increased significantly")
+   - Time reference (year, quarter)
+
+2. Flag LOW CONFIDENCE data:
+   - If source is "blog" or unnamed → prefix with ⚠️
+   - If date is >2 years old → add "(DATED)"
+   - If conflicting data → note both values
+
+3. For COMPARISONS, ensure same timeframe
+
+### GOOD EXAMPLE:
+- [McKinsey 2024]: India's solar capacity reached 70.1 GW (Year: 2024)
+- [NIFTY50 Index]: ₹1 lakh invested in 2010 → ₹8.7 crore by 2024
+
+### BAD EXAMPLE:
+- "Solar is growing fast" ❌ No number
+- "One report said..." ❌ No source
+- "In recent years" ❌ No year
+
+Respond with ONLY formatted list starting with "VERIFIED DATA POINTS:"
 """
-        return self._generate_text(prompt)
+        synthesized = self._generate_text(prompt)
+
+        # Validate synthesis quality
+        if "VERIFIED DATA POINTS:" not in synthesized:
+            logger.warning("Research synthesis didn't follow format")
+
+        # Check for low-confidence markers
+        if "⚠️" in synthesized or "(DATED)" in synthesized:
+            logger.warning("Some research data has quality issues:\n%s", synthesized[:200])
+
+        return synthesized
+
+    def _assess_research_quality(self, research_data: str) -> dict:
+        """
+        Score research quality before using it.
+
+        Returns:
+            {
+                'score': 0-100,
+                'has_sources': bool,
+                'has_numbers': bool,
+                'has_dates': bool,
+                'confidence': 'high|medium|low',
+                'issues': [list]
+            }
+        """
+        import re
+
+        score = 0
+        issues = []
+
+        # Check named sources
+        sources = re.findall(r'\[([A-Z][^\]]+)\]:', research_data)
+        has_sources = len(sources) >= 3
+        score += 30 if has_sources else 0
+        if not has_sources:
+            issues.append("Fewer than 3 named sources")
+
+        # Check specific numbers
+        numbers = re.findall(
+            r'\d+(?:\.\d+)?(?:\s*(?:crore|lakh|million|billion|%|₹|\$))',
+            research_data
+        )
+        has_numbers = len(numbers) >= 4
+        score += 30 if has_numbers else 0
+        if not has_numbers:
+            issues.append("Fewer than 4 specific numbers")
+
+        # Check dates
+        dates = re.findall(r'(?:20\d{2}|Year:\s*\d{4})', research_data)
+        has_dates = len(dates) >= 3
+        score += 20 if has_dates else 0
+        if not has_dates:
+            issues.append("Missing time references")
+
+        # Check quality warnings
+        has_warnings = '⚠️' in research_data or '(DATED)' in research_data
+        score += 20 if not has_warnings else 10
+        if has_warnings:
+            issues.append("Contains low-confidence data")
+
+        confidence = 'high' if score >= 80 else ('medium' if score >= 50 else 'low')
+
+        return {
+            'score': score,
+            'has_sources': has_sources,
+            'has_numbers': has_numbers,
+            'has_dates': has_dates,
+            'confidence': confidence,
+            'issues': issues
+        }
 
     def plan_content(
         self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, raw_output_dir: Optional[Path] = None
@@ -212,7 +303,17 @@ Respond with ONLY the structured list starting with "VERIFIED DATA POINTS:".
         # 3. Research Synthesis (NEW)
         research_data = self._synthesize_research(raw_research, topic)
 
-        # 4. Unified System Persona
+        # 4. Research Quality Assessment
+        quality = self._assess_research_quality(research_data)
+        logger.info("Research quality: %s (score: %d/100)", quality['confidence'], quality['score'])
+
+        if quality['confidence'] == 'low':
+            logger.warning("Research quality is low. Issues: %s", quality['issues'])
+
+            if quality['score'] < 30:
+                raise ValueError(f"Research quality too low (score: {quality['score']}): {quality['issues']}")
+
+        # 5. Unified System Persona
         system_prompt = f"""You are the Expert Educator and Data Storyteller for '{channel_config.name}'. 
 Your goal is to transform complex verified data into a clear, logical, and highly educational carousel.
 
@@ -223,7 +324,7 @@ Your goal is to transform complex verified data into a clear, logical, and highl
 - **CATEGORICAL INTEGRITY:** Ensure every item in your ranking strictly matches the requested category.
 """
 
-        # 5. Ground Rules First
+        # 6. Ground Rules First
         prompt = f"""### GROUND RULES (NON-NEGOTIABLE):
 1. Every number must come from the VERIFIED DATA POINTS provided below.
 2. If you cannot verify a figure, do not include it. Write "data unavailable".

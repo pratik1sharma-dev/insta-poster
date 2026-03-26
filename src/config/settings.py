@@ -68,6 +68,13 @@ class Settings(BaseSettings):
     reel_music_volume: float = 0.10                 # background music level
     reel_fps: int = 25
 
+    # ── Cinematic Reel settings ───────────────────────────────────────
+    cinematic_text_animation_enabled: bool = True
+    cinematic_animation_speed: str = "medium"  # Options: 'slow', 'medium', 'fast'
+    cinematic_slide_duration: float = 4.0
+    cinematic_transition_duration: float = 0.6
+    cinematic_music_volume: float = 0.15
+
     # ── Postiz publishing ─────────────────────────────────────────────
     postiz_api_url: str = "http://localhost:3000/api"
     postiz_api_key: str = ""

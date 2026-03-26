@@ -8,6 +8,7 @@ from typing import Optional
 from src.agents import ContentStrategist, ContentGenerator, ImageGenerator
 from src.agents.reel_generator import ReelGenerator
 from src.agents.cinematic_reel_generator import CinematicReelGenerator
+from src.agents.variant_generator import VariantGenerator
 from src.publishers import PostizClient
 from src.utils import ContentLogger, load_channel_config, list_available_channels
 from src.models import PostResult
@@ -22,6 +23,7 @@ class ContentPipeline:
         self.image_generator         = ImageGenerator()
         self.reel_generator          = ReelGenerator()
         self.cinematic_reel_generator = CinematicReelGenerator()
+        self.variant_generator       = VariantGenerator()
         self.publisher               = PostizClient()
 
     def run(
@@ -35,6 +37,8 @@ class ContentPipeline:
         post_cinematic: bool = False,
         cinematic_images: int = 4,
         with_voice: bool = False,
+        generate_variants: bool = False,
+        num_variants: int = 3,
     ) -> PostResult:
         """
         Run the complete content pipeline.
@@ -48,6 +52,8 @@ class ContentPipeline:
             post_reel:         Generate and post narrated portrait Reel
             post_cinematic:    Generate and post cinematic mood Reel
             cinematic_images:  Number of images for cinematic Reel (2-4)
+            generate_variants: Generate A/B test variants after main cinematic reel
+            num_variants:      Number of A/B test variants to generate (2-5)
         """
         logger = ContentLogger(channel_name)
         logger.logger.info("=" * 80)
@@ -168,6 +174,35 @@ Angle: {strategy.angle}
                 finally:
                     self.cinematic_reel_generator.cleanup()
 
+            # 3. A/B Test Variants (optional, after main cinematic reel)
+            variants_metadata = []
+            if generate_variants and post_cinematic and cinematic_path:
+                logger.logger.info("\n[Phase 3.7] Generating A/B test variants...")
+                logger.logger.info("Creating %d variants for testing...", num_variants)
+                try:
+                    variants_metadata = self.variant_generator.generate_variants(
+                        content=content,
+                        strategy=strategy,
+                        channel_config=channel_config,
+                        base_output_path=cinematic_path,
+                        num_variants=num_variants,
+                        num_images=cinematic_images,
+                        with_voice=with_voice,
+                    )
+                    logger.logger.info("Generated %d variants successfully.", len(variants_metadata))
+
+                    # Log variant details
+                    for variant in variants_metadata:
+                        logger.logger.info(
+                            "Variant %s: %s",
+                            variant['variant_id'],
+                            ", ".join(variant['changes'])
+                        )
+                except Exception as e:
+                    logger.logger.error("Variant generation failed: %s", e)
+                finally:
+                    self.variant_generator.cleanup()
+
             # ── Phase 4: Publishing ────────────────────────────────────
             logger.logger.info("\n[Phase 4/4] Publishing...")
 
@@ -273,6 +308,13 @@ def main():
     parser.add_argument("--voice", action="store_true",
                         help="Add voiceover narration to cinematic/reel (requires TTS)")
 
+    parser.add_argument("--generate-variants", action="store_true",
+                        help="Generate A/B test variants after main cinematic reel")
+
+    parser.add_argument("--num-variants", type=int, default=3,
+                        choices=[2, 3, 4, 5],
+                        help="Number of A/B test variants to generate (default: 3)")
+
     args = parser.parse_args()
 
     if args.list_channels:
@@ -312,6 +354,8 @@ def main():
             post_cinematic=do_cinematic,
             cinematic_images=args.cinematic_images,
             with_voice=args.voice,
+            generate_variants=args.generate_variants,
+            num_variants=args.num_variants,
         )
         sys.exit(0 if result.status == "success" else 1)
 
