@@ -69,45 +69,38 @@ class CinematicReelGenerator:
         music_volume: float = None,
     ) -> Path:
         """
-        Full pipeline: generate script → generate 9:16 images →
-        overlay text → (optional voice) → blend → music.
+        Full pipeline: generate scenes → generate 9:16 images →
+        overlay text with motion → (optional voice) → blend → music.
 
-        Args:
-            with_voice:    If True, adds voiceover narration to the reel
-            music_volume:  Override background music volume (0.0–1.0); defaults to settings
+        num_images is used as a max_scenes hint (3-5 recommended).
         """
         logger.info("Starting Cinematic Reel: %s (voice=%s)", strategy.topic, with_voice)
 
-        # 1. Generate Story Lines + initial image prompts
-        lines, initial_prompts = self._generate_script_and_prompts(
-            strategy, channel_config, num_images
-        )
+        # 1. Generate scenes (story lines + image prompts + motion effects)
+        scenes = self._generate_script_and_prompts(strategy, channel_config, num_images)
 
         # 1b. Refine image prompts via dedicated SD-optimized AI call
-        prompts = self._refine_sd_prompts(lines, initial_prompts, strategy, num_images)
+        scenes = self._refine_sd_prompts(scenes, strategy)
 
-        # 2. Generate Cinematic Images (9:16)
+        # 2. Generate Cinematic Images (9:16), one per scene
         image_dir = self.temp_dir / "images"
         image_dir.mkdir(exist_ok=True)
-        image_paths = self._generate_cinematic_images(prompts, image_dir)
+        scenes = self._generate_cinematic_images(scenes, image_dir)
 
-        # 3. Generate Voice (if enabled)
+        # 3. Generate Voice (if enabled) — use all lines flattened
         audio_paths = None
         if with_voice:
+            all_lines = [line for scene in scenes for line in scene["lines"]]
             audio_dir = self.temp_dir / "audio"
             audio_dir.mkdir(exist_ok=True)
-            audio_paths = self._generate_voice(lines, audio_dir, channel_config)
+            audio_paths = self._generate_voice(all_lines, audio_dir, channel_config)
 
-        # 4. Build Clips with Text Overlays (and optional voice)
+        # 4. Build Clips with Text Overlays + Motion Effects
         video_dir = self.temp_dir / "video"
         video_dir.mkdir(exist_ok=True)
-
-        slide_duration = getattr(settings, "cinematic_slide_duration", 4.0)
         transition_dur = getattr(settings, "cinematic_transition_duration", 0.6)
 
-        clip_paths = self._build_cinematic_clips(
-            image_paths, lines, video_dir, slide_duration, transition_dur, audio_paths
-        )
+        clip_paths = self._build_cinematic_clips(scenes, video_dir, transition_dur, audio_paths)
 
         # 5. Blend Clips
         blended = self._blend_clips(clip_paths, video_dir, transition_dur)
@@ -129,24 +122,20 @@ class CinematicReelGenerator:
     # Image Generation
     # ------------------------------------------------------------------
 
-    def _generate_cinematic_images(self, prompts: List[str], output_dir: Path) -> List[Path]:
-        """Generate 9:16 cinematic images using the configured provider with quality validation."""
-        image_paths = []
+    def _generate_cinematic_images(self, scenes: List[dict], output_dir: Path) -> List[dict]:
+        """Generate 9:16 cinematic images for each scene. Populates scenes[i]['image_path']."""
 
-        for i, prompt in enumerate(prompts, 1):
-            logger.info("[Cinematic Image %d/%d] Generating via %s...", i, len(prompts), self.provider)
-            logger.info("[Cinematic Image %d/%d] Prompt: %s", i, len(prompts), prompt)
+        for i, scene in enumerate(scenes, 1):
+            prompt = scene["image_prompt"]
+            logger.info("[Cinematic Image %d/%d] Generating via %s...", i, len(scenes), self.provider)
+            logger.info("[Cinematic Image %d/%d] Prompt: %s", i, len(scenes), prompt)
 
-            # Extract visual anchor from prompt for validation
             visual_anchor = self._extract_visual_anchor(prompt)
-
-            # Try generating with quality validation (max 2 attempts)
             max_attempts = 2
             path = None
 
             for attempt in range(1, max_attempts + 1):
                 try:
-                    # Generate the image
                     if self.provider == "replicate":
                         path = self._generate_replicate_image(prompt, i, output_dir)
                     elif self.provider == "sd":
@@ -160,56 +149,51 @@ class CinematicReelGenerator:
                     if not path:
                         raise Exception(f"Failed to generate image {i}")
 
-                    # Validate image quality
                     validation = self._validate_image_quality(path, visual_anchor, prompt)
 
                     logger.info(
                         "[Cinematic Image %d/%d] Validation - Quality: %d, Has Anchor: %s",
-                        i, len(prompts), validation['quality_score'], validation['has_visual_anchor']
+                        i, len(scenes), validation['quality_score'], validation['has_visual_anchor']
                     )
 
                     if validation['issues']:
                         logger.warning(
                             "[Cinematic Image %d/%d] Issues detected: %s",
-                            i, len(prompts), ', '.join(validation['issues'])
+                            i, len(scenes), ', '.join(validation['issues'])
                         )
 
-                    # Check if regeneration is needed
                     if validation['regenerate'] and attempt < max_attempts:
                         logger.warning(
                             "[Cinematic Image %d/%d] Quality insufficient (score: %d). Regenerating (attempt %d/%d)...",
-                            i, len(prompts), validation['quality_score'], attempt + 1, max_attempts
+                            i, len(scenes), validation['quality_score'], attempt + 1, max_attempts
                         )
-
-                        # Refine prompt based on issues
                         refined_prompt = self._refine_prompt_from_issues(prompt, validation['issues'])
-                        logger.info("[Cinematic Image %d/%d] Refined prompt: %s", i, len(prompts), refined_prompt)
+                        logger.info("[Cinematic Image %d/%d] Refined prompt: %s", i, len(scenes), refined_prompt)
                         prompt = refined_prompt
                         continue
 
-                    # Quality is acceptable or we've exhausted attempts
                     if validation['quality_score'] < 70:
                         logger.warning(
                             "[Cinematic Image %d/%d] Using image with quality score %d (below threshold)",
-                            i, len(prompts), validation['quality_score']
+                            i, len(scenes), validation['quality_score']
                         )
                     else:
                         logger.info(
-                            "[Cinematic Image %d/%d] ✓ Quality validated (score: %d)",
-                            i, len(prompts), validation['quality_score']
+                            "[Cinematic Image %d/%d] Quality validated (score: %d)",
+                            i, len(scenes), validation['quality_score']
                         )
 
-                    image_paths.append(path)
+                    scene["image_path"] = path
                     break
 
                 except Exception as e:
-                    logger.error("[Cinematic Image %d/%d] Attempt %d failed: %s", i, len(prompts), attempt, e)
+                    logger.error("[Cinematic Image %d/%d] Attempt %d failed: %s", i, len(scenes), attempt, e)
                     if attempt == max_attempts:
                         raise RuntimeError(
-                            f"Image {i}/{len(prompts)} failed after {max_attempts} attempts: {e}"
+                            f"Image {i}/{len(scenes)} failed after {max_attempts} attempts: {e}"
                         )
 
-        return image_paths
+        return scenes
 
     def _generate_replicate_image(self, prompt: str, index: int, output_dir: Path) -> Optional[Path]:
         import replicate
@@ -467,7 +451,10 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                     issues.append(f"Artifacts: {data['artifact_notes']}")
 
             # Decide if regeneration is needed
-            regenerate = quality_score < 70 or not has_visual_anchor or has_text
+            # Visual anchor missing alone does NOT trigger regen if quality is acceptable
+            regenerate = quality_score < 70 or has_text
+            if not has_visual_anchor and quality_score >= 70:
+                logger.info("Visual anchor not detected but quality acceptable (score: %d), skipping regen", quality_score)
 
             return {
                 'quality_score': quality_score,
@@ -554,29 +541,49 @@ Be strict but fair. If the image is acceptable for social media, scores should b
         return ' '.join(words)
 
     def _refine_prompt_from_issues(self, original_prompt: str, issues: List[str]) -> str:
-        """Refine the image generation prompt based on detected quality issues."""
-        refinements = []
+        """Targeted prompt rewrite based on actual SD failure modes detected."""
+        import re
 
-        for issue in issues:
-            issue_lower = issue.lower()
+        prompt = original_prompt
+        issue_text = " ".join(issues).lower()
 
-            if 'visual anchor' in issue_lower:
-                refinements.append("emphasize main subject clearly in center frame")
-            if 'blur' in issue_lower or 'sharpness' in issue_lower:
-                refinements.append("sharp focus, high detail, crystal clear")
-            if 'composition' in issue_lower:
-                refinements.append("professional composition, rule of thirds")
-            if 'artifact' in issue_lower:
-                refinements.append("clean render, no artifacts, photorealistic quality")
-            if 'text' in issue_lower or 'watermark' in issue_lower:
-                refinements.append("absolutely no text, no watermarks, no logos")
+        # Failure mode: SD rendered a portrait instead of the requested close-up of an object
+        # Fix: strip person from prompt, make the object the sole subject
+        if 'composition' in issue_text and ('portrait' in issue_text or 'inverse' in issue_text or 'person' in issue_text):
+            # Remove person description (young Indian woman/man ...) from prompt
+            prompt = re.sub(
+                r',?\s*young Indian (?:woman|man)[^,]*(?:in [^,]+)?(?:,|$)',
+                '',
+                prompt,
+                flags=re.IGNORECASE
+            ).strip().strip(',').strip()
+            prompt += ", NO person in frame, object photography, macro detail"
 
-        if refinements:
-            # Append refinements to original prompt
-            refined = f"{original_prompt}, {', '.join(refinements)}"
-            return refined
+        # Failure mode: SD can't render readable screen content
+        # Fix: replace "screen showing X" with just the device/object
+        if 'screen showing' in prompt.lower() or 'dashboard' in prompt.lower():
+            prompt = re.sub(
+                r'screen showing [^,]+',
+                'glowing screen with bokeh',
+                prompt,
+                flags=re.IGNORECASE
+            )
+            prompt = re.sub(
+                r'\b\w+ dashboard\b',
+                'glowing laptop screen',
+                prompt,
+                flags=re.IGNORECASE
+            )
 
-        return original_prompt
+        # Failure mode: hands artifacts
+        if 'artifact' in issue_text and 'hand' in issue_text:
+            prompt += ", arms kept out of frame, NO hands visible"
+
+        # Always add quality suffix if not already present
+        if 'sharp focus' not in prompt.lower():
+            prompt += ", sharp focus, professional photography"
+
+        return prompt
 
     # ------------------------------------------------------------------
     # Voice Generation (TTS)
@@ -821,123 +828,158 @@ Be strict but fair. If the image is acceptable for social media, scores should b
     # Video Building
     # ------------------------------------------------------------------
 
+    def _build_motion_filter(self, motion: str, clip_dur: float) -> str:
+        """
+        Build an FFmpeg filter string for Ken Burns / pan motion effects.
+        Applied to looped PNG input before text overlay.
+        """
+        frames = max(1, int(clip_dur * self.FPS))
+        W, H = self.REEL_W, self.REEL_H
+        fps = self.FPS
+
+        if motion == "zoom_in":
+            # Slow zoom from 1.0 to 1.15
+            rate = 0.15 / frames
+            return (
+                f"scale={W*2}:{H*2},"  # upscale first to avoid quality loss during crop
+                f"zoompan=z='min(1+on*{rate:.6f},1.15)':"
+                f"x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':"
+                f"d={frames}:s={W}x{H}:fps={fps}"
+            )
+        elif motion == "zoom_out":
+            # Slow zoom from 1.15 to 1.0
+            rate = 0.15 / frames
+            return (
+                f"scale={W*2}:{H*2},"
+                f"zoompan=z='max(1.15-on*{rate:.6f},1.0)':"
+                f"x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':"
+                f"d={frames}:s={W}x{H}:fps={fps}"
+            )
+        elif motion == "pan_right":
+            # Pan from left to right, zoom at 1.1
+            return (
+                f"scale={W*2}:{H*2},"
+                f"zoompan=z='1.1':"
+                f"x='(iw-iw/zoom)*on/{frames}':"
+                f"y='(ih-ih/zoom)/2':"
+                f"d={frames}:s={W}x{H}:fps={fps}"
+            )
+        elif motion == "pan_left":
+            # Pan from right to left, zoom at 1.1
+            return (
+                f"scale={W*2}:{H*2},"
+                f"zoompan=z='1.1':"
+                f"x='(iw-iw/zoom)*(1-on/{frames})':"
+                f"y='(ih-ih/zoom)/2':"
+                f"d={frames}:s={W}x{H}:fps={fps}"
+            )
+        else:
+            # static — just scale
+            return f"scale={W}:{H},setsar=1"
+
     def _build_cinematic_clips(
         self,
-        image_paths: List[Path],
-        lines: List[str],
+        scenes: List[dict],
         output_dir: Path,
-        duration: float,
         transition_dur: float,
         audio_paths: Optional[List[Path]] = None,
     ) -> List[Path]:
-        """Overlay text on images (with optional voice) using FFmpeg."""
+        """
+        Build one video clip per text line.
+        Lines within the same scene share the same image + motion effect.
+        """
         clip_paths = []
-        n = len(image_paths)
+        audio_index = 0  # running index across all lines
 
-        for i, (img, text) in enumerate(zip(image_paths, lines), 1):
-            is_last = (i == n)
-            clip_path = output_dir / f"clip_{i:02d}.mp4"
+        # Flatten total count for logging
+        total_lines = sum(len(sc["lines"]) for sc in scenes)
+        clip_number = 0
 
-            # Determine clip duration
-            if audio_paths and i <= len(audio_paths):
-                # Voice mode: duration = audio duration + small tail
-                audio_dur = self._get_duration(audio_paths[i-1])
-                slide_dur = audio_dur + 0.3  # 0.3s tail after voice ends
-                logger.info(
-                    "[Clip %d] Voice mode: audio %.1fs + 0.3s tail",
-                    i, audio_dur
-                )
-            else:
-                # Text-only mode: dynamic duration based on reading speed
-                word_count = len(text.split())
-                calculated_duration = max(3.0, (word_count / 3.5) + 1.5)
-                slide_dur = max(duration, calculated_duration)
-                logger.info(
-                    "[Clip %d] Text mode: %d words → %.1fs duration",
-                    i, word_count, slide_dur
-                )
+        for scene_idx, scene in enumerate(scenes):
+            img = scene["image_path"]
+            motion = scene.get("motion", "zoom_in")
+            is_last_scene = (scene_idx == len(scenes) - 1)
 
-            clip_dur = slide_dur + (0 if is_last else transition_dur)
+            for line_idx, text in enumerate(scene["lines"]):
+                clip_number += 1
+                is_last_clip = (clip_number == total_lines)
+                clip_path = output_dir / f"clip_{clip_number:02d}.mp4"
 
-            # Detect line type and choose animation style
-            animation_enabled = getattr(settings, "cinematic_text_animation_enabled", True)
-
-            if animation_enabled:
-                # Determine animation style based on line position and content
-                if i == 1:
-                    # First line = hook
-                    text_style = 'hook'
-                elif is_last:
-                    # Last line = insight/takeaway
-                    text_style = 'insight'
-                elif any(char.isdigit() for char in text):
-                    # Contains numbers = number emphasis
-                    text_style = 'number'
+                # Determine clip duration
+                if audio_paths and audio_index < len(audio_paths):
+                    audio_dur = self._get_duration(audio_paths[audio_index])
+                    slide_dur = audio_dur + 0.3
+                    logger.info("[Clip %d] Voice mode: audio %.1fs + 0.3s tail", clip_number, audio_dur)
                 else:
-                    # Middle lines = main style
-                    text_style = 'main'
+                    word_count = len(text.split())
+                    slide_dur = max(3.5, (word_count / 3.5) + 1.5)
+                    logger.info("[Clip %d] Text mode: %d words → %.1fs duration", clip_number, word_count, slide_dur)
 
-                logger.info("[Clip %d] Using animation style: %s", i, text_style)
+                clip_dur = slide_dur + (0 if is_last_clip else transition_dur)
 
-                # Get kinetic text overlay filter
-                drawtext_filter = self._create_kinetic_text_overlay(
-                    text, text_style, slide_dur, i, n
-                )
-            else:
-                # Fallback to basic text overlay (no animation)
-                wrapped_lines = textwrap.wrap(text, width=28)
-                wrapped_text = "\n".join(wrapped_lines)
-                escaped_text = wrapped_text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:')
+                # Build motion filter for this clip
+                motion_filter = self._build_motion_filter(motion, clip_dur)
 
-                drawtext_filter = (
-                    f"drawtext=text='{escaped_text}':fontcolor=white:fontsize=72:"
-                    f"x=(w-text_w)/2:y=(h-text_h)/2+200:box=1:boxcolor=black@0.5:boxborderw=40:"
-                    f"line_spacing=15:fix_bounds=1"
-                )
+                # Build text overlay
+                animation_enabled = getattr(settings, "cinematic_text_animation_enabled", True)
+                if animation_enabled:
+                    if clip_number == 1:
+                        text_style = 'hook'
+                    elif is_last_clip:
+                        text_style = 'insight'
+                    elif any(char.isdigit() for char in text):
+                        text_style = 'number'
+                    else:
+                        text_style = 'main'
+                    logger.info("[Clip %d] Scene %d, motion=%s, style=%s", clip_number, scene_idx+1, motion, text_style)
+                    drawtext_filter = self._create_kinetic_text_overlay(text, text_style, slide_dur, clip_number, total_lines)
+                else:
+                    wrapped_lines = textwrap.wrap(text, width=28)
+                    wrapped_text = "\n".join(wrapped_lines)
+                    escaped_text = wrapped_text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:')
+                    drawtext_filter = (
+                        f"drawtext=text='{escaped_text}':fontcolor=white:fontsize=72:"
+                        f"x=(w-text_w)/2:y=(h-text_h)/2+200:box=1:boxcolor=black@0.5:boxborderw=40:"
+                        f"line_spacing=15:fix_bounds=1"
+                    )
 
-            # Build FFmpeg command
-            if audio_paths and i <= len(audio_paths):
-                # WITH VOICE: Image + Text + Audio
-                filter_complex = (
-                    f"[0:v]scale={self.REEL_W}:{self.REEL_H},"
-                    f"{drawtext_filter},format=yuv420p[v];"
-                    f"[1:a]volume=1.0[a]"
-                )
+                # Build FFmpeg command
+                if audio_paths and audio_index < len(audio_paths):
+                    filter_complex = (
+                        f"[0:v]{motion_filter},{drawtext_filter},format=yuv420p[v];"
+                        f"[1:a]volume=1.0[a]"
+                    )
+                    cmd = [
+                        "ffmpeg", "-y",
+                        "-loop", "1", "-framerate", str(self.FPS),
+                        "-t", str(clip_dur),
+                        "-i", str(img),
+                        "-i", str(audio_paths[audio_index]),
+                        "-filter_complex", filter_complex,
+                        "-map", "[v]", "-map", "[a]",
+                        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+                        "-c:a", "aac", "-b:a", "192k",
+                        "-shortest",
+                        str(clip_path)
+                    ]
+                else:
+                    filter_complex = f"[0:v]{motion_filter},{drawtext_filter},format=yuv420p[v]"
+                    cmd = [
+                        "ffmpeg", "-y",
+                        "-loop", "1", "-framerate", str(self.FPS),
+                        "-t", str(clip_dur),
+                        "-i", str(img),
+                        "-filter_complex", filter_complex,
+                        "-map", "[v]",
+                        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+                        str(clip_path)
+                    ]
 
-                cmd = [
-                    "ffmpeg", "-y",
-                    "-loop", "1", "-framerate", str(self.FPS),
-                    "-t", str(clip_dur),
-                    "-i", str(img),
-                    "-i", str(audio_paths[i-1]),
-                    "-filter_complex", filter_complex,
-                    "-map", "[v]", "-map", "[a]",
-                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
-                    "-c:a", "aac", "-b:a", "192k",
-                    "-shortest",
-                    str(clip_path)
-                ]
-            else:
-                # TEXT ONLY: Image + Text
-                filter_complex = (
-                    f"scale={self.REEL_W}:{self.REEL_H},"
-                    f"{drawtext_filter}"
-                )
+                logger.info("[Cinematic Clip %d/%d] Rendering...", clip_number, total_lines)
+                subprocess.run(cmd, capture_output=True, check=True)
+                clip_paths.append(clip_path)
 
-                cmd = [
-                    "ffmpeg", "-y",
-                    "-loop", "1", "-framerate", str(self.FPS),
-                    "-t", str(clip_dur),
-                    "-i", str(img),
-                    "-vf", filter_complex,
-                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
-                    "-pix_fmt", "yuv420p",
-                    str(clip_path)
-                ]
-
-            logger.info("[Cinematic Clip %d/%d] Rendering...", i, n)
-            subprocess.run(cmd, capture_output=True, check=True)
-            clip_paths.append(clip_path)
+                audio_index += 1
 
         return clip_paths
 
@@ -1547,12 +1589,15 @@ NOT: "Balance is the key to everything"
         strategy: ContentStrategy,
         channel_config: ChannelConfig,
         num_images: int,
-    ) -> Tuple[List[str], List[str]]:
+    ) -> List[dict]:
         """
-        Generate caption lines and matching SD image prompts in one call.
+        Generate a scenes-based story structure.
 
-        Caption lines: 8-14 words, clear narrative progression.
-        Image prompts: cinematic, story-driven, 9:16, no text.
+        Each scene = 1 SD image + 1-3 text caption lines + a motion effect.
+        The AI decides how many scenes (3-5) and how many lines per scene (1-3).
+        Total lines across all scenes: 6-12, targeting a ~30-60 second reel.
+
+        Returns List[dict] where each dict has: lines, image_prompt, motion
         """
         # Enforce research requirement
         if not strategy.verified_data or len(strategy.verified_data) < 100:
@@ -1572,7 +1617,6 @@ NOT: "Balance is the key to everything"
         # Select story format
         selected_format, format_reasoning = self._select_story_format(strategy, channel_config)
         format_info = self.STORY_FORMATS[selected_format]
-        format_structure = format_info['structure']
 
         # Generate hook variants
         hook_result = self._generate_hook_variants(
@@ -1584,18 +1628,28 @@ NOT: "Balance is the key to everything"
         best_hook = hook_result['best_hook']
         all_hook_variants = hook_result['all_variants']
 
+        # Currency instruction for India channels
+        is_india = getattr(channel_config, 'localization_type', 'global').lower() == 'india'
+        currency_rule = (
+            "\n### CURRENCY (CRITICAL): This is an India-targeted channel. "
+            "Use ONLY ₹, lakh, crore for ALL monetary values. "
+            "NEVER use $, USD, or Western units. Convert if needed.\n"
+            if is_india else ""
+        )
+
         system_prompt = (
             f"You are a Story Architect for '{channel_config.name}'.\n"
             f"Channel Theme: {channel_config.theme}\n"
             f"Brand Mission: {channel_config.brand_mission}\n"
             f"Target Audience: {channel_config.target_audience}\n"
-            f"Cultural Context: {channel_config.cultural_context}\n\n"
-            f"Your goal: Tell a clear, coherent story in {num_images} lines that the audience can follow and learn from.\n"
+            f"Cultural Context: {channel_config.cultural_context}\n"
+            f"{currency_rule}\n"
+            f"Your goal: Tell a clear, coherent story across 3-5 visual scenes that the audience can follow, learn from, and act on.\n"
             "Priority: STORY COHERENCE over shock value. Each line must logically connect to the next.\n"
-            "Use concrete examples and specific situations the audience recognizes."
+            "Use concrete examples and specific situations the audience recognizes.\n"
+            "The story MUST end with a clear, explicit action the viewer can take TODAY."
         )
 
-        # Format hook variants for prompt
         hook_variants_text = "\n".join([
             f"  {i}. [{v['pattern']}] \"{v['hook']}\" (Score: {v['total_score']:.1f})"
             for i, v in enumerate(all_hook_variants, 1)
@@ -1608,180 +1662,167 @@ NOT: "Balance is the key to everything"
 {f'### VERIFIED DATA (USE THESE FACTS): {strategy.verified_data}' if strategy.verified_data else ''}
 
 ### HOOK OPTIMIZATION:
-We've generated and scored 5 hook variants. Use the BEST HOOK as guidance for Line 1:
-
-**BEST HOOK (Score: {hook_result['best_score']:.1f}):**
-"{best_hook}"
-
+**BEST HOOK (Score: {hook_result['best_score']:.1f}):** "{best_hook}"
 **Reasoning:** {hook_result['reasoning']}
 
-**All Hook Variants:**
-{hook_variants_text}
-
-**For Line 1:** Use the best hook above as your starting point. You may adapt it slightly to fit the story flow, but maintain its core psychological trigger ({all_hook_variants[0]['pattern']}).
-
-### YOUR TASK:
-Create a {num_images}-line story that teaches the audience something valuable about {strategy.topic}.
-
-The story must be:
-1. **Easy to Follow** - Each line builds logically on the previous one
-2. **Relevant** - Addresses a real situation the audience faces
-3. **Concrete** - Uses specific examples, not abstract concepts
-4. **Coherent** - The {num_images} lines together deliver ONE clear insight
+Use the best hook as your Scene 1 opening line.
 
 ### STORY FORMAT: {selected_format.upper()}
-**Why this format:** {format_reasoning}
-**Description:** {format_info['description']}
+**Why:** {format_reasoning}
+**Structure:** {' → '.join(format_info['structure'])}
 
-### STORY STRUCTURE ({' → '.join(format_structure)}):
+### YOUR TASK:
+Create a 3-5 scene cinematic story. Total 6-12 caption lines across all scenes.
+Target duration: 30-60 seconds (each line ~4-5 seconds on screen).
 
-{self._get_format_guidelines(selected_format, format_structure)}
+The story must:
+1. **Open with a hook** — the best hook above (Scene 1, Line 1)
+2. **Build logically** — each line follows naturally from the previous
+3. **Use concrete specifics** — real numbers from VERIFIED DATA, real scenarios
+4. **Stay focused** — every line serves the single core insight
+5. **End with action** — the LAST line tells the viewer exactly what to do today
+{currency_rule}
+### SCENE DESIGN RULES:
+- Group related narrative beats into the same scene (same location/setting)
+- Scene breaks = visual shift (new setting, new moment in time, new perspective)
+- 1 line per scene: for a single powerful statement
+- 2-3 lines per scene: when the setting carries multiple beats
+- Motion effect: pick what serves the emotional moment (see options below)
 
-### CAPTION REQUIREMENTS (8-14 words each):
-- Use clear, conversational language
-- Include specific numbers from VERIFIED DATA when available
-- Each line must answer: "What happens next in this story?"
-- Avoid abstract philosophical statements
-- Write like you're explaining to a friend over coffee
+### CAPTION RULES (8-14 words each):
+- Conversational language, like explaining to a friend over chai
+- Include specific numbers from VERIFIED DATA when relevant
+- No abstract philosophical statements
+- No jargon without immediate plain-language explanation
 
-### GOOD STORY EXAMPLES:
+### GOOD STORY EXAMPLE (contrast format):
 
-**Topic: Compound Interest**
-Line 1: "₹5,000 monthly SIP starting at age 25"
-Line 2: "By age 60, it becomes ₹2.3 crore"
-Line 3: "Start the same SIP at 35 instead"
-Line 4: "You end with ₹67 lakh. That's just 10 years."
+Scene 1 [zoom_in]:
+  - "Rohan kept ₹5,000/month in FD since age 25"
+  - "Safe, guaranteed, parent-approved"
+Scene 2 [pan_right]:
+  - "His cousin started a SIP in Nifty 50 instead"
+Scene 3 [zoom_out]:
+  - "At 60, Rohan: ₹42L. Cousin: ₹2.3 crore"
+  - "Same ₹5,000. Same 35 years. Very different ending."
+Scene 4 [zoom_in]:
+  - "Open Zerodha or Groww today. Start a ₹1,000 SIP. Scale up later."
 
-**Topic: Career Growth**
-Line 1: "You switched jobs 3 times in 5 years"
-Line 2: "Salary went from ₹8L to ₹22L"
-Line 3: "Your friend stayed at one company"
-Line 4: "Still at ₹12L after 5 years"
+### SD IMAGE PROMPT RULES:
+- NEVER feature hands as the main close-up subject (SD artifact nightmare)
+- NEVER ask SD to render screen content (dashboards, numbers on screen) — SD cannot do this
+- Instead: show the DEVICE/OBJECT in context (laptop on desk, phone on table, notebook open)
+- Specific person: "young Indian woman in navy kurta" or "young Indian man in grey t-shirt"
+- One recurring visual element across ALL scenes for continuity (same person OR same location)
+- Shot variety: vary between Extreme close-up / Close-up / Medium shot / Wide shot
 
-Notice: Concrete numbers, clear progression, relatable situations.
+### MOTION EFFECTS (pick one per scene):
+- **zoom_in**: Slow zoom in — builds tension, draws viewer in. Good for setups and reveals.
+- **zoom_out**: Slow zoom out — reveals full picture, sense of scale. Good for outcomes and comparisons.
+- **pan_left**: Slow pan left — movement through time or space. Good for transitions.
+- **pan_right**: Slow pan right — same. Good for contrasts.
+- **static**: No movement — weight and stillness. Good for punchline moments.
 
-### BAD EXAMPLES (DO NOT DO THIS):
-❌ "Your identity is a construct of perception"
-❌ "Success hides behind the mask of failure"
-❌ "The journey is the destination we never reach"
-→ Abstract, confusing, no concrete learning
-
-### VISUAL ANCHOR:
-Choose ONE concrete object/element that appears in ALL {num_images} images to create visual continuity.
-Examples: hands, a specific object (phone, notebook, wallet), same location
-
-### IMAGE PROMPT REQUIREMENTS:
-
-Each image must:
-1. **Feature the visual anchor** in different contexts
-2. **Support the story beat** - visually show what the caption describes
-3. **Be cinematically specific** - include shot type, lighting, mood
-
-**Format Template:**
-"[Shot type] of [visual anchor] [doing what], [lighting style], [emotional mood],
-35mm film grain, 9:16 portrait, photorealistic, NO text NO watermarks"
-
-**Shot Types:** Extreme close-up | Close-up | Medium shot | Wide shot
-**Lighting:** Soft natural light | Warm side light | Golden hour | Dramatic side light
-**Mood:** Hopeful | Contemplative | Tense | Relieved | Nostalgic
-
-**GOOD Image Prompt:**
-"Close-up of elderly hands holding worn bank passbook, warm soft side lighting,
-nostalgic mood, shallow depth, 35mm film grain, 9:16 portrait, NO text"
-
-**BAD Image Prompt:**
-"Person thinking about money" ❌ Generic, no specifics, no visual anchor
-
-### OUTPUT FORMAT (JSON):
+### OUTPUT FORMAT (JSON only):
 {{
-  "visual_anchor": "The one object/element appearing in all images (e.g., 'elderly hands', 'smartphone', 'notebook')",
-  "story_spine": "One sentence: what does this {num_images}-line story teach?",
-  "lines": [
-    "Line 1 - The concrete setup",
-    "Line 2 - The context or belief",
-    "Line 3 - The key insight or comparison",
-    "Line 4 - The takeaway"
-  ],
-  "image_prompts": [
-    "Close-up of [visual_anchor] in Context A, [lighting], [mood], 35mm film grain, 9:16 portrait, NO text",
-    "Medium shot of [visual_anchor] in Context B, [lighting], [mood], 35mm film grain, 9:16 portrait, NO text",
-    "Close-up of [visual_anchor] in Context C, [lighting], [mood], 35mm film grain, 9:16 portrait, NO text",
-    "Wide shot of [visual_anchor] in Context D, [lighting], [mood], 35mm film grain, 9:16 portrait, NO text"
+  "visual_anchor": "The ONE element appearing in all scene images for continuity",
+  "story_spine": "One sentence: what does this story teach?",
+  "scenes": [
+    {{
+      "lines": ["Line 1", "Line 2"],
+      "image_prompt": "Medium shot of [specific subject], [lighting], [mood], 35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos",
+      "motion": "zoom_in"
+    }},
+    {{
+      "lines": ["Line 3"],
+      "image_prompt": "Close-up of [specific subject], [lighting], [mood], 35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos",
+      "motion": "pan_right"
+    }}
   ]
 }}
 
 ### FINAL CHECKLIST:
-Before responding, verify:
-- [ ] Each line logically follows from the previous one
-- [ ] A new viewer can understand the story without prior context
-- [ ] You used specific numbers/examples from VERIFIED DATA
-- [ ] Visual anchor appears in all {num_images} image prompts
-- [ ] No abstract philosophical statements
-- [ ] Story teaches something concrete and actionable
+- [ ] Scene 1 Line 1 uses the best hook
+- [ ] Every line logically follows from the previous
+- [ ] Used specific numbers/facts from VERIFIED DATA
+- [ ] Last line tells viewer exactly what to do today
+- [ ] No screen-content image prompts (no "dashboard showing X" or "screen with numbers")
+- [ ] No hands close-up as main subject
+- [ ] 3-5 scenes, 6-12 total lines
+{f'- [ ] All monetary values in ₹/lakh/crore (NO $)' if is_india else ''}
 
-Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_prompts."""
+Respond with ONLY valid JSON."""
 
         response = self.generator._generate_text(prompt, system_prompt=system_prompt)
-        
-        # Log Prompts
+
         logger.info("Cinematic Script System Prompt: %s", system_prompt)
         logger.info("Cinematic Script User Prompt: %s", prompt)
         logger.debug("Cinematic Script Raw Response: %s", response)
 
-        data    = self.generator._parse_json_response(response)
-        lines   = data.get("lines", [])
-        prompts = data.get("image_prompts", [])
+        data = self.generator._parse_json_response(response)
+        scenes_raw = data.get("scenes", [])
         visual_anchor = data.get("visual_anchor", "subject")
-        story_spine   = data.get("story_spine", strategy.topic)
+        story_spine = data.get("story_spine", strategy.topic)
 
-        # Validate counts — raise immediately if wrong
-        if len(lines) != num_images or len(prompts) != num_images:
+        if not scenes_raw or len(scenes_raw) < 2:
             raise RuntimeError(
-                f"Script generation returned wrong counts (lines={len(lines)}, "
-                f"prompts={len(prompts)}, expected={num_images}). "
+                f"Script generation returned too few scenes ({len(scenes_raw)}). "
                 f"Raw response: {response[:300]}"
             )
 
-        # Enforce word count on captions
-        trimmed_lines = []
-        for line in lines:
-            words = str(line).split()
-            if len(words) > 16:
-                line = " ".join(words[:14]) + "..."
-            trimmed_lines.append(str(line))
+        # Validate and clean each scene
+        scenes = []
+        for i, s in enumerate(scenes_raw):
+            raw_lines = s.get("lines", [])
+            if not raw_lines:
+                raise RuntimeError(f"Scene {i+1} has no lines. Raw response: {response[:300]}")
 
-        # Append no-text instruction to every image prompt
-        clean_prompts = []
-        for p in prompts:
-            p = str(p)
-            if "no text" not in p.lower():
-                p += (
-                    ", cinematic noir, neo-realism, moody lighting, "
-                    "35mm film grain, 9:16 portrait, NO text NO watermarks"
-                )
-            clean_prompts.append(p)
+            # Trim lines to max 16 words
+            trimmed_lines = []
+            for line in raw_lines:
+                words = str(line).split()
+                if len(words) > 16:
+                    line = " ".join(words[:14]) + "..."
+                trimmed_lines.append(str(line))
 
-        # Log the final storyline
+            image_prompt = str(s.get("image_prompt", ""))
+            # Ensure no-text suffix
+            if "no text" not in image_prompt.lower():
+                image_prompt += ", 35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
+
+            motion = str(s.get("motion", "zoom_in")).lower()
+            if motion not in ("zoom_in", "zoom_out", "pan_left", "pan_right", "static"):
+                motion = "zoom_in"
+
+            scenes.append({
+                "lines": trimmed_lines,
+                "image_prompt": image_prompt,
+                "motion": motion,
+            })
+
+        # Log the full story
+        all_lines_flat = [l for sc in scenes for l in sc["lines"]]
         logger.info("=" * 60)
         logger.info("GENERATED CINEMATIC STORY:")
         logger.info("STORY SPINE: %s", story_spine)
         logger.info("VISUAL ANCHOR: %s", visual_anchor)
+        logger.info("SCENES: %d | TOTAL LINES: %d", len(scenes), len(all_lines_flat))
         logger.info("-" * 60)
-        for i, (l, p) in enumerate(zip(trimmed_lines, clean_prompts), 1):
-            logger.info("%d. CAPTION: %s", i, l)
-            logger.info("   IMAGE: %s...", p[:120])
+        for i, sc in enumerate(scenes, 1):
+            logger.info("SCENE %d [%s]:", i, sc["motion"])
+            for j, line in enumerate(sc["lines"], 1):
+                logger.info("  Line %d: %s", j, line)
+            logger.info("  IMAGE: %s...", sc["image_prompt"][:120])
             logger.info("")
         logger.info("=" * 60)
 
-        # Validate story coherence (warnings only)
-        self._validate_story_coherence(trimmed_lines, story_spine)
+        # Validate story coherence (warnings only, using flat lines)
+        self._validate_story_coherence(all_lines_flat, story_spine)
 
-        # Validate data usage — CASE_STUDY only checks the final lesson line
-        self._validate_data_usage(
-            trimmed_lines, research_numbers, strategy.verified_data, selected_format
-        )
+        # Validate data usage
+        self._validate_data_usage(all_lines_flat, research_numbers, strategy.verified_data, selected_format)
 
-        return trimmed_lines, clean_prompts
+        return scenes
 
     # ------------------------------------------------------------------
     # SD Prompt Refinement
@@ -1789,27 +1830,21 @@ Respond with ONLY valid JSON. Exactly {num_images} lines and {num_images} image_
 
     def _refine_sd_prompts(
         self,
-        lines: List[str],
-        initial_prompts: List[str],
+        scenes: List[dict],
         strategy: ContentStrategy,
-        num_images: int,
-    ) -> List[str]:
+    ) -> List[dict]:
         """
         Dedicated AI call to rewrite image prompts for Stable Diffusion quality.
-
-        The story-generation LLM doesn't know SD constraints. This call has
-        full SD domain knowledge baked in. Falls back to initial_prompts on
-        any failure so the run is never blocked by this step.
-
-        Key rules enforced:
-        - NEVER use hands/fingers as the main close-up subject (SD artifact hell)
-        - Specific concrete subjects, not vague "person thinking about money"
-        - Vary shot types across slides for visual interest
-        - One recurring visual element for continuity
-        - Required suffix on every prompt
+        Updates scenes in-place (image_prompt field). Falls back to original prompts on failure.
         """
-        lines_text    = "\n".join(f"{i+1}. {l}" for i, l in enumerate(lines))
-        initial_text  = "\n".join(f"{i+1}. {p}" for i, p in enumerate(initial_prompts))
+        num_scenes = len(scenes)
+        initial_prompts = [sc["image_prompt"] for sc in scenes]
+
+        lines_text = "\n".join(
+            f"Scene {i+1} ({scenes[i]['motion']}): {' | '.join(scenes[i]['lines'])}"
+            for i in range(num_scenes)
+        )
+        initial_text = "\n".join(f"{i+1}. {p}" for i, p in enumerate(initial_prompts))
 
         system_prompt = """You are an expert Stable Diffusion prompt engineer for cinematic 9:16 portrait reels.
 You know exactly what SD renders well versus what triggers artifacts.
@@ -1822,66 +1857,68 @@ SD RENDERS WELL — USE THESE:
 
 SD RENDERS POORLY — NEVER USE THESE:
 • Hands as the MAIN CLOSE-UP SUBJECT → always fused fingers, extra limbs, anatomical nightmare
-• "Analyzing data" with no specific physical object anchor
+• Screens showing readable content (analytics, spreadsheets, dashboards) → SD renders blank/blurry screens
 • Multiple people interacting at close range
-• Text, numbers, or financial charts IN the image itself
+• Text, numbers, or charts IN the image
 
-SHOT VARIETY (must vary across images):
+SHOT VARIETY (vary across scenes):
 • Extreme close-up: single object macro, face expression detail
 • Close-up: face + shoulders, object lying on a surface
 • Medium shot: person waist-up in their environment
 • Wide shot: full room/environment, person small in frame
 
-END EVERY PROMPT WITH THIS EXACT SUFFIX:
+END EVERY PROMPT WITH:
 "35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
 
 GOOD EXAMPLES:
 "Medium shot of young Indian man in grey t-shirt at wooden desk with open laptop, warm desk lamp, contemplative expression, shallow depth of field, 35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
 
-"Extreme close-up of smartphone screen showing investment app lying on wooden surface, golden hour side light, shallow bokeh background, 35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
+"Close-up of smartphone face-down on wooden table beside open notebook and pen, golden hour side light, 35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
 
-BAD EXAMPLES (DO NOT USE):
+BAD EXAMPLES:
 "Close-up of hands analyzing financial data" - hands close-up = artifact disaster
-"Person thinking about money" - too vague, SD will hallucinate
-"Hands holding financial documents with numbers" - hands again"""
+"Laptop screen showing analytics dashboard" - SD cannot render readable screens"""
 
-        prompt = f"""Rewrite these {num_images} image prompts for Stable Diffusion.
+        prompt = f"""Rewrite these {num_scenes} scene image prompts for Stable Diffusion.
 Story topic: {strategy.topic}
 
-STORY CAPTIONS (each image must visually support its caption):
+STORY CAPTIONS BY SCENE:
 {lines_text}
 
 INITIAL PROMPTS (rewrite to fix SD issues):
 {initial_text}
 
 REQUIREMENTS:
-1. Specific concrete subject — not "person thinking" but "young Indian woman in navy kurta at wooden desk"
+1. Specific concrete subject per scene
 2. NEVER use hands as the main close-up subject
-3. Vary shot types — avoid repeating the same shot type more than once
-4. Visual continuity: ONE recurring element across all {num_images} images (same person OR same location OR same key object)
-5. End every prompt with: "35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
+3. NEVER ask for screen content (no "dashboard showing X", no "spreadsheet with numbers")
+4. Vary shot types across scenes — no two scenes with same shot type if possible
+5. One recurring visual element (same person OR same location) for continuity
+6. End every prompt with: "35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
 
 Return JSON:
 {{"refined_prompts": ["full prompt 1", "full prompt 2", ...]}}
 
-Exactly {num_images} prompts. JSON only."""
+Exactly {num_scenes} prompts. JSON only."""
 
         try:
             response = self.generator._generate_text(prompt, system_prompt=system_prompt)
-            data     = self.generator._parse_json_response(response)
-            refined  = data.get("refined_prompts", [])
+            data = self.generator._parse_json_response(response)
+            refined = data.get("refined_prompts", [])
 
-            if len(refined) == num_images:
+            if len(refined) == num_scenes:
                 logger.info("=" * 60)
                 logger.info("SD PROMPTS REFINED:")
                 for i, p in enumerate(refined, 1):
                     logger.info("%d. %s", i, p[:130])
                 logger.info("=" * 60)
-                return refined
+                for i, p in enumerate(refined):
+                    scenes[i]["image_prompt"] = p
+                return scenes
 
             logger.warning(
                 "SD prompt refinement returned wrong count (%d vs %d) — falling back to initial prompts",
-                len(refined), num_images,
+                len(refined), num_scenes,
             )
         except Exception as e:
             logger.warning(
@@ -1890,10 +1927,10 @@ Exactly {num_images} prompts. JSON only."""
                 e,
                 "\n".join(f"  {i+1}. {p}" for i, p in enumerate(initial_prompts)),
             )
-            return initial_prompts
+            return scenes
 
         logger.warning(
             "Falling back to initial prompts:\n%s",
             "\n".join(f"  {i+1}. {p}" for i, p in enumerate(initial_prompts)),
         )
-        return initial_prompts
+        return scenes
