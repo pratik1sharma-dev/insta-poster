@@ -2121,6 +2121,7 @@ SHOT VARIETY (vary across scenes):
 
 END EVERY PROMPT WITH:
 "35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
+"""
 
         prompt = f"""Rewrite these {num_scenes} scene image prompts for Stable Diffusion.
 Story topic: {strategy.topic}
