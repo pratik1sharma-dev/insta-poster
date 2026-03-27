@@ -1337,7 +1337,7 @@ Scene 3 [zoom_out]:
   - "At 60, Rohan: ₹42L. Cousin: ₹2.3 crore"
   - "Same ₹5,000. Same 35 years. Very different ending."
 Scene 4 [zoom_in]:
-  - "Open Zerodha or Groww today. Start a ₹1,000 SIP. Scale up later."
+  - "Start a ₹500 SIP in Nifty 50 this week — increase it ₹500 every 6 months."
 """
 
     # ------------------------------------------------------------------
@@ -1882,11 +1882,17 @@ NOT: "Balance is the key to everything"
 
         story_example = self._get_story_example_for_channel(channel_config)
 
+        # Trim research to ~1500 chars to stay within model TPM limits
+        _MAX_RESEARCH_CHARS = 1500
+        research_text = (strategy.verified_data or "")
+        if len(research_text) > _MAX_RESEARCH_CHARS:
+            research_text = research_text[:_MAX_RESEARCH_CHARS] + "…[truncated]"
+
         prompt = f"""### TOPIC: {strategy.topic}
 ### CORE ANGLE: {strategy.angle}
 ### TARGET AUDIENCE: {channel_config.target_audience}
 ### AUDIENCE INSIGHT: {strategy.target_audience_insight}
-{f'### VERIFIED DATA (USE THESE FACTS): {strategy.verified_data}' if strategy.verified_data else ''}
+{f'### VERIFIED DATA (USE THESE FACTS): {research_text}' if research_text else ''}
 
 ### HOOK OPTIMIZATION:
 **BEST HOOK (Score: {hook_result['best_score']:.1f}):** "{best_hook}"
