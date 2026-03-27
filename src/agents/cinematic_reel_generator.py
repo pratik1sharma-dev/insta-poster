@@ -1831,11 +1831,17 @@ Respond with ONLY valid JSON."""
             logger.info("")
         logger.info("=" * 60)
 
-        # Enforce minimum lines (too few = reel too short / story incomplete)
-        if len(all_lines_flat) < 6:
+        # Enforce minimum lines — hard fail only if truly too sparse (< 4 lines)
+        # 5 lines at 4-5s each = ~25s reel, which is acceptable
+        if len(all_lines_flat) < 4:
             raise RuntimeError(
-                f"Story has only {len(all_lines_flat)} lines (minimum 6 required for a 30-60s reel). "
-                f"Prompt returned too few lines. Raw response: {response[:300]}"
+                f"Story has only {len(all_lines_flat)} lines (minimum 4 required). "
+                f"Raw response: {response[:300]}"
+            )
+        if len(all_lines_flat) < 6:
+            logger.warning(
+                "Story has %d lines (recommended 6+). Reel will be ~%ds — acceptable but short.",
+                len(all_lines_flat), len(all_lines_flat) * 5
             )
 
         # Validate story coherence (warnings only, using flat lines)
