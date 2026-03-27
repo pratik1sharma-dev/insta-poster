@@ -1041,17 +1041,6 @@ Be strict but fair. If the image is acceptable for social media, scores should b
     # Story Validation
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _extract_numeric_value(num_str: str) -> Optional[float]:
-        """Extract a plain float from a financial number string like '12%', '12.0%', '₹10 lakh'."""
-        import re
-        clean = re.sub(r'[₹$,\s]', '', num_str)
-        clean = re.sub(r'(?:crore|lakh|million|billion|percent|%)', '', clean, flags=re.IGNORECASE)
-        try:
-            return float(clean)
-        except ValueError:
-            return None
-
     def _validate_data_usage(
         self,
         generated_lines: List[str],
@@ -1060,76 +1049,32 @@ Be strict but fair. If the image is acceptable for social media, scores should b
         story_format: str = "contrast",
     ) -> None:
         """
-        Soft-validate that story numbers are grounded in research.
+        Transparency log: show what numbers the story used alongside the research.
 
-        Matching strategy (in order):
-        1. Exact substring match after stripping commas
-        2. Numeric value match within ±1% relative tolerance
-           — handles '12%' vs '12.0%', computed/rounded values
+        Regex matching cannot reliably catch semantic fabrications (inverted values,
+        derived percentages from absolutes, etc.) and produces too many false positives
+        on legitimate values (statutory rates, rounded equivalents, illustrative examples).
 
-        Unverified numbers are WARNED, not hard-failed:
-        - Hard errors caused more false positives than caught fabrications
-          (statutory rates, derived values, equivalent representations all fail
-          naive string matching but are legitimate)
-        - Log the warning so authors can spot-check the output
+        The LLM prompt is the primary defence ("use ONLY numbers from VERIFIED DATA").
+        This method just logs what was used so a human can spot-check before publishing.
         """
         import re
 
-        # CASE_STUDY: scenario lines use illustrative numbers by design.
-        # Only check the final lesson/takeaway line.
-        if story_format == "case_study" and len(generated_lines) > 1:
-            lines_to_check = generated_lines[-1:]
-            logger.info(
-                "CASE_STUDY format: validating only final lesson line (scenario lines use illustrative numbers)"
-            )
-        else:
-            lines_to_check = generated_lines
-
-        story_numbers = []
-        for line in lines_to_check:
-            # Extract numbers that have financial units attached — bare years/counts are OK
-            story_numbers.extend(
+        all_story_numbers = []
+        for line in generated_lines:
+            all_story_numbers.extend(
                 re.findall(r'[\d,\.]+\s*(?:crore|lakh|million|billion|%|₹|\$)', line)
             )
 
-        if not story_numbers:
-            logger.info("✓ No verifiable numbers in checked lines")
+        if not all_story_numbers:
+            logger.info("✓ Story contains no financial figures")
             return
 
-        # Pre-compute numeric values of research numbers for fuzzy matching
-        research_numeric = [
-            v for v in (self._extract_numeric_value(r) for r in research_numbers)
-            if v is not None
-        ]
-
-        unverified = []
-        for num in story_numbers:
-            # Pass 1: exact substring match (strips commas for formatting variants)
-            normalized = num.replace(',', '').strip()
-            if any(normalized in r.replace(',', '') for r in research_numbers):
-                continue
-
-            # Pass 2: numeric proximity match (handles 12% vs 12.0%, derived values)
-            val = self._extract_numeric_value(num)
-            if val is not None and research_numeric:
-                tolerance = max(0.1, abs(val) * 0.01)  # 1% relative or 0.1 absolute
-                if any(abs(val - rv) <= tolerance for rv in research_numeric):
-                    continue
-
-            unverified.append(num)
-
-        if unverified:
-            logger.warning("=" * 60)
-            logger.warning("DATA INTEGRITY ADVISORY")
-            logger.warning("Numbers not found in research data: %s", unverified)
-            logger.warning(
-                "These may be statutory values, derived computations, or hallucinations — "
-                "review the story before publishing."
-            )
-            logger.warning(verified_data[:500])
-            logger.warning("=" * 60)
-        else:
-            logger.info("✓ All numbers verified against research data")
+        logger.info("=" * 60)
+        logger.info("STORY NUMBERS USED (spot-check against research):")
+        logger.info("  Story used: %s", all_story_numbers)
+        logger.info("  Research had: %s", research_numbers[:15])
+        logger.info("=" * 60)
 
     def _validate_story_coherence(self, lines: List[str], story_spine: str) -> None:
         """Basic validation to check if story makes sense."""
