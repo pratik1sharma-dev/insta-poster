@@ -738,7 +738,8 @@ Be strict but fair. If the image is acceptable for social media, scores should b
         escaped_text = text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:')
 
         # Manual text wrapping
-        wrapped_lines = textwrap.wrap(text, width=28)
+        # width=24 at fontsize=56: 24 chars × ~30px = 720px + 80px padding = 800px (safe within 1080px)
+        wrapped_lines = textwrap.wrap(text, width=24)
         wrapped_text = "\n".join(wrapped_lines)
         # Replace actual newlines with FFmpeg drawtext escape sequence (\n = two chars)
         escaped_wrapped = wrapped_text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:').replace('\n', '\\n')
@@ -754,10 +755,10 @@ Be strict but fair. If the image is acceptable for social media, scores should b
 
         # Base text style (common to all)
         base_style = (
-            f"fontcolor=white:fontsize=72:"
+            f"fontcolor=white:fontsize=56:"
             f"x=(w-text_w)/2:y=(h-text_h)/2+200:"
-            f"box=1:boxcolor=black@0.5:boxborderw=40:"
-            f"line_spacing=15:fix_bounds=1"
+            f"box=1:boxcolor=black@0.5:boxborderw=30:"
+            f"line_spacing=12:fix_bounds=1"
         )
 
         if style == 'hook':
@@ -798,10 +799,10 @@ Be strict but fair. If the image is acceptable for social media, scores should b
             filter_str = (
                 f"drawtext=text='{escaped_wrapped}':"
                 f"fontcolor=white:"
-                f"fontsize='72*if(lt(t,{scale_duration}),1+{max_scale-1}*(1-t/{scale_duration}),1)':"
+                f"fontsize='56*if(lt(t,{scale_duration}),1+{max_scale-1}*(1-t/{scale_duration}),1)':"
                 f"x=(w-text_w)/2:y=(h-text_h)/2+200:"
-                f"box=1:boxcolor=black@0.5:boxborderw=40:"
-                f"line_spacing=15:fix_bounds=1:"
+                f"box=1:boxcolor=black@0.5:boxborderw=30:"
+                f"line_spacing=12:fix_bounds=1:"
                 f"alpha='if(lt(t,0.2),t/0.2,1)'"
             )
             return filter_str
@@ -940,13 +941,13 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                     logger.info("[Clip %d] Scene %d, motion=%s, style=%s", clip_number, scene_idx+1, motion, text_style)
                     drawtext_filter = self._create_kinetic_text_overlay(text, text_style, slide_dur, clip_number, total_lines)
                 else:
-                    wrapped_lines = textwrap.wrap(text, width=28)
+                    wrapped_lines = textwrap.wrap(text, width=24)
                     wrapped_text = "\n".join(wrapped_lines)
-                    escaped_text = wrapped_text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:')
+                    escaped_text = wrapped_text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:').replace('\n', '\\n')
                     drawtext_filter = (
-                        f"drawtext=text='{escaped_text}':fontcolor=white:fontsize=72:"
-                        f"x=(w-text_w)/2:y=(h-text_h)/2+200:box=1:boxcolor=black@0.5:boxborderw=40:"
-                        f"line_spacing=15:fix_bounds=1"
+                        f"drawtext=text='{escaped_text}':fontcolor=white:fontsize=56:"
+                        f"x=(w-text_w)/2:y=(h-text_h)/2+200:box=1:boxcolor=black@0.5:boxborderw=30:"
+                        f"line_spacing=12:fix_bounds=1"
                     )
 
                 # Build FFmpeg command
