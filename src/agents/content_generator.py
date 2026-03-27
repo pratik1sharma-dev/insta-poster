@@ -447,7 +447,7 @@ Requirements:
 6. No hashtags.
 7. Conversational and opinionated — not corporate.
 
-Write only the caption text. No JSON."""
+Write only the caption text. No JSON. No "Here's the caption:" prefix. No explanations of why it works."""
 
         self._save_debug_file(
             raw_output_dir, "caption_PROMPT.txt",
@@ -455,7 +455,25 @@ Write only the caption text. No JSON."""
         )
         response = self._generate_text(prompt, system_prompt=system_prompt)
         self._save_debug_file(raw_output_dir, "caption.txt", response)
-        return response.strip()
+        return self._clean_caption(response)
+
+    def _clean_caption(self, raw: str) -> str:
+        """Strip LLM preamble and reasoning blocks from caption output."""
+        import re
+        text = raw.strip()
+
+        # Remove common preamble prefixes (case-insensitive, greedy to first newline)
+        text = re.sub(
+            r'^(?:here\'?s? (?:the |your )?caption[:\s]*|caption[:\s]+|here you go[:\s]*)',
+            '', text, flags=re.IGNORECASE
+        ).strip().strip('"').strip()
+
+        # Remove trailing LLM reasoning blocks: "---", "**Why it works:**", "(Slides show..."
+        # Everything from first "---" separator or "**Why" onward is meta-commentary
+        for pattern in [r'\n---+.*', r'\n\*\*Why.*', r'\n\(Slides.*', r'\n\*Slides.*']:
+            text = re.sub(pattern, '', text, flags=re.DOTALL)
+
+        return text.strip()
 
     # ------------------------------------------------------------------
     # Hashtags

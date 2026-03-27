@@ -133,6 +133,8 @@ class CinematicReelGenerator:
             visual_anchor = self._extract_visual_anchor(prompt)
             max_attempts = 2
             path = None
+            best_path = None
+            best_score = -1
 
             for attempt in range(1, max_attempts + 1):
                 try:
@@ -162,6 +164,11 @@ class CinematicReelGenerator:
                             i, len(scenes), ', '.join(validation['issues'])
                         )
 
+                    # Track best attempt — retry can produce worse results
+                    if validation['quality_score'] > best_score:
+                        best_score = validation['quality_score']
+                        best_path = path
+
                     if validation['regenerate'] and attempt < max_attempts:
                         logger.warning(
                             "[Cinematic Image %d/%d] Quality insufficient (score: %d). Regenerating (attempt %d/%d)...",
@@ -172,26 +179,21 @@ class CinematicReelGenerator:
                         prompt = refined_prompt
                         continue
 
-                    if validation['quality_score'] < 70:
-                        logger.warning(
-                            "[Cinematic Image %d/%d] Using image with quality score %d (below threshold)",
-                            i, len(scenes), validation['quality_score']
-                        )
-                    else:
-                        logger.info(
-                            "[Cinematic Image %d/%d] Quality validated (score: %d)",
-                            i, len(scenes), validation['quality_score']
-                        )
-
-                    scene["image_path"] = path
                     break
 
                 except Exception as e:
                     logger.error("[Cinematic Image %d/%d] Attempt %d failed: %s", i, len(scenes), attempt, e)
-                    if attempt == max_attempts:
+                    if attempt == max_attempts and best_path is None:
                         raise RuntimeError(
                             f"Image {i}/{len(scenes)} failed after {max_attempts} attempts: {e}"
                         )
+
+            # Use best attempt, not necessarily last
+            scene["image_path"] = best_path or path
+            if best_score < 70:
+                logger.warning("[Cinematic Image %d/%d] Using best available image (score: %d)", i, len(scenes), best_score)
+            else:
+                logger.info("[Cinematic Image %d/%d] Quality validated (score: %d)", i, len(scenes), best_score)
 
         return scenes
 
@@ -915,7 +917,7 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                         text_style = 'hook'
                     elif is_last_clip:
                         text_style = 'insight'
-                    elif any(char.isdigit() for char in text):
+                    elif self._is_punchline_number(text):
                         text_style = 'number'
                     else:
                         text_style = 'main'
@@ -966,6 +968,18 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                 audio_index += 1
 
         return clip_paths
+
+    def _is_punchline_number(self, text: str) -> bool:
+        """
+        Return True only when a BIG financial figure is the primary point of the line.
+        Avoids 'number' zoom style on narrative lines that merely mention a year or ID.
+        Triggers on: ₹ amounts, lakh/crore, percentages, or a standalone 5+ digit number.
+        """
+        import re
+        return bool(re.search(
+            r'(₹\s*[\d,]+|[\d,]+\s*(lakh|crore|%|percent)|\b\d{5,}\b)',
+            text, re.IGNORECASE
+        ))
 
     def _get_duration(self, path: Path) -> float:
         cmd = [
