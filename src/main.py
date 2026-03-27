@@ -2,6 +2,7 @@
 Main orchestrator for the content generation pipeline.
 """
 import argparse
+import re
 import sys
 from datetime import datetime
 from typing import Optional
@@ -105,8 +106,7 @@ Angle: {strategy.angle}
             except Exception:
                 pass
 
-            import re as _re
-            if _re.search(r'^VERDICT:\s*INVALID\s*$', validation_result, _re.MULTILINE | _re.IGNORECASE):
+            if re.search(r'^VERDICT:\s*INVALID\s*$', validation_result, re.MULTILINE | re.IGNORECASE):
                 raise ValueError(
                     f"Aborting: failed validation: {validation_result[:200]}"
                 )
