@@ -734,15 +734,34 @@ Be strict but fair. If the image is acceptable for social media, scores should b
             - number: Scale + emphasis (zoom in slightly)
             - insight: Word-by-word reveal with pause
         """
-        # Escape text for FFmpeg
-        escaped_text = text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:')
+        # Wrap text into lines — width=24 chars at fontsize=56 fits safely in 1080px
+        wrapped_lines = textwrap.wrap(text, width=24) or [text]
 
-        # Manual text wrapping
-        # width=24 at fontsize=56: 24 chars × ~30px = 720px + 80px padding = 800px (safe within 1080px)
-        wrapped_lines = textwrap.wrap(text, width=24)
-        wrapped_text = "\n".join(wrapped_lines)
-        # Replace actual newlines with FFmpeg drawtext escape sequence (\n = two chars)
-        escaped_wrapped = wrapped_text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:').replace('\n', '\\n')
+        FONTSIZE = 56
+        LINE_HEIGHT = int(FONTSIZE * 1.25)  # ~70px per line
+        LINE_GAP = 12
+        BORDER = 30
+
+        def _escape(s: str) -> str:
+            return s.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:')
+
+        def _build_stacked(lines: list, alpha_expr: str, x_expr: str = "(w-text_w)/2") -> str:
+            """Build one drawtext filter per line, vertically centered as a block."""
+            total_h = len(lines) * LINE_HEIGHT + (len(lines) - 1) * LINE_GAP
+            # Position block in lower-center (offset +200 from true center)
+            block_top = f"(h-{total_h})/2+200"
+            parts = []
+            for i, ln in enumerate(lines):
+                y = f"({block_top})+{i * (LINE_HEIGHT + LINE_GAP)}"
+                parts.append(
+                    f"drawtext=text='{_escape(ln)}':"
+                    f"fontcolor=white:fontsize={FONTSIZE}:"
+                    f"x={x_expr}:y={y}:"
+                    f"box=1:boxcolor=black@0.5:boxborderw={BORDER}:"
+                    f"fix_bounds=1:"
+                    f"alpha='{alpha_expr}'"
+                )
+            return ",".join(parts)
 
         # Animation speed configuration
         speed_multipliers = {
@@ -753,83 +772,45 @@ Be strict but fair. If the image is acceptable for social media, scores should b
         speed = getattr(settings, "cinematic_animation_speed", "medium")
         multiplier = speed_multipliers.get(speed, 1.0)
 
-        # Base text style (common to all)
-        base_style = (
-            f"fontcolor=white:fontsize=56:"
-            f"x=(w-text_w)/2:y=(h-text_h)/2+200:"
-            f"box=1:boxcolor=black@0.5:boxborderw=30:"
-            f"line_spacing=12:fix_bounds=1"
-        )
-
         if style == 'hook':
-            # Typewriter effect - words appear sequentially
-            # Calculate timing
-            words = text.split()
-            word_count = len(words)
-            reveal_duration = min(duration * 0.6, 2.0 * multiplier)  # 60% of duration or 2s max
-
-            # Fade in gradually with enable expression
-            # Words appear over time using alpha fade
-            filter_str = (
-                f"drawtext=text='{escaped_wrapped}':"
-                f"{base_style}:"
-                f"alpha='if(lt(t,{reveal_duration}),t/{reveal_duration},1)'"
-            )
-            return filter_str
+            reveal_duration = min(duration * 0.6, 2.0 * multiplier)
+            return _build_stacked(wrapped_lines, f"if(lt(t,{reveal_duration}),t/{reveal_duration},1)")
 
         elif style == 'main':
-            # Fade + slide from left
             fade_duration = 0.5 * multiplier
             slide_distance = 50
-
-            filter_str = (
-                f"drawtext=text='{escaped_wrapped}':"
-                f"{base_style}:"
-                f"x='if(lt(t,{fade_duration}),(w-text_w)/2-{slide_distance}*(1-t/{fade_duration}),(w-text_w)/2)':"
-                f"alpha='if(lt(t,{fade_duration}),t/{fade_duration},1)'"
-            )
-            return filter_str
+            x_expr = f"if(lt(t,{fade_duration}),(w-text_w)/2-{slide_distance}*(1-t/{fade_duration}),(w-text_w)/2)"
+            return _build_stacked(wrapped_lines, f"if(lt(t,{fade_duration}),t/{fade_duration},1)", x_expr)
 
         elif style == 'number':
-            # Scale + emphasis (zoom in slightly with bounce)
+            # Numbers are usually one short line; scale effect on fontsize
             scale_duration = 0.4 * multiplier
             max_scale = 1.15
-
-            # Scale from max_scale down to 1.0 with bounce effect
-            filter_str = (
-                f"drawtext=text='{escaped_wrapped}':"
-                f"fontcolor=white:"
-                f"fontsize='56*if(lt(t,{scale_duration}),1+{max_scale-1}*(1-t/{scale_duration}),1)':"
-                f"x=(w-text_w)/2:y=(h-text_h)/2+200:"
-                f"box=1:boxcolor=black@0.5:boxborderw=30:"
-                f"line_spacing=12:fix_bounds=1:"
-                f"alpha='if(lt(t,0.2),t/0.2,1)'"
-            )
-            return filter_str
+            total_h = len(wrapped_lines) * LINE_HEIGHT + (len(wrapped_lines) - 1) * LINE_GAP
+            block_top = f"(h-{total_h})/2+200"
+            parts = []
+            for i, ln in enumerate(wrapped_lines):
+                y = f"({block_top})+{i * (LINE_HEIGHT + LINE_GAP)}"
+                parts.append(
+                    f"drawtext=text='{_escape(ln)}':"
+                    f"fontcolor=white:"
+                    f"fontsize='{FONTSIZE}*if(lt(t,{scale_duration}),1+{max_scale-1}*(1-t/{scale_duration}),1)':"
+                    f"x=(w-text_w)/2:y={y}:"
+                    f"box=1:boxcolor=black@0.5:boxborderw={BORDER}:"
+                    f"fix_bounds=1:"
+                    f"alpha='if(lt(t,0.2),t/0.2,1)'"
+                )
+            return ",".join(parts)
 
         elif style == 'insight':
-            # Word-by-word reveal with slight pause
-            words = text.split()
-            word_count = len(words)
             reveal_duration = min(duration * 0.7, 2.5 * multiplier)
-
-            # Similar to hook but slower, more deliberate
-            filter_str = (
-                f"drawtext=text='{escaped_wrapped}':"
-                f"{base_style}:"
-                f"alpha='if(lt(t,{reveal_duration}),t/{reveal_duration},1)'"
-            )
-            return filter_str
+            return _build_stacked(wrapped_lines, f"if(lt(t,{reveal_duration}),t/{reveal_duration},1)")
 
         else:
             # Default: simple fade in
             fade_duration = 0.3 * multiplier
-            filter_str = (
-                f"drawtext=text='{escaped_wrapped}':"
-                f"{base_style}:"
-                f"alpha='if(lt(t,{fade_duration}),t/{fade_duration},1)'"
-            )
-            return filter_str
+            return _build_stacked(wrapped_lines, f"if(lt(t,{fade_duration}),t/{fade_duration},1)")
+
 
     # ------------------------------------------------------------------
     # Video Building
@@ -941,14 +922,8 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                     logger.info("[Clip %d] Scene %d, motion=%s, style=%s", clip_number, scene_idx+1, motion, text_style)
                     drawtext_filter = self._create_kinetic_text_overlay(text, text_style, slide_dur, clip_number, total_lines)
                 else:
-                    wrapped_lines = textwrap.wrap(text, width=24)
-                    wrapped_text = "\n".join(wrapped_lines)
-                    escaped_text = wrapped_text.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:').replace('\n', '\\n')
-                    drawtext_filter = (
-                        f"drawtext=text='{escaped_text}':fontcolor=white:fontsize=56:"
-                        f"x=(w-text_w)/2:y=(h-text_h)/2+200:box=1:boxcolor=black@0.5:boxborderw=30:"
-                        f"line_spacing=12:fix_bounds=1"
-                    )
+                    # Animation disabled — use same stacked-drawtext approach for consistent wrapping
+                    drawtext_filter = self._create_kinetic_text_overlay(text, 'hook', slide_dur, clip_number, total_lines)
 
                 # Build FFmpeg command
                 if audio_paths and audio_index < len(audio_paths):
@@ -1791,13 +1766,24 @@ Respond with ONLY valid JSON."""
             if not raw_lines:
                 raise RuntimeError(f"Scene {i+1} has no lines. Raw response: {response[:300]}")
 
-            # Trim lines to max 16 words
+            # Trim lines to max 16 words; strip common LLM preamble prefixes
+            _CAPTION_PREFIXES = (
+                "here's the caption text:", "here's the caption:", "caption text:",
+                "caption:", "text:", "line:", "slide:", "here's the text:",
+            )
             trimmed_lines = []
             for line in raw_lines:
-                words = str(line).split()
+                line = str(line).strip()
+                lower = line.lower()
+                for prefix in _CAPTION_PREFIXES:
+                    if lower.startswith(prefix):
+                        line = line[len(prefix):].strip()
+                        break
+                words = line.split()
                 if len(words) > 16:
                     line = " ".join(words[:14]) + "..."
-                trimmed_lines.append(str(line))
+                if line:
+                    trimmed_lines.append(line)
 
             image_prompt = str(s.get("image_prompt", ""))
             # Ensure no-text suffix
