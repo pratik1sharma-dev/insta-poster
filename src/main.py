@@ -92,8 +92,10 @@ Angle: {strategy.angle}
 
 ### TASK:
 1. List the top 2 factual claims this post will make.
-2. Verify them.
-3. Respond "VALID" or "INVALID".
+2. Verify each one briefly.
+3. End your response with EXACTLY one of these two lines (nothing else on that line):
+   VERDICT: VALID
+   VERDICT: INVALID
 """
             validation_result = self.generator._generate_text(validation_prompt)
 
@@ -103,7 +105,8 @@ Angle: {strategy.angle}
             except Exception:
                 pass
 
-            if "INVALID" in validation_result.upper():
+            import re as _re
+            if _re.search(r'^VERDICT:\s*INVALID\s*$', validation_result, _re.MULTILINE | _re.IGNORECASE):
                 raise ValueError(
                     f"Aborting: failed validation: {validation_result[:200]}"
                 )
