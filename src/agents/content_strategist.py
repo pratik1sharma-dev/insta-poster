@@ -120,35 +120,42 @@ class ContentStrategist:
                 raise e
         return ""
 
-    def _generate_search_queries(self, topic: str, theme: str) -> List[str]:
+    def _generate_search_queries(self, topic: str, theme: str, localization: str = "global") -> List[str]:
         """Ask the LLM to generate optimal search queries for this topic."""
         from datetime import datetime
         current_date = datetime.now().strftime("%B %Y")
-        
-        prompt = f"""You are a research assistant. 
+
+        geo_hint = (
+            "These queries are for an INDIA-focused channel. Always include 'India' in each query "
+            "and use Indian financial terms (SEBI, NIFTY, RBI, Budget, crore, lakh) where relevant."
+            if localization.lower() == "india"
+            else "These queries are for a global audience."
+        )
+
+        prompt = f"""You are a research assistant.
 Today's Date: {current_date}
 Topic: "{topic}"
 Channel Theme: "{theme}"
+Geography: {geo_hint}
 
 Generate 3 specific search queries to find the most up-to-date, verifiable data and reports for this topic.
-Focus on finding the latest available figures relative to today's date. 
+Focus on finding the latest available figures relative to today's date.
 If the topic is historical, focus on that specific era.
 
 Respond with ONLY a comma-separated list of the 3 queries.
 """
         response = self._generate_text(prompt)
-        # Parse comma-separated list
         queries = [q.strip().strip('"') for q in response.split(',')]
         return queries[:3]
 
-    def _research_topic(self, topic: str, theme: str) -> str:
+    def _research_topic(self, topic: str, theme: str, localization: str = "global") -> str:
         """Search for real-world data about the topic using AI-generated queries."""
         if not settings.tavily_api_key:
             return ""
 
         try:
             client = TavilyClient(api_key=settings.tavily_api_key)
-            queries = self._generate_search_queries(topic, theme)
+            queries = self._generate_search_queries(topic, theme, localization)
 
             research_context = "### REAL-WORLD RESEARCH DATA:\n"
             i = 1
@@ -316,7 +323,8 @@ Respond with ONLY formatted list starting with "VERIFIED DATA POINTS:"
             topic = random.choice(channel_config.curated_topics)
 
         # 2. Dynamic Research Step
-        raw_research = self._research_topic(topic, channel_config.theme)
+        localization = getattr(channel_config, 'localization_type', 'global')
+        raw_research = self._research_topic(topic, channel_config.theme, localization)
         
         # 3. Research Synthesis (NEW)
         research_data = self._synthesize_research(raw_research, topic)

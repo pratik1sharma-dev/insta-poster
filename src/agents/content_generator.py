@@ -260,12 +260,10 @@ class ContentGenerator:
             persona_line = f"- Character Persona: {strategy.character_persona}\n"
 
         return f"""### GROUND RULES (NON-NEGOTIABLE):
-1. Every number must come ONLY from the VERIFIED DATA block below.
-2. If you cannot verify a figure, write the insight without a number.
-3. Appending a source label to an unverified number is a CRITICAL FAILURE.
-4. **NO CITATIONS:** DO NOT include source citations (e.g. "Source: Brand Finance") in the text overlay. Keep the slides clean.
-5. Slide 1 MUST name the topic clearly but is FORBIDDEN from using numbers or answers.
-6. Write complete, logical thoughts — not forced headlines or marketing slogans.
+1. Use ONLY numbers from the VERIFIED DATA block below. If no figure exists, write the insight without one.
+2. Never add source citations in slide text (no "Source: X", no "[1]"). Keep slides clean.
+3. Slide 1 MUST name the topic clearly but cannot use numbers or reveal the answer.
+4. Write complete, logical thoughts — not forced headlines or marketing slogans.
 
 {data_block}
 

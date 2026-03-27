@@ -1687,8 +1687,8 @@ The story must:
 ### SCENE DESIGN RULES:
 - Group related narrative beats into the same scene (same location/setting)
 - Scene breaks = visual shift (new setting, new moment in time, new perspective)
-- 1 line per scene: for a single powerful statement
-- 2-3 lines per scene: when the setting carries multiple beats
+- Prefer 2 lines per scene — gives enough space to build the beat
+- Use 1 line only for a single punchline moment
 - Motion effect: pick what serves the emotional moment (see options below)
 
 ### CAPTION RULES (8-14 words each):
@@ -1744,15 +1744,12 @@ Scene 4 [zoom_in]:
 }}
 
 ### FINAL CHECKLIST:
-- [ ] Scene 1 Line 1 uses the best hook
-- [ ] Every line logically follows from the previous
-- [ ] Used specific numbers/facts from VERIFIED DATA
-- [ ] Last line tells viewer exactly what to do today
-- [ ] No screen-content image prompts (no "dashboard showing X" or "screen with numbers")
-- [ ] No hands close-up as main subject
-- [ ] 3-5 scenes, MINIMUM 6 total lines (a reel with 5 lines is too sparse — add detail)
-- [ ] Most scenes have 2 lines (1-line scenes are only for single punchy statements)
-- [ ] Each "lines" value is ONLY the caption text — NO prefixes like "Here's the text:", "Caption:", "Line X:", etc.
+- [ ] Scene 1 Line 1 is exactly the best hook (no rewording)
+- [ ] Each line follows logically from the previous
+- [ ] Numbers come from VERIFIED DATA only
+- [ ] Last line is a concrete action the viewer can take today
+- [ ] 3-5 scenes, ideally 6-10 lines total (minimum 4)
+- [ ] Caption values are plain text only — no "Here's the text:", "Caption:", "Line X:" prefixes
 {f'- [ ] All monetary values in ₹/lakh/crore (NO $)' if is_india else ''}
 
 Respond with ONLY valid JSON."""
