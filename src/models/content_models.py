@@ -44,6 +44,7 @@ class ChannelConfig(BaseModel):
     style_guidelines: str
     visual_preferences: Optional[List[str]] = None
     tone: str = "engaging"
+    strategist_persona: Optional[str] = None   # Lead strategist role for this channel
     content_team_persona: Optional[str] = None
     copy_voice_examples: Optional[str] = None
     localization_type: str = "global"

@@ -348,14 +348,22 @@ Respond with ONLY formatted list starting with "VERIFIED DATA POINTS:"
                     f"threshold: {fail_threshold}): {quality['issues']}"
                 )
 
-        # 5. Unified System Persona
-        system_prompt = f"""You are the Expert Educator and Data Storyteller for '{channel_config.name}'. 
-Your goal is to transform complex verified data into a clear, logical, and highly educational carousel.
+        # 5. Unified System Persona — use channel's strategist_persona if defined
+        if channel_config.strategist_persona:
+            base_persona = channel_config.strategist_persona.strip()
+        else:
+            base_persona = (
+                f"You are the Expert Educator and Data Storyteller for '{channel_config.name}'.\n"
+                "Your goal is to transform complex verified data into a clear, logical, "
+                "and highly educational carousel."
+            )
+
+        system_prompt = f"""{base_persona}
 
 ### STRATEGIC CORE:
 - **Educational Gap:** Find an angle that resolves confusion or reveals a counter-intuitive truth. Why is this data surprising or important to know?
 - **Logical Flow:** Plan the content as a step-by-step masterclass. Each point must logically build on the previous one.
-- **Analytical Integrity:** Ground your strategy strictly in the verifiable reality of the provided data. 
+- **Analytical Integrity:** Ground your strategy strictly in the verifiable reality of the provided data.
 - **CATEGORICAL INTEGRITY:** Ensure every item in your ranking strictly matches the requested category.
 """
 

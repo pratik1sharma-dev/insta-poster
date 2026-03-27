@@ -291,6 +291,110 @@ class ContentGenerator:
     # Slide generation
     # ------------------------------------------------------------------
 
+    def _get_emotional_arc(self, channel_config: ChannelConfig, n: int) -> str:
+        """Return the channel-appropriate emotional arc for slide generation."""
+        name = channel_config.name.lower()
+        theme = channel_config.theme.lower()
+
+        if "fertility" in name or "health" in theme:
+            return (
+                f"1. Acknowledgment — validate the reader's experience (slides 1–2)\n"
+                f"2. Context — here's what evidence actually shows (slides 3–4)\n"
+                f"3. Myth-bust — what most people get wrong (slides 5–6)\n"
+                f"4. Clarity — what this means for your situation (slide {n - 1})\n"
+                f"5. Action — one step you can take today (slide {n})"
+            )
+        elif "book" in name or "page" in name or "book" in theme or "read" in theme:
+            return (
+                f"1. Situation — a scenario the reader has lived (slides 1–2)\n"
+                f"2. Insight — the idea that reframes how you see it (slides 3–4)\n"
+                f"3. Deeper — why this is counter-intuitive or surprising (slides 5–6)\n"
+                f"4. Application — how to use this tomorrow (slide {n - 1})\n"
+                f"5. Action — the one thing to try this week (slide {n})"
+            )
+        elif "startup" in name or "founder" in theme:
+            return (
+                f"1. Truth — the thing most first-timers get wrong (slides 1–2)\n"
+                f"2. Root cause — why it happens (slides 3–4)\n"
+                f"3. Evidence — what successful founders do instead (slides 5–6)\n"
+                f"4. Apply — how to use this in your startup today (slide {n - 1})\n"
+                f"5. Action — the specific first step (slide {n})"
+            )
+        elif "psych" in name or "mind" in name or "psych" in theme:
+            return (
+                f"1. Recognition — 'wait, I do this' (slides 1–2)\n"
+                f"2. Explanation — here's why your brain does it (slides 3–4)\n"
+                f"3. Reframe — it's not a flaw, here's what it really is (slides 5–6)\n"
+                f"4. Agency — how to work with this, not against it (slide {n - 1})\n"
+                f"5. Action — one thing to try this week (slide {n})"
+            )
+        elif "rank" in name or "world" in name or "ranking" in theme or "data" in theme:
+            return (
+                f"1. Surprising fact — data that stops the scroll (slides 1–2)\n"
+                f"2. Why it matters — the human story behind the number (slides 3–4)\n"
+                f"3. Deeper context — what most people miss (slides 5–6)\n"
+                f"4. India lens — where India stands and why (slide {n - 1})\n"
+                f"5. Action — what to watch or do with this insight (slide {n})"
+            )
+        else:
+            # Default: financial / general
+            return (
+                f"1. Shock or surprise — slides 1–2\n"
+                f"2. Understanding, here is why — slides 3–4\n"
+                f"3. Concern or realization — slides 5–6\n"
+                f"4. Agency, what to do about it — slide {n - 1}\n"
+                f"5. Action — slide {n}"
+            )
+
+    def _get_cta_examples(self, channel_config: ChannelConfig) -> str:
+        """Return channel-appropriate CTA example questions."""
+        name = channel_config.name.lower()
+        theme = channel_config.theme.lower()
+
+        if "fertility" in name or "health" in theme:
+            return (
+                '- "What\'s one thing you wish someone had told you earlier in your journey?"\n'
+                '- "Has your doctor ever given you a straight answer about success rates?"\n'
+                '- "Which of these surprised you? Share in the comments."\n'
+                '- "What question do you wish you could ask without judgment?"'
+            )
+        elif "book" in name or "page" in name or "book" in theme or "read" in theme:
+            return (
+                '- "What book changed the way you think? Drop it below."\n'
+                '- "Which idea hit different? The one you\'ll still remember in a year."\n'
+                '- "Are you implementing this? What stopped you last time you tried?"\n'
+                '- "What\'s the one insight you\'d send to your past self?"'
+            )
+        elif "startup" in name or "founder" in theme:
+            return (
+                '- "What\'s the most expensive lesson you\'ve learned building your startup?"\n'
+                '- "Which of these do you wish someone had warned you about before you started?"\n'
+                '- "Have you ever been in this exact situation? How did you handle it?"\n'
+                '- "What\'s the one thing you\'d tell a first-time founder today?"'
+            )
+        elif "psych" in name or "mind" in name or "psych" in theme:
+            return (
+                '- "Did you recognize yourself in any of these? Which one?"\n'
+                '- "What\'s a decision you made recently that you think this affected?"\n'
+                '- "Has knowing about this changed how you behave? Or does knowing not help?"\n'
+                '- "Which bias costs you the most in your daily life?"'
+            )
+        elif "rank" in name or "world" in name or "ranking" in theme:
+            return (
+                '- "Which of these surprised you most? Drop the number."\n'
+                '- "Did India\'s position on this list surprise you? What did you expect?"\n'
+                '- "What trend do you think will reshape this ranking in 5 years?"\n'
+                '- "Which stat are you going to share with someone today?"'
+            )
+        else:
+            # Default / financial
+            return (
+                '- "What\'s one belief you held for years before realising it was costing you?"\n'
+                '- "If you could move ₹10,000 into one investment today — what would it be?"\n'
+                '- "Which of these surprised you most? Drop the number below."\n'
+                '- "What would you do differently if you had read this 5 years ago?"'
+            )
+
     def _generate_slides(
         self,
         strategy: ContentStrategy,
@@ -300,6 +404,8 @@ class ContentGenerator:
         raw_output_dir: Optional[Path],
     ) -> List[CarouselSlide]:
         """Generate structured slide content."""
+
+        emotional_arc = self._get_emotional_arc(channel_config, strategy.carousel_length)
 
         prompt = f"""{master_brief}
 
@@ -320,11 +426,7 @@ high-value story.
   Use template: cta, background: blurred_hook
 
 **Emotional Arc (follow this order):**
-1. Shock or surprise — slides 1–2
-2. Understanding, here is why — slides 3–4
-3. Concern or realization — slides 5–6
-4. Agency, what to do about it — slide {strategy.carousel_length - 1}
-5. Action — slide {strategy.carousel_length}
+{emotional_arc}
 
 {_SLIDE_FORMAT_GUIDE}
 
@@ -486,6 +588,13 @@ Write only the caption text. No JSON. No "Here's the caption:" prefix. No explan
         raw_output_dir: Optional[Path],
     ) -> List[str]:
         """Generate relevant hashtags."""
+        india_note = (
+            "- Include Indian community hashtags (e.g. IndiaBusiness, IndianStartup, "
+            "MakeInIndia, IndiaFinance) alongside topic-specific ones."
+            if channel_config.localization_type == "india"
+            else "- Use global hashtags relevant to the topic and audience."
+        )
+
         prompt = f"""{master_brief}
 
 Generate Instagram hashtags for this post.
@@ -495,7 +604,7 @@ Requirements:
 - Mix: 3–5 large (500k+ posts), 8–10 medium (50k–500k), 7–10 niche (<50k)
 - All must be directly relevant to the topic and channel
 - No banned or spam hashtags
-- For Indian channels, include relevant Indian community hashtags
+{india_note}
 
 Output Format (JSON):
 {{"hashtags": ["hashtag1", "hashtag2"]}}
@@ -541,6 +650,8 @@ No # symbol in the list. Respond with ONLY JSON."""
             f"Slide {s.slide_number}: {s.text_overlay}" for s in slides
         )
 
+        cta_examples = self._get_cta_examples(channel_config)
+
         prompt = f"""{master_brief}
 
 Write a single Call-to-Action for this Instagram post.
@@ -556,11 +667,8 @@ Rules:
 - Under 20 words
 - Feel like a friend asking, not a brand broadcasting
 
-Good examples:
-- "What's one belief you held for years before realising it was costing you?"
-- "If you could move ₹10,000 into one investment today — what would it be?"
-- "Which of these surprised you most? Drop the number below."
-- "What would you do differently if you had read this 5 years ago?"
+Good examples for this channel:
+{cta_examples}
 
 Write only the CTA text. No JSON."""
 

@@ -80,7 +80,7 @@ class CinematicReelGenerator:
         scenes = self._generate_script_and_prompts(strategy, channel_config, num_images)
 
         # 1b. Refine image prompts via dedicated SD-optimized AI call
-        scenes = self._refine_sd_prompts(scenes, strategy)
+        scenes = self._refine_sd_prompts(scenes, strategy, channel_config)
 
         # 2. Generate Cinematic Images (9:16), one per scene
         image_dir = self.temp_dir / "images"
@@ -758,7 +758,7 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                 parts.append(
                     f"drawtext=text='{_escape(ln)}':"
                     f"fontcolor=white:fontsize={FONTSIZE}:"
-                    f"x={x_expr}:y={y}:"
+                    f"x='{x_expr}':y='{y}':"
                     f"box=1:boxcolor=black@0.5:boxborderw={BORDER}:"
                     f"fix_bounds=1:"
                     f"alpha='{alpha_expr}'"
@@ -797,7 +797,7 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                     f"drawtext=text='{_escape(ln)}':"
                     f"fontcolor=white:"
                     f"fontsize='{FONTSIZE}*if(lt(t,{scale_duration}),1+{max_scale-1}*(1-t/{scale_duration}),1)':"
-                    f"x=(w-text_w)/2:y={y}:"
+                    f"x='(w-text_w)/2':y='{y}':"
                     f"box=1:boxcolor=black@0.5:boxborderw={BORDER}:"
                     f"fix_bounds=1:"
                     f"alpha='if(lt(t,0.2),t/0.2,1)'"
@@ -1132,6 +1132,237 @@ Be strict but fair. If the image is acceptable for social media, scores should b
                 logger.warning(f"⚠️  Line {i} too long ({word_count} words): {line}")
 
     # ------------------------------------------------------------------
+    # Channel-Dependent Helpers
+    # ------------------------------------------------------------------
+
+    def _get_hook_examples_for_channel(self, channel_config: ChannelConfig) -> str:
+        """Return channel-appropriate hook examples for the 5 patterns."""
+        name = channel_config.name.lower()
+        theme = channel_config.theme.lower()
+
+        if "fertility" in name or "health" in theme:
+            return (
+                'SHOCKING_STATISTIC: "In nearly half of infertility cases, the factor is male. Nobody talks about it."\n'
+                'CONTRARIAN: "Everything your family told you about fertility is missing the full picture"\n'
+                'PATTERN_INTERRUPT: "What if the advice you are following is making it harder?"\n'
+                'PERSONAL_COST: "Most couples wait 2 years before getting tested. That gap changes outcomes."\n'
+                'STATUS_QUO_CHALLENGE: "Standard fertility advice is based on population averages. Your body is not average."'
+            )
+        elif "book" in name or "page" in name or "book" in theme or "read" in theme:
+            return (
+                'SHOCKING_STATISTIC: "93% of self-help books are forgotten within 2 weeks of finishing"\n'
+                'CONTRARIAN: "Reading more is not making you more productive"\n'
+                'PATTERN_INTERRUPT: "What if the best lesson in this book is not the one everyone quotes?"\n'
+                'PERSONAL_COST: "You are losing 3 deep work hours daily to habits you think are helping"\n'
+                'STATUS_QUO_CHALLENGE: "Highlighting is quietly killing your retention"'
+            )
+        elif "startup" in name or "founder" in theme:
+            return (
+                'SHOCKING_STATISTIC: "9 in 10 Indian startups fail before raising a Series A"\n'
+                'CONTRARIAN: "Your startup idea is not your biggest risk"\n'
+                'PATTERN_INTERRUPT: "What if your strongest conviction is your biggest blind spot?"\n'
+                'PERSONAL_COST: "First-time founders overpay for growth before finding PMF"\n'
+                'STATUS_QUO_CHALLENGE: "Hiring fast is quietly destroying your startup culture"'
+            )
+        elif "psych" in name or "mind" in name or "psych" in theme:
+            return (
+                'SHOCKING_STATISTIC: "Your brain decides 7 seconds before you consciously choose. That feeling of choice? Reconstructed."\n'
+                'CONTRARIAN: "Being rational is not as helpful as you think"\n'
+                'PATTERN_INTERRUPT: "What if your most confident decisions are the most biased?"\n'
+                'PERSONAL_COST: "The sunk cost fallacy costs people 2-3 years of misallocated effort on average"\n'
+                'STATUS_QUO_CHALLENGE: "Believing you are logical is the most reliable predictor of bias"'
+            )
+        elif "rank" in name or "world" in name or "ranking" in theme:
+            return (
+                'SHOCKING_STATISTIC: "The world spent $2.3 trillion on clean energy in 2024. Emissions still went up."\n'
+                'CONTRARIAN: "The country ranked first by GDP is not the one growing fastest"\n'
+                'PATTERN_INTERRUPT: "What if the metric everyone uses to rank countries is misleading?"\n'
+                'PERSONAL_COST: "India ranks 132nd in this measure. Higher than most expect."\n'
+                'STATUS_QUO_CHALLENGE: "The list you think you know looks very different when you change one variable"'
+            )
+        else:
+            # Default / financial (wealthcapsules)
+            return (
+                'SHOCKING_STATISTIC: "₹7.5 crore lost because of one word: safe"\n'
+                'CONTRARIAN: "Your safe investments are the riskiest bet"\n'
+                'PATTERN_INTERRUPT: "What if playing it safe made you poor?"\n'
+                'PERSONAL_COST: "Every FD costs you ₹2.3 lakh per year in real returns"\n'
+                'STATUS_QUO_CHALLENGE: "Fixed deposits are quietly bankrupting your future"'
+            )
+
+    def _get_sd_render_context(self, channel_config: ChannelConfig) -> str:
+        """Return channel-appropriate SD render guidance."""
+        name = channel_config.name.lower()
+        theme = channel_config.theme.lower()
+
+        if "fertility" in name or "health" in theme:
+            return """SD RENDERS WELL — USE THESE:
+• Environments: soft-lit consultation room, calm bedroom, peaceful living room, garden with morning light
+• Objects: single flower on windowsill, glass of water, journal on bedside table, warm cup of tea
+• Single person: woman or couple, medium shot, warm/gentle lighting, thoughtful expression
+• Abstract/atmospheric: morning light through curtains, soft bokeh, calming neutral textures
+
+SD RENDERS POORLY — NEVER USE THESE:
+• Medical diagrams, charts, or visible text
+• Hands as the main close-up subject
+• Harsh clinical lighting"""
+
+        elif "book" in name or "page" in name or "book" in theme or "read" in theme:
+            return """SD RENDERS WELL — USE THESE:
+• Environments: cozy reading nook, home study with warm lamp, coffee shop corner, library aisle
+• Objects: open book on wooden table, reading glasses beside coffee, bookmark in pages, notebook and pen
+• Single person: person reading or writing, warm ambient light, contemplative mood
+• Abstract/atmospheric: light through bookshelves, paper textures, warm amber tones, candlelight
+
+SD RENDERS POORLY — NEVER USE THESE:
+• Text on book covers or spines (SD renders it unreadably)
+• Hands holding book as main close-up subject
+• Hands writing as main close-up subject"""
+
+        elif "startup" in name or "founder" in theme:
+            return """SD RENDERS WELL — USE THESE:
+• Environments: minimalist startup office, co-working space, whiteboard wall, cafe meeting setup
+• Objects: open laptop on standing desk, sticky notes on wall, product prototype on table
+• Single person: young founder at desk, thoughtful expression, city view in background
+• Abstract/atmospheric: city skyline through office window, bright open-plan energy
+
+SD RENDERS POORLY — NEVER USE THESE:
+• Screens showing code, metrics, or dashboards
+• Hands writing on whiteboard (hand artifacts)
+• Multiple people in close interaction"""
+
+        elif "psych" in name or "mind" in name or "psych" in theme:
+            return """SD RENDERS WELL — USE THESE:
+• Environments: quiet desk with single lamp, window at dusk, minimal room with one object of focus
+• Objects: journal open on table, single candle, abstract art on wall (no text)
+• Single person: contemplative expression, medium shot, looking away or into distance
+• Abstract/atmospheric: split lighting (one side lit/one shadow), bokeh, cool minimal tones
+
+SD RENDERS POORLY — NEVER USE THESE:
+• Literal brain imagery (renders anatomically distorted)
+• Text overlays, thought bubbles, or speech bubbles
+• Hands as the main close-up subject"""
+
+        elif "rank" in name or "world" in name or "ranking" in theme:
+            return """SD RENDERS WELL — USE THESE:
+• Environments: financial district skyline, global city architecture, modern airport, glass office buildings
+• Objects: globe on desk, world map as wall art, architectural details of iconic buildings
+• People: diverse professionals in global contexts, business settings
+• Abstract/atmospheric: aerial city view at night, glass-and-steel reflections, modern infrastructure
+
+SD RENDERS POORLY — NEVER USE THESE:
+• Maps with text labels or country names
+• Charts, graphs, or numbers as part of the image
+• Hands as the main close-up subject"""
+
+        else:
+            # Default / financial
+            return """SD RENDERS WELL — USE THESE:
+• Environments: modern Indian office, home study, coffee shop, bedroom, city street, apartment balcony
+• Objects in context: smartphone on wooden desk, open laptop, notebook, document, wallet, tea cup, coins
+• Single person in environment: young Indian man/woman seen from mid-body up, clearly in a setting
+• Abstract/atmospheric: light rays through window, bokeh backgrounds, silhouettes, textured surfaces
+
+SD RENDERS POORLY — NEVER USE THESE:
+• Hands as the MAIN CLOSE-UP SUBJECT → always fused fingers, extra limbs, anatomical nightmare
+• Screens showing readable content (analytics, spreadsheets, dashboards) → SD renders blank/blurry screens
+• Multiple people interacting at close range
+• Text, numbers, or charts IN the image"""
+
+    def _get_story_example_for_channel(self, channel_config: ChannelConfig) -> str:
+        """Return a channel-appropriate story example for the script prompt."""
+        name = channel_config.name.lower()
+        theme = channel_config.theme.lower()
+
+        if "fertility" in name or "health" in theme:
+            return """### GOOD STORY EXAMPLE (myth_buster format):
+
+Scene 1 [zoom_in]:
+  - "Everyone says stress is why you are not getting pregnant"
+  - "Doctors hear it from families. Patients hear it from friends."
+Scene 2 [pan_right]:
+  - "The research tells a different story"
+  - "Stress is a factor. It is rarely the only one."
+Scene 3 [zoom_out]:
+  - "In nearly 50% of cases, there is a measurable physical cause"
+  - "And half of those are on the male side"
+Scene 4 [zoom_in]:
+  - "The first step: a full workup for both partners, not just one"
+"""
+        elif "book" in name or "page" in name or "book" in theme or "read" in theme:
+            return """### GOOD STORY EXAMPLE (contrast format):
+
+Scene 1 [zoom_in]:
+  - "You highlight the good parts. You feel productive."
+  - "Two weeks later, you cannot remember a single line."
+Scene 2 [pan_right]:
+  - "Highlighting is comfortable. But comfort is not learning."
+Scene 3 [zoom_out]:
+  - "The readers who retain most do something different"
+  - "They write one sentence: what does this change for me?"
+Scene 4 [zoom_in]:
+  - "Close the book. Write one sentence now. That is the whole system."
+"""
+        elif "startup" in name or "founder" in theme:
+            return """### GOOD STORY EXAMPLE (case_study format):
+
+Scene 1 [zoom_in]:
+  - "Zerodha launched in 2010. No VC money. No marketing budget."
+  - "Just a product that solved a real problem."
+Scene 2 [pan_right]:
+  - "Their first customers told 10 more. Those told 10 more."
+Scene 3 [zoom_out]:
+  - "By 2019 they were profitable. No dilution. No pressure."
+  - "Today: India's largest broker by active users."
+Scene 4 [zoom_in]:
+  - "The lesson: distribution follows product quality. Not the other way around."
+"""
+        elif "psych" in name or "mind" in name or "psych" in theme:
+            return """### GOOD STORY EXAMPLE (myth_buster format):
+
+Scene 1 [zoom_in]:
+  - "You stayed in the job longer than you should have"
+  - "Not because you wanted to. Because you already gave 3 years."
+Scene 2 [pan_right]:
+  - "That is the sunk cost fallacy. It is not a flaw."
+  - "It is your brain doing exactly what evolution built it to do."
+Scene 3 [zoom_out]:
+  - "Losses feel twice as painful as equivalent gains feel good"
+  - "Your brain is not broken. It is protecting you from perceived loss."
+Scene 4 [zoom_in]:
+  - "The fix: ask one question before staying. What would I do if I started fresh today?"
+"""
+        elif "rank" in name or "world" in name or "ranking" in theme:
+            return """### GOOD STORY EXAMPLE (timeline format):
+
+Scene 1 [zoom_in]:
+  - "In 2010, China's economy was half the size of America's"
+  - "Most economists said it would take 50 years to close the gap"
+Scene 2 [pan_right]:
+  - "By 2023, it was at 65%. The gap closed in 13 years."
+Scene 3 [zoom_out]:
+  - "But here is the number nobody talks about"
+  - "GDP per person in China is still 6x lower than the US"
+Scene 4 [zoom_in]:
+  - "One number tells you a country's total output. The other tells you how it feels to live there."
+"""
+        else:
+            # Default / financial
+            return """### GOOD STORY EXAMPLE (contrast format):
+
+Scene 1 [zoom_in]:
+  - "Rohan kept ₹5,000/month in FD since age 25"
+  - "Safe, guaranteed, parent-approved"
+Scene 2 [pan_right]:
+  - "His cousin started a SIP in Nifty 50 instead"
+Scene 3 [zoom_out]:
+  - "At 60, Rohan: ₹42L. Cousin: ₹2.3 crore"
+  - "Same ₹5,000. Same 35 years. Very different ending."
+Scene 4 [zoom_in]:
+  - "Open Zerodha or Groww today. Start a ₹1,000 SIP. Scale up later."
+"""
+
+    # ------------------------------------------------------------------
     # Hook Generation
     # ------------------------------------------------------------------
 
@@ -1140,6 +1371,7 @@ Be strict but fair. If the image is acceptable for social media, scores should b
         topic: str,
         angle: str,
         audience_insight: str,
+        channel_config: ChannelConfig,
         verified_data: str = ""
     ) -> dict:
         """
@@ -1164,8 +1396,15 @@ Be strict but fair. If the image is acceptable for social media, scores should b
         """
         logger.info("Generating hook variants for: %s", topic)
 
-        system_prompt = """You are a Hook Architect specializing in attention-grabbing first lines.
-Your hooks must stop scrollers in their tracks within 0.5 seconds."""
+        hook_examples = self._get_hook_examples_for_channel(channel_config)
+
+        system_prompt = (
+            f"You are a Hook Architect for '{channel_config.name}'.\n"
+            f"Channel: {channel_config.theme}\n"
+            f"Audience: {channel_config.target_audience}\n"
+            "Your hooks must stop scrollers in their tracks within 0.5 seconds.\n"
+            "Write hooks that feel native to this channel's voice and audience."
+        )
 
         prompt = f"""### TOPIC: {topic}
 ### ANGLE: {angle}
@@ -1175,31 +1414,31 @@ Your hooks must stop scrollers in their tracks within 0.5 seconds."""
 ### YOUR TASK:
 Generate 5 distinct hooks using proven psychological patterns.
 
-### HOOK PATTERNS:
+### HOOK PATTERNS WITH EXAMPLES FOR THIS CHANNEL:
 
 **1. SHOCKING STATISTIC**
 Format: "[Specific number] [surprising fact]"
-Example: "₹7.5 crore lost because of one word: safe"
+{hook_examples.split(chr(10))[0]}
 Psychology: Numbers + surprise = pattern interrupt
 
 **2. CONTRARIAN STATEMENT**
-Format: "Everything you know about [X] is wrong"
-Example: "Your 'safe' investments are the riskiest bet"
+Format: "Everything you know about [X] is incomplete"
+{hook_examples.split(chr(10))[1]}
 Psychology: Challenges existing belief = curiosity
 
 **3. PATTERN INTERRUPT QUESTION**
 Format: "What if [opposite of common belief]?"
-Example: "What if playing it safe made you poor?"
+{hook_examples.split(chr(10))[2]}
 Psychology: Cognitive dissonance = engagement
 
 **4. PERSONAL COST/BENEFIT**
-Format: "You're losing/gaining [specific amount] by [action]"
-Example: "Every FD costs you ₹2.3 lakh per year"
+Format: "You are losing/gaining [specific outcome] by [action]"
+{hook_examples.split(chr(10))[3]}
 Psychology: Self-interest + specificity = relevance
 
 **5. STATUS QUO CHALLENGE**
 Format: "[Common action] is quietly [negative outcome]"
-Example: "Fixed deposits are quietly bankrupting your future"
+{hook_examples.split(chr(10))[4] if len(hook_examples.split(chr(10))) > 4 else ''}
 Psychology: Hidden danger + urgency = emotional trigger
 
 ### SCORING CRITERIA:
@@ -1625,7 +1864,8 @@ NOT: "Balance is the key to everything"
             topic=strategy.topic,
             angle=strategy.angle,
             audience_insight=strategy.target_audience_insight,
-            verified_data=strategy.verified_data
+            channel_config=channel_config,
+            verified_data=strategy.verified_data,
         )
         best_hook = hook_result['best_hook']
         all_hook_variants = hook_result['all_variants']
@@ -1639,14 +1879,19 @@ NOT: "Balance is the key to everything"
             if is_india else ""
         )
 
+        copy_voice_section = ""
+        if channel_config.copy_voice_examples:
+            copy_voice_section = f"\n{channel_config.copy_voice_examples.strip()}\n"
+
         system_prompt = (
             f"You are a Story Architect for '{channel_config.name}'.\n"
             f"Channel Theme: {channel_config.theme}\n"
-            f"Brand Mission: {channel_config.brand_mission}\n"
             f"Target Audience: {channel_config.target_audience}\n"
-            f"Cultural Context: {channel_config.cultural_context}\n"
-            f"{currency_rule}\n"
-            f"Your goal: Tell a clear, coherent story across 3-5 visual scenes that the audience can follow, learn from, and act on.\n"
+            + (f"Cultural Context: {channel_config.cultural_context}\n" if channel_config.cultural_context else "")
+            + (f"Brand Mission: {channel_config.brand_mission}\n" if channel_config.brand_mission else "")
+            + f"{currency_rule}\n"
+            + copy_voice_section
+            + "Your goal: Tell a clear, coherent story across 3-5 visual scenes that the audience can follow, learn from, and act on.\n"
             "Priority: STORY COHERENCE over shock value. Each line must logically connect to the next.\n"
             "Use concrete examples and specific situations the audience recognizes.\n"
             "The story MUST end with a clear, explicit action the viewer can take TODAY."
@@ -1656,6 +1901,8 @@ NOT: "Balance is the key to everything"
             f"  {i}. [{v['pattern']}] \"{v['hook']}\" (Score: {v['total_score']:.1f})"
             for i, v in enumerate(all_hook_variants, 1)
         ])
+
+        story_example = self._get_story_example_for_channel(channel_config)
 
         prompt = f"""### TOPIC: {strategy.topic}
 ### CORE ANGLE: {strategy.angle}
@@ -1697,25 +1944,12 @@ The story must:
 - No abstract philosophical statements
 - No jargon without immediate plain-language explanation
 
-### GOOD STORY EXAMPLE (contrast format):
-
-Scene 1 [zoom_in]:
-  - "Rohan kept ₹5,000/month in FD since age 25"
-  - "Safe, guaranteed, parent-approved"
-Scene 2 [pan_right]:
-  - "His cousin started a SIP in Nifty 50 instead"
-Scene 3 [zoom_out]:
-  - "At 60, Rohan: ₹42L. Cousin: ₹2.3 crore"
-  - "Same ₹5,000. Same 35 years. Very different ending."
-Scene 4 [zoom_in]:
-  - "Open Zerodha or Groww today. Start a ₹1,000 SIP. Scale up later."
-
+{story_example}
 ### SD IMAGE PROMPT RULES:
 - NEVER feature hands as the main close-up subject (SD artifact nightmare)
 - NEVER ask SD to render screen content (dashboards, numbers on screen) — SD cannot do this
 - Instead: show the DEVICE/OBJECT in context (laptop on desk, phone on table, notebook open)
-- Specific person: "young Indian woman in navy kurta" or "young Indian man in grey t-shirt"
-- One recurring visual element across ALL scenes for continuity (same person OR same location)
+- One recurring visual element across ALL scenes for continuity (same person OR same setting)
 - Shot variety: vary between Extreme close-up / Close-up / Medium shot / Wide shot
 
 ### MOTION EFFECTS (pick one per scene):
@@ -1857,6 +2091,7 @@ Respond with ONLY valid JSON."""
         self,
         scenes: List[dict],
         strategy: ContentStrategy,
+        channel_config: ChannelConfig,
     ) -> List[dict]:
         """
         Dedicated AI call to rewrite image prompts for Stable Diffusion quality.
@@ -1871,20 +2106,12 @@ Respond with ONLY valid JSON."""
         )
         initial_text = "\n".join(f"{i+1}. {p}" for i, p in enumerate(initial_prompts))
 
-        system_prompt = """You are an expert Stable Diffusion prompt engineer for cinematic 9:16 portrait reels.
+        sd_render_context = self._get_sd_render_context(channel_config)
+
+        system_prompt = f"""You are an expert Stable Diffusion prompt engineer for cinematic 9:16 portrait reels.
 You know exactly what SD renders well versus what triggers artifacts.
 
-SD RENDERS WELL — USE THESE:
-• Environments: modern Indian office, home study, coffee shop, bedroom, city street, apartment balcony
-• Objects in context: smartphone on wooden desk, open laptop, notebook, document, wallet, tea cup, coins
-• Single person in environment: young Indian man/woman seen from mid-body up, clearly in a setting
-• Abstract/atmospheric: light rays through window, bokeh backgrounds, silhouettes, textured surfaces
-
-SD RENDERS POORLY — NEVER USE THESE:
-• Hands as the MAIN CLOSE-UP SUBJECT → always fused fingers, extra limbs, anatomical nightmare
-• Screens showing readable content (analytics, spreadsheets, dashboards) → SD renders blank/blurry screens
-• Multiple people interacting at close range
-• Text, numbers, or charts IN the image
+{sd_render_context}
 
 SHOT VARIETY (vary across scenes):
 • Extreme close-up: single object macro, face expression detail
@@ -1894,15 +2121,6 @@ SHOT VARIETY (vary across scenes):
 
 END EVERY PROMPT WITH:
 "35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
-
-GOOD EXAMPLES:
-"Medium shot of young Indian man in grey t-shirt at wooden desk with open laptop, warm desk lamp, contemplative expression, shallow depth of field, 35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
-
-"Close-up of smartphone face-down on wooden table beside open notebook and pen, golden hour side light, 35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
-
-BAD EXAMPLES:
-"Close-up of hands analyzing financial data" - hands close-up = artifact disaster
-"Laptop screen showing analytics dashboard" - SD cannot render readable screens"""
 
         prompt = f"""Rewrite these {num_scenes} scene image prompts for Stable Diffusion.
 Story topic: {strategy.topic}
