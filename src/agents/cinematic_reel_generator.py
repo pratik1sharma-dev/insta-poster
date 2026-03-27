@@ -1738,6 +1738,7 @@ Scene 4 [zoom_in]:
 - [ ] No hands close-up as main subject
 - [ ] 3-5 scenes, MINIMUM 6 total lines (a reel with 5 lines is too sparse — add detail)
 - [ ] Most scenes have 2 lines (1-line scenes are only for single punchy statements)
+- [ ] Each "lines" value is ONLY the caption text — NO prefixes like "Here's the text:", "Caption:", "Line X:", etc.
 {f'- [ ] All monetary values in ₹/lakh/crore (NO $)' if is_india else ''}
 
 Respond with ONLY valid JSON."""
