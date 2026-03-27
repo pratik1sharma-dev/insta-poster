@@ -1907,7 +1907,7 @@ The story must:
 2. **Build logically** — each line follows naturally from the previous
 3. **Use concrete specifics** — real numbers from VERIFIED DATA, real scenarios
 4. **Stay focused** — every line serves the single core insight
-5. **End with action** — the LAST line tells the viewer exactly what to do today
+5. **End with action** — the LAST line is one specific, topic-relevant action the viewer can take TODAY that directly applies this reel's lesson. It must name the exact behaviour, not a generic platform step. BAD: "Open a demat account", "Start investing today", "Download an app". GOOD (stop-loss reel): "Set a 15% stop-loss on your worst holding this week". GOOD (SIP reel): "Increase your SIP by ₹500 this month".
 {currency_rule}
 ### SCENE DESIGN RULES:
 - Group related narrative beats into the same scene (same location/setting)
@@ -1959,7 +1959,7 @@ The story must:
 - [ ] Scene 1 Line 1 is exactly the best hook (no rewording)
 - [ ] Each line follows logically from the previous
 - [ ] Numbers come from VERIFIED DATA only
-- [ ] Last line is a concrete action the viewer can take today
+- [ ] Last line is a TOPIC-SPECIFIC action (no generic "open a demat account" / "start investing today" — must apply the specific lesson)
 - [ ] 3-5 scenes, ideally 6-10 lines total (minimum 4)
 - [ ] Caption values are plain text only — no "Here's the text:", "Caption:", "Line X:" prefixes
 {f'- [ ] All monetary values in ₹/lakh/crore (NO $)' if is_india else ''}
