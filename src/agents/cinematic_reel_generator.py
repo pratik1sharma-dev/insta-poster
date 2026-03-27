@@ -745,7 +745,7 @@ Be strict but fair. If the image is acceptable for social media, scores should b
         BORDER = 30
 
         def _escape(s: str) -> str:
-            return s.replace('\\', '\\\\').replace("'", "'\\''").replace(':', '\\:')
+            return s.replace('\\', '\\\\').replace('%', '%%').replace("'", "'\\''").replace(':', '\\:')
 
         def _build_stacked(lines: list, alpha_expr: str, x_expr: str = "(w-text_w)/2") -> str:
             """Build one drawtext filter per line, vertically centered as a block."""
