@@ -57,6 +57,10 @@ class ChannelConfig(BaseModel):
     character_description: Optional[str] = None   # e.g. "Indian woman, dark hair, brown eyes"
     character_trigger_words: Optional[str] = None # LoRA trigger words from CivitAI
 
+    # Publishing — override which Instagram account to post to
+    # Allows multiple channel configs (e.g. storycapsules) to share one account (e.g. pagecapsules)
+    instagram_account: Optional[str] = None
+
     class Config:
         frozen = False
 

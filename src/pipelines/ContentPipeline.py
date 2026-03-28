@@ -66,6 +66,10 @@ class ContentPipeline:
             logger.logger.info("Loading configuration: %s", channel_name)
             channel_config = load_channel_config(channel_name)
             logger.logger.info("Channel theme: %s", channel_config.theme)
+            # Resolve Instagram account — allows multiple configs to share one account
+            instagram_account = channel_config.instagram_account or channel_name
+            if instagram_account != channel_name:
+                logger.logger.info("Publishing to Instagram account: %s", instagram_account)
 
             # ── Phase 1: Strategy ──────────────────────────────────────
             logger.logger.info("\n[Phase 1/4] Determining content strategy...")
@@ -219,7 +223,7 @@ Angle: {strategy.angle}
             final_result = PostResult(
                 post_id=None,
                 timestamp=datetime.now(),
-                channel=channel_name,
+                channel=instagram_account,
                 content=content,
                 strategy=strategy,
                 status="success",
@@ -232,7 +236,7 @@ Angle: {strategy.angle}
                     images=image_paths,
                     content=content,
                     strategy=strategy,
-                    channel=channel_name,
+                    channel=instagram_account,
                     dry_run=dry_run,
                 )
                 logger.log_post_result(res)
@@ -250,7 +254,7 @@ Angle: {strategy.angle}
                     video_path=reel_path,
                     content=content,
                     strategy=strategy,
-                    channel=channel_name,
+                    channel=instagram_account,
                     dry_run=dry_run,
                 )
                 logger.log_post_result(res)
@@ -265,7 +269,7 @@ Angle: {strategy.angle}
                     video_path=cinematic_path,
                     content=content,
                     strategy=strategy,
-                    channel=channel_name,
+                    channel=instagram_account,
                     dry_run=dry_run,
                 )
                 logger.log_post_result(res)

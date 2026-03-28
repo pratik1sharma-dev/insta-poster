@@ -19,6 +19,13 @@ pagecapsules:
   localization_type: "global"
   voice_id: "en-IN-NeerjaExpressiveNeural"
 
+  # ── Character for cinematic reels ─────────────────────────────────────
+  # Carousel posts: standard book insight visuals (no character)
+  # Cinematic reels: protagonist shown living the book's lessons
+  character_lora: "Indian-v2:0.8"
+  character_description: "young Indian woman, dark hair, brown eyes, natural skin tone"
+  character_trigger_words: "Indian woman, realistic, authentic face, natural skin tone"
+
   style_guidelines: >
     Clear and concise text overlays with minimal modern design.
     Every post should feel like the one idea from the book
@@ -741,3 +748,107 @@ fertilitycapsules:
     - "Scientific yet approachable diagrams"
     - "Empathetic lifestyle imagery"
     - "Clear Myth vs Fact layouts"
+
+
+# =============================================================================
+
+storycapsules:
+  name: "StoryCapsules"
+  theme: "Slice-of-life stories of a modern Indian woman navigating career, relationships, and self-discovery"
+  target_audience: "Indian women (22-35) navigating ambition, relationships, identity, and modern life"
+  cultural_context: >
+    Stories are set in modern urban India. The protagonist is a young Indian woman
+    navigating real situations — workplace pressure, family expectations, self-doubt,
+    ambition, friendships, and relationships. Write with warmth and honesty.
+    Never preachy. Show, don't tell.
+  posting_schedule: "1x daily"
+  tone: "warm, honest, relatable, cinematic"
+  localization_type: "india"
+  voice_id: "en-IN-NeerjaExpressiveNeural"
+
+  # ── Publishing — posts to pagecapsules Instagram account ─────────────
+  instagram_account: "pagecapsules"
+
+  # ── Character (LoRA-based consistent protagonist) ──────────────────────
+  character_lora: "Indian-v2:0.8"
+  character_description: "young Indian woman, dark hair, brown eyes, natural skin tone"
+  character_trigger_words: "Indian woman, realistic, authentic face, natural skin tone"
+
+  style_guidelines: >
+    Every reel is a short cinematic story featuring the same protagonist.
+    Images show her in different real-life situations — not metaphors, not symbols.
+    Actual moments: sitting in a cafe, walking to work, on a phone call, cooking.
+    The story is told through her actions and environment.
+
+  strategist_persona: >
+    You are the Lead Story Architect for StoryCapsules.
+    Your goal: find the one universal truth about modern Indian womanhood
+    that most people feel but nobody names clearly.
+    Tell it through the story of one woman in one specific situation.
+    Not an essay — a moment.
+
+  content_team_persona: >
+    You are the StoryCapsules content team executing the strategy brief below.
+    Tone: warm, cinematic, honest — like a short film with subtitles.
+    The protagonist is always the same young Indian woman.
+    Show her world. Let the viewer recognize themselves in her.
+
+  strategic_core: |
+    ### STRATEGIC CORE:
+    - **One Protagonist:** Every reel features the same character in a new situation.
+      She is not named — the viewer becomes her.
+    - **Specific Moments:** Avoid vague emotions. Show the exact moment:
+      the message she almost sent, the meeting she stayed quiet in, the mirror at 2am.
+    - **No Moralizing:** Never tell the viewer what to feel or do.
+      Let the scene speak. End with a question or an action, not a lesson.
+    - **Continuity of Character:** The images always show the same woman.
+      Different outfits, locations, expressions — same face, same soul.
+
+  copy_voice_examples: |
+    ### COPY VOICE:
+    WRONG: "Women face many challenges in today's world."
+    RIGHT: "She was the only woman in the room. She smiled. She took notes. She didn't say the thing she'd prepared."
+
+    WRONG: "It's okay to prioritize yourself."
+    RIGHT: "She cancelled the plan. Made chai. Sat with the silence. That was the whole day. That was enough."
+
+    The test: does this feel like a scene from a short film someone made about a woman they know?
+
+  curated_topics:
+    # Career and Ambition
+    - "The day she realized she'd been making herself smaller to fit the room"
+    - "She got the promotion. Nobody at home understood why it wasn't enough."
+    - "The meeting where she had the right answer and said nothing"
+    - "Her first salary. What she bought. What she didn't tell anyone."
+    - "The moment she stopped waiting for permission to be taken seriously"
+    - "Working from home and the invisible second shift nobody sees"
+    # Relationships
+    - "The relationship she stayed in two years longer than she should have"
+    - "Her best friend moved to another city. The slow distance nobody prepares you for."
+    - "What she stopped telling her mother. And when."
+    - "The guy who said she was too much. She believed him for a while."
+    - "Loving someone who doesn't know how to ask for help"
+    # Self and Identity
+    - "The version of herself she built for others"
+    - "She turned 30. It felt like something. She couldn't explain what."
+    - "The girl she was at 22 and what she'd tell her"
+    - "The mirror at 2am. The thoughts she doesn't post about."
+    - "What she stopped apologizing for"
+    # Family
+    - "The pressure that doesn't have a name in English but every Indian woman knows"
+    - "Going home for Diwali and feeling like a guest in your own story"
+    - "Her mother's sacrifices. The weight of them. The love in them."
+    - "The conversation she's been rehearsing for three years"
+    # Quiet Victories
+    - "The morning she woke up and didn't check her phone first"
+    - "She said no. The world didn't end."
+    - "The solo trip she almost didn't take"
+    - "The day she asked for what she actually wanted"
+
+  allow_ai_discovery: false
+  visual_preferences:
+    - "Cinematic natural lighting — golden hour, soft indoor light, blue hour"
+    - "Real environments — cafes, offices, home interiors, city streets"
+    - "Close-ups of her face for emotional beats"
+    - "Wide shots for isolation or freedom"
+    - "Warm muted color palette — no over-saturated filters"

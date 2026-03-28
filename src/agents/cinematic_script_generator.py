@@ -62,12 +62,20 @@ class CinematicScriptGenerator:
         currency_rule: str,
         copy_voice_section: str,
     ) -> str:
+        character_section = ""
+        if channel_config.character_lora:
+            character_section = (
+                f"\nPROTAGONIST: This channel has a fixed character — {channel_config.character_description}.\n"
+                "Every scene image must feature her as the main subject in a real-life situation.\n"
+                "She is not named. The viewer becomes her.\n"
+            )
         return (
             f"You are a Story Architect for '{channel_config.name}'.\n"
             f"Channel Theme: {channel_config.theme}\n"
             f"Target Audience: {channel_config.target_audience}\n"
             + (f"Cultural Context: {channel_config.cultural_context}\n" if channel_config.cultural_context else "")
             + (f"Brand Mission: {channel_config.brand_mission}\n" if channel_config.brand_mission else "")
+            + character_section
             + f"{currency_rule}\n"
             + copy_voice_section
             + "Your goal: Tell a clear, coherent story across 3-5 visual scenes that the audience can follow, learn from, and act on.\n"
@@ -205,6 +213,29 @@ Respond with ONLY valid JSON."""
     ) -> str:
         best_hook = hook_result['best_hook']
         research_text = strategy.verified_data or ""
+        is_character_channel = bool(channel_config.character_lora)
+        character_desc = channel_config.character_description or ""
+
+        if is_character_channel:
+            image_prompt_rules = f"""### SD IMAGE PROMPT RULES (CHARACTER CHANNEL):
+- EVERY scene image must show the protagonist ({character_desc}) as the main subject
+- Show her in a REAL situation: sitting, standing, walking, working, resting — not posing
+- NEVER feature hands as the main close-up subject
+- NEVER show screens, dashboards, or readable text in the image
+- Shot variety to match emotional beat:
+  - Close-up / extreme close-up → emotional intensity, inner conflict
+  - Medium shot → everyday action, interaction
+  - Wide shot → isolation, freedom, scale
+- Describe the LOCATION and LIGHTING specifically (cafe, office, apartment, street — golden hour, soft lamp, blue dusk)
+- Do NOT repeat the same location across all scenes"""
+        else:
+            image_prompt_rules = """### SD IMAGE PROMPT RULES:
+- NEVER feature hands as the main close-up subject
+- NEVER render screen content (dashboards, numbers on screen)
+- Show DEVICE/OBJECT in context (laptop on desk, phone on table)
+- One recurring visual element across ALL scenes for continuity
+- Shot variety: Extreme close-up / Close-up / Medium / Wide"""
+
         return f"""Great. Now write the full cinematic story using your best hook.
 
 ### BEST HOOK: "{best_hook}"
@@ -235,12 +266,7 @@ The story must:
 - Specific numbers from VERIFIED DATA where relevant
 - No abstract philosophical statements, no unexplained jargon
 
-### SD IMAGE PROMPT RULES:
-- NEVER feature hands as the main close-up subject
-- NEVER render screen content (dashboards, numbers on screen)
-- Show DEVICE/OBJECT in context (laptop on desk, phone on table)
-- One recurring visual element across ALL scenes for continuity
-- Shot variety: Extreme close-up / Close-up / Medium / Wide
+{image_prompt_rules}
 
 ### MOTION EFFECTS:
 - **zoom_in**: builds tension, draws viewer in

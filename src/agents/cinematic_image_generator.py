@@ -33,6 +33,10 @@ class CinematicImageGenerator:
         self._sd_messages: list = []
         self._sd_system_prompt: str = ""
         self.validator = ImageValidator(settings.gemini_api_key, settings.gemini_model)
+        # Character LoRA — set when refine_sd_prompts is called for a character channel
+        self._character_lora: str = ""
+        self._character_trigger_words: str = ""
+        self._character_description: str = ""
 
     # ------------------------------------------------------------------
     # Public API
@@ -168,6 +172,11 @@ class CinematicImageGenerator:
         Turn 2 — LLM rewrites all prompts using its own Turn 1 analysis.
         Falls back to the original prompts on failure.
         """
+        # Store character config for use in generate_images
+        self._character_lora = channel_config.character_lora or ""
+        self._character_trigger_words = channel_config.character_trigger_words or ""
+        self._character_description = channel_config.character_description or ""
+
         num_scenes = len(scenes)
         initial_prompts = [sc["image_prompt"] for sc in scenes]
 
@@ -291,6 +300,16 @@ class CinematicImageGenerator:
         return p
 
     def _generate_sd_image(self, prompt: str, index: int, output_dir: Path, negative_prompt: str = "") -> Optional[Path]:
+        # Inject LoRA + trigger words for character-driven channels
+        if self._character_lora:
+            parts = [f"<lora:{self._character_lora}>"]
+            if self._character_trigger_words:
+                parts.append(self._character_trigger_words)
+            if self._character_description:
+                parts.append(self._character_description)
+            prompt = ", ".join(parts) + ", " + prompt
+            logger.info("SD Character LoRA injected: %s", self._character_lora)
+
         # 640x1120 at 20 steps ≈ same compute as 768x1344 at 15 steps, better quality
         gen_w, gen_h = 640, 1120
         target_w, target_h = 1080, 1920
