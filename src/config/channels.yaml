@@ -1100,11 +1100,18 @@ storycapsules:
     The viewer should think: "That is exactly what I do" or "That happened to me."
 
     GOOD (use these as style reference):
-    - "She had the answer. She didn't say it." (specific moment, 8 words)
-    - "He said she was too much. She almost believed him." (relatable beat)
-    - "The promotion came. Nobody at home knew what to say." (tension without explanation)
-    - "She turned 30. It felt like something. She couldn't explain what." (honest uncertainty)
-    - "She rehearsed the conversation for three years. She never had it." (specific truth)
+    3rd person — observational, viewer watches and recognizes:
+    - "She had the answer. She didn't say it."
+    - "The promotion came. Nobody at home knew what to say."
+    - "She rehearsed the conversation for three years. She never had it."
+
+    2nd person — direct, viewer IS the moment:
+    - "You've been making yourself smaller to fit the room."
+    - "You stayed two years longer than you should have. You know why."
+
+    1st person — confessional, raw inner voice:
+    - "I cancelled the plan. Made chai. Sat with the silence. That was enough."
+    - "I had the answer. I didn't say it. I drove home."
 
     BAD (avoid these):
     - "67% of women feel undervalued at work" — stat, wrong for this channel
@@ -1112,36 +1119,73 @@ storycapsules:
     - "Society doesn't support ambitious women" — preachy, no specificity
 
     Scoring priority: RECOGNITION (does the viewer see themselves?) over curiosity gap.
-    Hooks should be 3rd person ("She did X") or felt observation.
     No percentages, statistics, or research data.
 
   cinematic_story_example: |
-    REFERENCE STORY: "The Meeting"
-    Topic: She had the right answer and said nothing
+    REFERENCE STORIES — showing all three POV styles. Pick the POV that best fits the topic.
+
+    ── 3RD PERSON (observational — viewer watches, recognizes) ──
+    Best for: workplace moments, relationship dynamics, quiet external actions
+    "The Meeting" — She had the right answer and said nothing
 
     Scene 1 [zoom_in]:
       "She had the answer. She didn't say it."
-      "Priya's hand stayed under the table the whole meeting."
-      IMAGE: Close-up of her face in a conference room, others blurred in background, soft office light
+      "Her hand stayed under the table the whole meeting."
+      IMAGE: Close-up of her face in a conference room, others blurred, soft office light
 
     Scene 2 [pan_left]:
       "Afterwards, he said it. Everyone nodded."
       "She smiled. She took notes. She drove home."
-      IMAGE: Medium shot of her at her desk, end of day, golden light, jacket still on
+      IMAGE: Medium shot at her desk, end of day, golden light
 
     Scene 3 [zoom_out]:
       "That night she wrote: next time I'll say it."
       IMAGE: Close-up of her hand writing in a notebook, warm lamp light
 
-    STORY RULES FOR THIS CHANNEL:
-    - End with a small, specific action SHE takes — NOT a productivity CTA for the viewer
+    ── 2ND PERSON (direct — viewer IS the protagonist) ──
+    Best for: universal truths, inner doubt, confronting a hard pattern
+    "The Room" — Making yourself smaller
+
+    Scene 1 [zoom_in]:
+      "You've been making yourself smaller to fit the room."
+      "The idea was yours. You let someone else say it."
+      IMAGE: Wide shot of a meeting room, her at the edge of the table
+
+    Scene 2 [pan_left]:
+      "You told yourself: next time. You always say next time."
+      IMAGE: Close-up of her hands, pen tapping on a notebook
+
+    Scene 3 [static]:
+      "You already know what you want to say. Say it."
+      IMAGE: Close-up of her face, direct, quiet resolve, warm light
+
+    ── 1ST PERSON (confessional — raw inner voice) ──
+    Best for: quiet victories, self-discovery, personal turning points
+    "The Chai" — Choosing herself
+
+    Scene 1 [zoom_in]:
+      "I cancelled the plan. I didn't explain."
+      "I made chai. Sat with the silence."
+      IMAGE: Close-up of hands around a chai cup, soft indoor light, evening
+
+    Scene 2 [pan_left]:
+      "The guilt lasted about ten minutes."
+      "The quiet lasted all night. It was enough."
+      IMAGE: Medium shot of her on a couch, city lights through window, blue hour
+
+    Scene 3 [zoom_out]:
+      "I used to call that selfish. I call it something else now."
+      IMAGE: Wide shot of her in the room alone, small, peaceful
+
+    ── STORY RULES (apply to all POVs) ──
+    - Choose POV based on story type: 3rd for observation, 2nd for confrontation, 1st for confession
+    - Stay in ONE POV throughout the entire story — do not mix
+    - End with a small, specific moment the character lives — not a productivity CTA for the viewer
       GOOD: "She opened a new doc. Typed her name at the top. Started."
-      BAD: "Subscribe for more career tips" or "Update your LinkedIn today"
-    - Lines are 3rd person ("She did X") or felt observation ("The meeting ended. Nobody noticed.")
-    - No stats, no percentages, no research data needed — emotional truth is the data
-    - The emotion lives in the specific detail, not the explanation
+      BAD: "Update your LinkedIn today" or "Follow for more tips"
+    - No stats, no percentages, no research data — emotional truth is the data
     - 8-12 words per line. Show the moment, never explain the feeling.
-    - Visual anchor: one recurring element (a bangle, a notebook, a coffee cup) across all scenes
+    - Visual anchor: one recurring element (a notebook, a chai cup, a window) across all scenes
 
   curated_topics:
     # Career and Ambition
