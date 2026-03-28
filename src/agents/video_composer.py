@@ -327,7 +327,14 @@ class VideoComposer:
                     ]
 
                 logger.info("[Cinematic Clip %d/%d] Rendering...", clip_number, total_lines)
-                result = subprocess.run(cmd, capture_output=True, check=True)
+                result = subprocess.run(cmd, capture_output=True)
+                if result.returncode != 0:
+                    stderr = result.stderr.decode(errors="replace")
+                    logger.error("[Clip %d] FFmpeg exit %d:\n%s",
+                                 clip_number, result.returncode, stderr[-2000:])
+                    raise subprocess.CalledProcessError(
+                        result.returncode, cmd, output=result.stdout, stderr=result.stderr
+                    )
 
                 stderr_lines = result.stderr.decode(errors="replace").splitlines()
                 ffmpeg_warnings = list(dict.fromkeys(

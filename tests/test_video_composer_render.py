@@ -36,6 +36,15 @@ def run(fn):
     except AssertionError as e:
         print(f"  FAIL: {e}")
         FAILED.append(label)
+    except subprocess.CalledProcessError as e:
+        print(f"  ERROR: FFmpeg exit {e.returncode}")
+        if e.stderr:
+            stderr = e.stderr.decode(errors="replace") if isinstance(e.stderr, bytes) else e.stderr
+            # Print last 60 lines — the useful part
+            lines = stderr.splitlines()
+            for line in lines[-60:]:
+                print(f"    {line}")
+        FAILED.append(label)
     except Exception as e:
         import traceback
         print(f"  ERROR: {type(e).__name__}: {e}")
