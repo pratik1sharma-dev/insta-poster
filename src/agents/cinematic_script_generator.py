@@ -255,7 +255,7 @@ The story must:
   "scenes": [
     {{
       "lines": ["Line 1", "Line 2"],
-      "image_prompt": "Medium shot of [subject], [lighting], [mood], 35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos",
+      "image_prompt": "Medium shot of [subject], [lighting], [mood], cinematic",
       "motion": "zoom_in"
     }}
   ]
@@ -381,8 +381,6 @@ Respond with ONLY valid JSON."""
                     trimmed_lines.append(line)
 
             image_prompt = str(s.get("image_prompt", ""))
-            if "no text" not in image_prompt.lower():
-                image_prompt += ", 35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
 
             motion = str(s.get("motion", "zoom_in")).lower()
             if motion not in self.VALID_MOTIONS:

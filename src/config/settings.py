@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # ── Stable Diffusion WebUI (via Tailscale) ────────────────────────
     sd_api_url: str = "http://100.67.231.93:7860/sdapi/v1/txt2img"
-    sd_steps: int = 15                              # reduced from 25 for stability
+    sd_steps: int = 20                              # 20 steps at 640x1120 ≈ same time as 15 at 768x1344
     sd_timeout: int = 600                           # 10 minutes for high-res portrait
     sd_width: int = 1080
     sd_height: int = 1080
@@ -44,7 +44,10 @@ class Settings(BaseSettings):
     sd_negative_prompt: str = (
         "text, watermark, logo, caption, letters, words, typography, "
         "signature, username, blurry, low quality, distorted, ugly, "
-        "multiple panels, collage, split screen, grid"
+        "multiple panels, collage, split screen, grid, "
+        "lowres, bad anatomy, worst quality, jpeg artifacts, "
+        "deformed, disfigured, bad proportions, extra limbs, "
+        "flat lighting, overexposed, underexposed"
     )
 
     # ── TTS / Voice ───────────────────────────────────────────────────
