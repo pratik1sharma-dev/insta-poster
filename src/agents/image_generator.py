@@ -8,14 +8,13 @@ from typing import List, Optional, Union
 import logging
 import io
 import time
-import requests
 import re
 
 from google import genai as genai_client
 from google.genai import types
-import replicate
-from replicate.exceptions import ReplicateError
 from PIL import Image, ImageFilter, ImageEnhance
+
+from src.agents.image_providers import call_sd_api, call_replicate_api, call_gemini_image_api, download_image_url
 
 from jinja2 import Template
 from html2image import Html2Image
@@ -127,15 +126,8 @@ class ImageGenerator:
                             logger.info("Waiting 35s for Gemini free tier rate limit...")
                             time.sleep(35)
 
-                        response = self.client.models.generate_content(
-                            model=self.model,
-                            contents=prompt,
-                            config=types.GenerateContentConfig(
-                                response_modalities=["IMAGE"]
-                            ),
-                        )
-                        hook_image_path = self._save_gemini_image(
-                            response, slide.slide_number, output_dir
+                        hook_image_path = self._generate_gemini_image(
+                            prompt, slide.slide_number, output_dir
                         )
 
                     elif self.provider == "replicate":
@@ -354,61 +346,58 @@ ABSOLUTE RULES — violations will ruin the slide:
 
 Generate the background scene now."""
 
-    def _generate_sd_image(
-        self,
-        prompt: str,
-        slide_number: int,
-        output_dir: Path,
-    ) -> Optional[Path]:
+    def _generate_gemini_image(self, prompt: str, slide_number: int, output_dir: Path) -> Optional[Path]:
+        """Generate image via Gemini."""
+        from src.config import settings
+        image_bytes = call_gemini_image_api(prompt, self.model, settings.gemini_api_key)
+        if not image_bytes:
+            raise RuntimeError(f"No image returned for slide {slide_number}")
+        image = Image.open(io.BytesIO(image_bytes))
+        image_path = output_dir / f"slide_{slide_number:02d}.png"
+        image.save(image_path, "PNG")
+        logger.info("Saved Gemini image: slide %s → %s", slide_number, image_path)
+        return image_path
+
+    def _generate_sd_image(self, prompt: str, slide_number: int, output_dir: Path) -> Optional[Path]:
         """Generate image via local Stable Diffusion API."""
-        payload = {
-            "prompt": prompt,
-            "steps": self.steps,
-            "width": 1080,
-            "height": 1080,
-        }
-        
         try:
-            response = requests.post(
-                self.api_url,
-                json=payload,
-                timeout=self.timeout
+            image_data = call_sd_api(
+                api_url=self.api_url,
+                timeout=self.timeout,
+                prompt=prompt,
+                width=1080,
+                height=1080,
+                steps=self.steps,
             )
-            response.raise_for_status()
-            r = response.json()
-            
-            image_data = base64.b64decode(r['images'][0])
             image_path = output_dir / f"slide_{slide_number:02d}.png"
-            
-            with open(image_path, 'wb') as f:
+            with open(image_path, "wb") as f:
                 f.write(image_data)
-                
             logger.info("Saved SD image: slide %s → %s", slide_number, image_path)
             return image_path
-            
         except Exception as e:
             logger.error("SD image generation failed: %s", e)
             return None
 
-    def _generate_replicate_image(
-        self,
-        prompt: str,
-        slide_number: int,
-        output_dir: Path,
-    ) -> Optional[Path]:
+    def _generate_replicate_image(self, prompt: str, slide_number: int, output_dir: Path) -> Optional[Path]:
         """Generate image via Replicate with retry logic."""
         max_retries = 3
         retry_delay = 10
 
         for attempt in range(max_retries):
             try:
+                import replicate
+                from replicate.exceptions import ReplicateError
                 input_params = {"prompt": prompt, "aspect_ratio": "1:1"}
                 if "flux" in self.model:
                     input_params["output_format"] = "png"
 
-                output = replicate.run(self.model, input=input_params)
-                image_url = output[0] if isinstance(output, list) else str(output)
-                return self._save_replicate_image(image_url, slide_number, output_dir)
+                image_url = call_replicate_api(self.model, input_params)
+                image_data = download_image_url(image_url)
+                image = Image.open(io.BytesIO(image_data))
+                image_path = output_dir / f"slide_{slide_number:02d}.png"
+                image.save(image_path, "PNG")
+                logger.info("Saved Replicate image: slide %s → %s", slide_number, image_path)
+                return image_path
 
             except Exception as e:
                 is_rate_limit = (
@@ -489,51 +478,3 @@ Generate the background scene now."""
         luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
         return "#000000" if luminance > 0.5 else "#ffffff"
 
-    # ------------------------------------------------------------------
-    # Image save helpers
-    # ------------------------------------------------------------------
-
-    def _save_gemini_image(
-        self,
-        response,
-        slide_number: int,
-        output_dir: Path,
-    ) -> Path:
-        """Extract and save image bytes from a Gemini response."""
-        image_bytes = None
-        try:
-            for part in response.candidates[0].content.parts:
-                if part.inline_data:
-                    image_bytes = part.inline_data.data
-                    break
-        except Exception as e:
-            logger.error(
-                "Failed to extract Gemini image for slide %s: %s", slide_number, e
-            )
-
-        if not image_bytes:
-            raise RuntimeError(f"No image returned for slide {slide_number}")
-
-        image = Image.open(io.BytesIO(image_bytes))
-        image_path = output_dir / f"slide_{slide_number:02d}.png"
-        image.save(image_path, "PNG")
-        logger.info("Saved Gemini image: slide %s → %s", slide_number, image_path)
-        return image_path
-
-    def _save_replicate_image(
-        self,
-        url: str,
-        slide_number: int,
-        output_dir: Path,
-    ) -> Path:
-        """Download and save image from a Replicate URL."""
-        response = requests.get(url, timeout=60)
-        if response.status_code != 200:
-            raise RuntimeError(
-                f"Failed to download image from {url} (status {response.status_code})"
-            )
-        image = Image.open(io.BytesIO(response.content))
-        image_path = output_dir / f"slide_{slide_number:02d}.png"
-        image.save(image_path, "PNG")
-        logger.info("Saved Replicate image: slide %s → %s", slide_number, image_path)
-        return image_path
