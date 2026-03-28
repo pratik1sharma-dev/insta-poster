@@ -283,10 +283,13 @@ class VideoComposer:
 
                 logger.info("[Clip %d] Scene %d, motion=%s, style=%s, bold=%s",
                             clip_number, scene_idx + 1, motion, text_style, use_bold)
+                logger.info("[Clip %d] Raw text   : %s", clip_number, text)
+                logger.info("[Clip %d] Escaped text: %s", clip_number, self._escape(text))
 
                 drawtext_filter = self._create_kinetic_text_overlay(
                     text, text_style, slide_dur, clip_number, total_lines, bold=use_bold
                 )
+                logger.debug("[Clip %d] drawtext filter: %s", clip_number, drawtext_filter)
 
                 # Build FFmpeg command
                 has_audio = bool(audio_paths and audio_index < len(audio_paths))
@@ -326,16 +329,22 @@ class VideoComposer:
                 logger.info("[Cinematic Clip %d/%d] Rendering...", clip_number, total_lines)
                 result = subprocess.run(cmd, capture_output=True, check=True)
 
+                stderr_lines = result.stderr.decode(errors="replace").splitlines()
                 ffmpeg_warnings = list(dict.fromkeys(
-                    line for line in result.stderr.decode(errors="replace").splitlines()
-                    if any(kw in line for kw in ("drawtext", "error", "warning", "invalid", "unable"))
-                    and "Stray %%" not in line
+                    line for line in stderr_lines
+                    if any(kw in line.lower() for kw in
+                           ("drawtext", "error", "warning", "invalid", "unable",
+                            "no such filter", "option", "failed", "stray"))
                 ))
                 if ffmpeg_warnings:
-                    logger.warning("[Clip %d] FFmpeg warnings detected:", clip_number)
+                    logger.warning("[Clip %d] FFmpeg warnings/errors:", clip_number)
                     for line in ffmpeg_warnings:
-                        logger.warning("[Clip %d] FFmpeg: %s", clip_number, line)
+                        logger.warning("[Clip %d]   %s", clip_number, line)
+                    logger.warning("[Clip %d] Raw text      : %s", clip_number, text)
+                    logger.warning("[Clip %d] Escaped text  : %s", clip_number, self._escape(text))
                     logger.warning("[Clip %d] filter_complex: %s", clip_number, filter_complex)
+                else:
+                    logger.info("[Clip %d] Rendered OK — no FFmpeg warnings", clip_number)
 
                 clip_paths.append(clip_path)
                 audio_index += 1
