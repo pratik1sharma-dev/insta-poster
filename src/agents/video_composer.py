@@ -83,13 +83,10 @@ class VideoComposer:
         W, H = self.REEL_W, self.REEL_H
         fps = self.FPS
 
-        # Note: no scale=2x pre-upscale — zoompan operates on the source resolution
-        # directly to avoid pre-allocating ~3GB of frame buffers on low-RAM servers
-        # (FFmpeg 4.x zoompan allocates all d output frames at init time).
         if motion == "zoom_in":
             rate = 0.15 / frames
             return (
-                f"scale={W}:{H},"
+                f"scale={W*2}:{H*2},"
                 f"zoompan=z='min(1+on*{rate:.6f},1.15)':"
                 f"x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':"
                 f"d={frames}:s={W}x{H}:fps={fps}"
@@ -97,14 +94,14 @@ class VideoComposer:
         elif motion == "zoom_out":
             rate = 0.15 / frames
             return (
-                f"scale={W}:{H},"
+                f"scale={W*2}:{H*2},"
                 f"zoompan=z='max(1.15-on*{rate:.6f},1.0)':"
                 f"x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':"
                 f"d={frames}:s={W}x{H}:fps={fps}"
             )
         elif motion == "pan_right":
             return (
-                f"scale={W}:{H},"
+                f"scale={W*2}:{H*2},"
                 f"zoompan=z='1.1':"
                 f"x='(iw-iw/zoom)*on/{frames}':"
                 f"y='(ih-ih/zoom)/2':"
@@ -112,7 +109,7 @@ class VideoComposer:
             )
         elif motion == "pan_left":
             return (
-                f"scale={W}:{H},"
+                f"scale={W*2}:{H*2},"
                 f"zoompan=z='1.1':"
                 f"x='(iw-iw/zoom)*(1-on/{frames})':"
                 f"y='(ih-ih/zoom)/2':"
@@ -240,6 +237,9 @@ class VideoComposer:
         Build one video clip per text line.
         Lines within the same scene share the same image + motion effect.
         """
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
         clip_paths = []
         audio_index = 0
 
