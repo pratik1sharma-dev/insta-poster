@@ -852,7 +852,7 @@ Write only the CTA text. No JSON."""
                     model=self.model,
                     messages=full_messages,
                     temperature=0.7,
-                    max_tokens=4096,
+                    max_tokens=6000,
                 )
                 return self._clean_ai_response(completion.choices[0].message.content)
 
