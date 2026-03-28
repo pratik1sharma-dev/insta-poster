@@ -211,22 +211,26 @@ class VideoComposer:
                 # back to inline-escaped text.
                 fifo_path = None
                 try:
-                    fifo_path = os.path.join(tempfile.gettempdir(), f"vc_text_{uuid.uuid4().hex}.fifo")
-                    os.mkfifo(fifo_path)
-                    # register content to be written later by the caller
+                    # Use a temporary UTF-8 file instead of a FIFO. Writing the
+                    # content up-front avoids writer/reader blocking and is
+                    # cross-platform. The tempfile is created in the system temp
+                    # dir and registered for cleanup after ffmpeg finishes.
+                    tmp = tempfile.NamedTemporaryFile(prefix="vc_text_", suffix=".txt", delete=False)
+                    tmp_path = tmp.name
+                    # If preserving the whole block, write the full normalized block;
+                    # otherwise write the single wrapped line.
+                    write_content = (wrapped_lines[0] if preserve_block else ln)
+                    # Double percent signs so FFmpeg drawtext prints a literal '%'
+                    try:
+                        tmp.write(write_content.replace('%', '%%').encode('utf-8'))
+                    finally:
+                        tmp.close()
+                    fifo_path = tmp_path
                     pending = getattr(self, '_pending_fifos', None)
                     if pending is None:
-                        # If preserving the whole block, write the entire normalized
-                        # block into a single FIFO entry so drawtext shows exact input.
-                        if preserve_block:
-                            self._pending_fifos = [(fifo_path, wrapped_lines[0])]
-                        else:
-                            self._pending_fifos = [(fifo_path, ln)]
+                        self._pending_fifos = [(fifo_path, None)]
                     else:
-                        if preserve_block:
-                            pending.append((fifo_path, wrapped_lines[0]))
-                        else:
-                            pending.append((fifo_path, ln))
+                        pending.append((fifo_path, None))
                 except Exception:
                     fifo_path = None
 
@@ -410,38 +414,22 @@ class VideoComposer:
                     ]
 
                 logger.info("[Cinematic Clip %d/%d] Rendering...", clip_number, total_lines)
-                # If FIFOs were created for this clip's text, start writer threads
-                fifo_threads = []
+                # If temp textfiles were created for this clip's text, register
+                # them for cleanup after ffmpeg finishes. Files were written
+                # earlier (no writer threads required), so we only need to
+                # remove them in the finally block below.
+                temp_paths = []
                 pending = getattr(self, '_pending_fifos', None)
                 if pending:
-                    # Start a thread per FIFO that will open the FIFO for writing
-                    # and write the UTF-8 content. Starting writers before ffmpeg
-                    # is fine — they will block until ffmpeg opens the FIFO for
-                    # reading.
-                    def _writer(path: str, content: str):
+                    for path, _ in pending:
                         try:
-                            # Double percent signs so ffmpeg drawtext treats them as
-                            # literals (%% -> prints %). This preserves visual '%' while
-                            # avoiding expansion sequences.
-                            safe = content.replace('%', '%%')
-                            with open(path, 'wb') as w:
-                                w.write(safe.encode('utf-8'))
+                            # preview the first 200 chars of the file for debug
+                            with open(path, 'r', encoding='utf-8', errors='replace') as rf:
+                                preview = rf.read(200)
+                            logger.debug("[Clip %d] registered temp textfile %s -> %r", clip_number, path, preview)
                         except Exception:
-                            # ignore writer errors; ffmpeg will raise if it needs the file
-                            pass
-
-                    for path, content in pending:
-                        # Log FIFO path and a safe preview of content
-                        try:
-                            preview = (content[:200] + '...') if len(content) > 200 else content
-                            logger.debug("[Clip %d] registering FIFO %s -> %r", clip_number, path, preview)
-                        except Exception:
-                            logger.debug("[Clip %d] registering FIFO %s", clip_number, path)
-                        t = threading.Thread(target=_writer, args=(path, content), daemon=True)
-                        t.start()
-                        fifo_threads.append((t, path))
-                    # clear pending list so subsequent clips don't reuse same FIFOs
-                    delattr = False
+                            logger.debug("[Clip %d] registered temp textfile %s", clip_number, path)
+                        temp_paths.append(path)
                     try:
                         del self._pending_fifos
                     except Exception:
@@ -450,13 +438,9 @@ class VideoComposer:
                 try:
                     result = subprocess.run(cmd, capture_output=True, check=True)
                 finally:
-                    # Ensure FIFO writer threads are joined and FIFOs removed
-                    if fifo_threads:
-                        for t, path in fifo_threads:
-                            try:
-                                t.join(timeout=5)
-                            except Exception:
-                                pass
+                    # Ensure temporary text files are removed
+                    if temp_paths:
+                        for path in temp_paths:
                             try:
                                 if os.path.exists(path):
                                     os.remove(path)
