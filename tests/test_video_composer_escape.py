@@ -16,10 +16,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Import VideoComposer
-# ─────────────────────────────────────────────────────────────────────────────
+# Ensure project root is on the path regardless of where the script is run from
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.agents.video_composer import VideoComposer
 
