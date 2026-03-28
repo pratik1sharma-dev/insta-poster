@@ -49,6 +49,8 @@ class ChannelConfig(BaseModel):
     copy_voice_examples: Optional[str] = None
     localization_type: str = "global"
     voice_id: Optional[str] = None  # Per-channel Edge-TTS voice ID
+    cinematic_hook_examples: Optional[str] = None  # Channel-specific hook examples for cinematic reels
+    cinematic_story_example: Optional[str] = None  # Channel-specific story example for cinematic reels
 
     class Config:
         frozen = False

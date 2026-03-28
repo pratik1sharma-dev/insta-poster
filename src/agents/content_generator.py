@@ -819,3 +819,55 @@ Write only the CTA text. No JSON."""
                 raise e
 
         return ""
+
+    def _generate_conversation(
+        self, messages: List[dict], system_prompt: Optional[str] = None
+    ) -> str:
+        """
+        Generate text using a full conversation history (multi-turn).
+
+        messages: list of {"role": "user"/"assistant", "content": "..."} dicts
+                  in chronological order (last entry is the latest user turn).
+
+        Groq natively supports multi-turn via the messages array.
+        Gemini and Replicate fall back to single-turn using the last user message.
+        """
+        if self.provider != "groq":
+            last_user = next(
+                (m["content"] for m in reversed(messages) if m["role"] == "user"), ""
+            )
+            return self._generate_text(last_user, system_prompt=system_prompt)
+
+        max_retries = 3
+        retry_delay = 5
+
+        full_messages = []
+        if system_prompt:
+            full_messages.append({"role": "system", "content": system_prompt})
+        full_messages.extend(messages)
+
+        for attempt in range(max_retries):
+            try:
+                completion = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=full_messages,
+                    temperature=0.7,
+                    max_tokens=4096,
+                )
+                return self._clean_ai_response(completion.choices[0].message.content)
+
+            except Exception as e:
+                error_msg = str(e).lower()
+                is_rate_limit = "429" in error_msg or "rate_limit" in error_msg
+
+                if is_rate_limit and attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)
+                    logger.warning(
+                        "Rate limited by Groq. Retrying in %ss (attempt %d/%d)",
+                        wait_time, attempt + 1, max_retries,
+                    )
+                    time.sleep(wait_time)
+                    continue
+                raise e
+
+        return ""
