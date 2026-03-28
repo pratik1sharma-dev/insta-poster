@@ -121,13 +121,20 @@ class VideoComposer:
     # ------------------------------------------------------------------
 
     def _escape(self, s: str) -> str:
-        """Escape text for safe use in FFmpeg drawtext filter."""
+        """Escape text for safe use in FFmpeg drawtext filter.
+
+        Within single-quoted FFmpeg filter strings:
+        - Backslash must be doubled: \\ -> \\\\
+        - Single quote cannot use \\' (breaks the quoted segment) — use \\x27 instead
+        - Percent sign must be doubled: % -> %%  (drawtext expansion)
+        - Colon must be escaped: : -> \\:  (option separator)
+        """
         s = s.translate(self._UNICODE_NORMALIZE)
         s = s.replace('\r\n', '\n').replace('\r', '\n')
         s = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', s)
         return (
             s.replace('\\', '\\\\')
-             .replace("'", "\\'")
+             .replace("'", "\\x27")   # hex escape — \' breaks FFmpeg quoted string parsing
              .replace('%', '%%')
              .replace(':', '\\:')
              .replace('\n', '\\n')
