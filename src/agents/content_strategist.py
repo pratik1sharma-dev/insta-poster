@@ -12,6 +12,7 @@ import replicate
 from groq import Groq
 from replicate.exceptions import ReplicateError
 from tavily import TavilyClient
+from src.agents.data_researcher import DataResearcher
 from src.models import ChannelConfig, ContentStrategy, HookType
 from src.config import settings
 
@@ -36,6 +37,9 @@ class ContentStrategist:
             self.model = settings.groq_model
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
+
+        # Data researcher handles external research and synthesis
+        self.researcher = DataResearcher(self._generate_text)
 
     def _clean_ai_response(self, text: str) -> str:
         """Strip <think> blocks and other AI artifacts."""
@@ -120,194 +124,7 @@ class ContentStrategist:
                 raise e
         return ""
 
-    def _generate_search_queries(self, topic: str, theme: str, localization: str = "global") -> List[str]:
-        """Ask the LLM to generate optimal search queries for this topic."""
-        from datetime import datetime
-        current_date = datetime.now().strftime("%B %Y")
-
-        geo_hint = (
-            "These queries are for an INDIA-focused channel. Always include 'India' in each query "
-            "and use Indian financial terms (SEBI, NIFTY, RBI, Budget, crore, lakh) where relevant."
-            if localization.lower() == "india"
-            else "These queries are for a global audience."
-        )
-
-        prompt = f"""You are a research assistant.
-Today's Date: {current_date}
-Topic: "{topic}"
-Channel Theme: "{theme}"
-Geography: {geo_hint}
-
-Generate 3 specific search queries to find the most up-to-date, verifiable data and reports for this topic.
-Focus on finding the latest available figures relative to today's date.
-If the topic is historical, focus on that specific era.
-
-Respond with ONLY a comma-separated list of the 3 queries.
-"""
-        response = self._generate_text(prompt)
-        queries = [q.strip().strip('"') for q in response.split(',')]
-        return queries[:3]
-
-    def _research_topic(self, topic: str, theme: str, localization: str = "global") -> str:
-        """Search for real-world data about the topic using AI-generated queries."""
-        if not settings.tavily_api_key:
-            return ""
-
-        try:
-            client = TavilyClient(api_key=settings.tavily_api_key)
-            queries = self._generate_search_queries(topic, theme, localization)
-
-            research_context = "### REAL-WORLD RESEARCH DATA:\n"
-            i = 1
-            for query in queries:
-                try:
-                    logging.getLogger(__name__).info(f"Researching: {query}")
-                    search_response = client.search(query=query, search_depth="advanced", max_results=2)
-                    for result in search_response.get('results', []):
-                        research_context += f"--- SEARCH RESULT [{i}] ---\n"
-                        research_context += f"SOURCE URL: {result.get('url')}\n"
-                        research_context += f"EXTRACTED CONTENT: {result.get('content')}\n\n"
-                        i += 1
-                except Exception as e:
-                    logging.getLogger(__name__).error(f"Tavily search failed for query '{query}': {e}")
-
-            return research_context
-
-        except Exception as e:
-            logging.getLogger(__name__).error(f"Tavily research failed: {e}")
-            return ""
-
-    def _synthesize_research(self, raw_research: str, topic: str) -> str:
-        """Process raw search results into a clean, structured data block."""
-        if not raw_research or len(raw_research) < 100:
-            return "No verifiable data found."
-
-        prompt = f"""You are a Research Analyst with focus on DATA INTEGRITY.
-
-Topic: "{topic}"
-
-RAW SEARCH DATA:
-{raw_research}
-
-### TASK:
-Extract 5-8 VERIFIED DATA POINTS in STRICT FORMAT:
-
-**Format per point:**
-[SOURCE NAME]: [SPECIFIC FACT with NUMBER] (Year: YYYY)
-
-### REQUIREMENTS:
-1. Every data point MUST include:
-   - Named source (McKinsey, World Bank, specific study)
-   - Specific number (not "increased significantly")
-   - Time reference (year, quarter)
-
-2. Flag LOW CONFIDENCE data:
-   - If source is "blog" or unnamed → prefix with ⚠️
-   - If date is >2 years old → add "(DATED)"
-   - If conflicting data → note both values
-
-3. For COMPARISONS, ensure same timeframe
-
-### GOOD EXAMPLE:
-- [McKinsey 2024]: India's solar capacity reached 70.1 GW (Year: 2024)
-- [NIFTY50 Index]: ₹1 lakh invested in 2010 → ₹8.7 crore by 2024
-
-### BAD EXAMPLE:
-- "Solar is growing fast" ❌ No number
-- "One report said..." ❌ No source
-- "In recent years" ❌ No year
-
-Respond with ONLY formatted list starting with "VERIFIED DATA POINTS:"
-"""
-        synthesized = self._generate_text(prompt)
-
-        # Validate synthesis quality
-        if "VERIFIED DATA POINTS:" not in synthesized:
-            logger.warning("Research synthesis didn't follow format")
-
-        # Check for low-confidence markers
-        if "⚠️" in synthesized or "(DATED)" in synthesized:
-            logger.warning("Some research data has quality issues:\n%s", synthesized[:200])
-
-        return synthesized
-
-    def _assess_research_quality(self, research_data: str, channel_config=None) -> dict:
-        """
-        Score research quality before using it.
-
-        Scoring is channel-aware:
-        - Financial/data channels (wealthcapsules, worldinranks): strict — require
-          financial-unit numbers (crore, lakh, %, $) and named sources.
-        - Non-financial channels (psychecapsules, pagecapsules, fertilitycapsules,
-          startupcapsules): relaxed — any numeric value counts, fail threshold is lower.
-
-        Returns:
-            {
-                'score': 0-100,
-                'has_sources': bool,
-                'has_numbers': bool,
-                'has_dates': bool,
-                'confidence': 'high|medium|low',
-                'issues': [list]
-            }
-        """
-        import re
-
-        # Determine channel type from theme keywords
-        theme = (channel_config.theme if channel_config else "").lower()
-        is_financial = any(kw in theme for kw in ("money", "investing", "wealth", "ranking", "data"))
-
-        score = 0
-        issues = []
-
-        # Check named sources
-        sources = re.findall(r'\[([A-Z][^\]]+)\]:', research_data)
-        has_sources = len(sources) >= 3
-        score += 30 if has_sources else 0
-        if not has_sources:
-            issues.append("Fewer than 3 named sources")
-
-        # Check specific numbers — strict for financial channels, relaxed for others
-        if is_financial:
-            numbers = re.findall(
-                r'\d+(?:\.\d+)?(?:\s*(?:crore|lakh|million|billion|%|₹|\$))',
-                research_data
-            )
-            required_count = 4
-        else:
-            # Accept any number (study percentages, age ranges, years, page counts)
-            numbers = re.findall(r'\b\d+(?:\.\d+)?(?:\s*%|\s+(?:percent|people|patients|studies|years?))?\b', research_data)
-            required_count = 3
-
-        has_numbers = len(numbers) >= required_count
-        score += 30 if has_numbers else 0
-        if not has_numbers:
-            issues.append(f"Fewer than {required_count} specific numbers")
-
-        # Check dates
-        dates = re.findall(r'(?:20\d{2}|19\d{2}|Year:\s*\d{4})', research_data)
-        has_dates = len(dates) >= 2  # relaxed from 3 — non-financial research may cite fewer years
-        score += 20 if has_dates else 0
-        if not has_dates:
-            issues.append("Missing time references")
-
-        # Check quality warnings
-        has_warnings = '⚠️' in research_data or '(DATED)' in research_data
-        score += 20 if not has_warnings else 10
-        if has_warnings:
-            issues.append("Contains low-confidence data")
-
-        confidence = 'high' if score >= 80 else ('medium' if score >= 50 else 'low')
-
-        return {
-            'score': score,
-            'has_sources': has_sources,
-            'has_numbers': has_numbers,
-            'has_dates': has_dates,
-            'confidence': confidence,
-            'issues': issues,
-            'channel_type': 'financial' if is_financial else 'general',
-        }
+    
 
     def plan_content(
         self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, raw_output_dir: Optional[Path] = None
@@ -322,31 +139,41 @@ Respond with ONLY formatted list starting with "VERIFIED DATA POINTS:"
         else:
             topic = random.choice(channel_config.curated_topics)
 
-        # 2. Dynamic Research Step
+        # 2. Dynamic Research Step (delegated to DataResearcher)
         localization = getattr(channel_config, 'localization_type', 'global')
-        raw_research = self._research_topic(topic, channel_config.theme, localization)
-        
-        # 3. Research Synthesis (NEW)
-        research_data = self._synthesize_research(raw_research, topic)
 
-        # 4. Research Quality Assessment
-        quality = self._assess_research_quality(research_data, channel_config)
-        logger.info(
-            "Research quality: %s (score: %d/100, channel_type: %s)",
-            quality['confidence'], quality['score'], quality['channel_type'],
+        # Build a compact user conversation/context block for the researcher to
+        # incorporate into search query generation. This may include the channel's
+        # brand mission, target audience, and any strategist persona notes.
+        user_context_parts = [f"Topic: {topic}", f"Channel: {channel_config.name}", f"Theme: {channel_config.theme}"]
+        if channel_config.brand_mission:
+            user_context_parts.append(f"Brand mission: {channel_config.brand_mission}")
+        if channel_config.strategist_persona:
+            user_context_parts.append(f"Strategist persona: {channel_config.strategist_persona}")
+        if channel_config.copy_voice_examples:
+            user_context_parts.append(f"Voice examples: {channel_config.copy_voice_examples}")
+        # Include any explicit topic_hint as part of the conversation
+        if topic_hint:
+            user_context_parts.append(f"User hint: {topic_hint}")
+
+        user_conversation = "\n".join(user_context_parts)
+
+        # Run an interactive, single-session research flow where the model may
+        # request searches and then synthesize findings. This replaces the older
+        # separate generate->search->synthesize flow.
+        research_data = self.researcher.research_with_tools(
+            topic,
+            channel_config.theme,
+            localization,
+            user_conversation=user_conversation,
+            max_steps=3,
         )
 
-        if quality['confidence'] == 'low':
-            logger.warning("Research quality is low. Issues: %s", quality['issues'])
-
-            # Financial channels require stronger data — fail fast at 30
-            # Non-financial channels (psychology, books, health) — fail only at 20
-            fail_threshold = 30 if quality['channel_type'] == 'financial' else 20
-            if quality['score'] < fail_threshold:
-                raise ValueError(
-                    f"Research quality too low (score: {quality['score']}, "
-                    f"threshold: {fail_threshold}): {quality['issues']}"
-                )
+        # Research quality is ensured by the interactive research loop. If the
+        # synthesis returned no verifiable data, log a warning and continue with
+        # a best-effort strategy (the strategist will avoid inserting unverifiable numbers).
+        if not research_data or research_data.strip() == "" or "No verifiable data found." in research_data:
+            logger.warning("No verifiable research data returned by DataResearcher; proceeding with best-effort strategy.")
 
         # 5. Unified System Persona — use channel's strategist_persona if defined
         if channel_config.strategist_persona:
