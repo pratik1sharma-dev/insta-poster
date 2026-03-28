@@ -29,7 +29,7 @@ class CinematicReelGenerator:
 
         generator = ContentGenerator()
         self.script_gen = CinematicScriptGenerator(generator)
-        self.image_gen = CinematicImageGenerator()
+        self.image_gen = CinematicImageGenerator(generator)
         self.voice_gen = VoiceGenerator()
         self.video_composer = VideoComposer()
 

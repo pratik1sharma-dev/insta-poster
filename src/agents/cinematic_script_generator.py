@@ -388,7 +388,7 @@ Respond with ONLY valid JSON."""
             if motion not in self.VALID_MOTIONS:
                 motion = "zoom_in"
 
-            scenes.append({"lines": trimmed_lines, "image_prompt": image_prompt, "motion": motion})
+            scenes.append({"lines": trimmed_lines, "image_prompt": image_prompt, "motion": motion, "visual_anchor": visual_anchor})
 
         all_lines_flat = [l for sc in scenes for l in sc["lines"]]
 

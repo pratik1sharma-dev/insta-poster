@@ -74,6 +74,8 @@ class Settings(BaseSettings):
     cinematic_slide_duration: float = 4.0
     cinematic_transition_duration: float = 0.6
     cinematic_music_volume: float = 0.15
+    cinematic_font_path: str = "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"
+    cinematic_font_bold_path: str = "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
 
     # ── Postiz publishing ─────────────────────────────────────────────
     postiz_api_url: str = "http://localhost:3000/api"

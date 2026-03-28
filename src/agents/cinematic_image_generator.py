@@ -6,6 +6,7 @@ from typing import List, Optional
 
 from PIL import Image
 
+from src.agents.content_generator import ContentGenerator
 from src.agents.image_providers import (
     call_gemini_image_api,
     call_replicate_api,
@@ -23,11 +24,14 @@ class CinematicImageGenerator:
     Provider methods delegate to the shared helpers in src.agents.image_providers.
     """
 
-    def __init__(self):
+    def __init__(self, generator: ContentGenerator):
         from src.config import settings
 
+        self.generator = generator
         self.provider = settings.image_provider.lower()
         self.settings = settings
+        self._sd_messages: list = []
+        self._sd_system_prompt: str = ""
 
     # ------------------------------------------------------------------
     # Public API
@@ -50,7 +54,7 @@ class CinematicImageGenerator:
             )
             logger.info("[Cinematic Image %d/%d] Prompt: %s", i, len(scenes), prompt)
 
-            visual_anchor = self._extract_visual_anchor(prompt)
+            visual_anchor = scene.get("visual_anchor", "")
             max_attempts = 2
             path = None
             best_path = None
@@ -105,7 +109,7 @@ class CinematicImageGenerator:
                             max_attempts,
                         )
                         refined_prompt = self._refine_prompt_from_issues(
-                            prompt, validation["issues"]
+                            prompt, validation["issues"], scene_index=i
                         )
                         logger.info(
                             "[Cinematic Image %d/%d] Refined prompt: %s",
@@ -153,15 +157,12 @@ class CinematicImageGenerator:
         channel_config,
     ) -> List[dict]:
         """
-        Dedicated AI call to rewrite image prompts for Stable Diffusion quality.
+        Two-turn conversation to rewrite image prompts for Stable Diffusion quality.
 
-        Updates ``scene["image_prompt"]`` in-place and returns scenes.
+        Turn 1 — LLM derives channel/topic-specific SD render guidance.
+        Turn 2 — LLM rewrites all prompts using its own Turn 1 analysis.
         Falls back to the original prompts on failure.
         """
-        from src.agents.content_generator import ContentGenerator
-
-        generator = ContentGenerator()
-
         num_scenes = len(scenes)
         initial_prompts = [sc["image_prompt"] for sc in scenes]
 
@@ -171,48 +172,53 @@ class CinematicImageGenerator:
         )
         initial_text = "\n".join(f"{i + 1}. {p}" for i, p in enumerate(initial_prompts))
 
-        sd_render_context = self._get_sd_render_context(channel_config)
+        system_prompt = (
+            "You are an expert Stable Diffusion prompt engineer for cinematic 9:16 portrait reels.\n"
+            f"Channel: {channel_config.name}\n"
+            f"Theme: {channel_config.theme}\n"
+            f"Audience: {channel_config.target_audience}\n"
+            + (f"Cultural Context: {channel_config.cultural_context}\n" if channel_config.cultural_context else "")
+            + "\nUNIVERSAL SD RULES — always apply:\n"
+            "• NEVER use hands as the main close-up subject\n"
+            "• NEVER ask for screen content (dashboards, spreadsheets, readable numbers)\n"
+            "• Vary shot types: extreme close-up / close-up / medium / wide\n"
+            '• End every prompt with: "35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"'
+        )
 
-        system_prompt = f"""You are an expert Stable Diffusion prompt engineer for cinematic 9:16 portrait reels.
-You know exactly what SD renders well versus what triggers artifacts.
+        # ── Turn 1: derive SD render guidance for this channel + topic ─────
+        turn1_prompt = (
+            f"Story topic: {strategy.topic}\n\n"
+            f"SCENES:\n{lines_text}\n\n"
+            "Based on this channel's theme and audience, briefly describe:\n"
+            "1. Environments, objects, and moods SD renders well for this content\n"
+            "2. What to avoid (SD failure modes specific to this content type)\n"
+            "3. ONE recurring visual element to use across all scenes for continuity\n\n"
+            "5-8 bullet points per section. No JSON needed."
+        )
 
-{sd_render_context}
+        messages = [{"role": "user", "content": turn1_prompt}]
+        turn1_response = self.generator._generate_conversation(messages, system_prompt=system_prompt)
+        logger.debug("SD render context (Turn 1): %s", turn1_response)
 
-SHOT VARIETY (vary across scenes):
-• Extreme close-up: single object macro, face expression detail
-• Close-up: face + shoulders, object lying on a surface
-• Medium shot: person waist-up in their environment
-• Wide shot: full room/environment, person small in frame
+        # ── Turn 2: rewrite prompts using Turn 1 guidance ──────────────────
+        turn2_prompt = (
+            f"Now rewrite these {num_scenes} image prompts using your guidance above.\n\n"
+            f"INITIAL PROMPTS:\n{initial_text}\n\n"
+            "Requirements:\n"
+            "1. Apply the render guidance from above\n"
+            "2. Vary shot types across scenes\n"
+            "3. Include the recurring visual element for continuity\n"
+            '4. End every prompt with: "35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"\n\n'
+            f'Return JSON: {{"refined_prompts": ["full prompt 1", "full prompt 2", ...]}}\n'
+            f"Exactly {num_scenes} prompts. JSON only."
+        )
 
-END EVERY PROMPT WITH:
-"35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
-"""
-
-        prompt = f"""Rewrite these {num_scenes} scene image prompts for Stable Diffusion.
-Story topic: {strategy.topic}
-
-STORY CAPTIONS BY SCENE:
-{lines_text}
-
-INITIAL PROMPTS (rewrite to fix SD issues):
-{initial_text}
-
-REQUIREMENTS:
-1. Specific concrete subject per scene
-2. NEVER use hands as the main close-up subject
-3. NEVER ask for screen content (no "dashboard showing X", no "spreadsheet with numbers")
-4. Vary shot types across scenes — no two scenes with same shot type if possible
-5. One recurring visual element (same person OR same location) for continuity
-6. End every prompt with: "35mm film grain, 9:16 portrait, photorealistic, NO text, NO watermarks, NO logos"
-
-Return JSON:
-{{"refined_prompts": ["full prompt 1", "full prompt 2", ...]}}
-
-Exactly {num_scenes} prompts. JSON only."""
+        messages.append({"role": "assistant", "content": turn1_response})
+        messages.append({"role": "user", "content": turn2_prompt})
 
         try:
-            response = generator._generate_text(prompt, system_prompt=system_prompt)
-            data = generator._parse_json_response(response)
+            turn2_response = self.generator._generate_conversation(messages, system_prompt=system_prompt)
+            data = self.generator._parse_json_response(turn2_response)
             refined = data.get("refined_prompts", [])
 
             if len(refined) == num_scenes:
@@ -223,26 +229,19 @@ Exactly {num_scenes} prompts. JSON only."""
                 logger.info("=" * 60)
                 for i, p in enumerate(refined):
                     scenes[i]["image_prompt"] = p
+                # Persist session for retry turns during image generation
+                messages.append({"role": "assistant", "content": turn2_response})
+                self._sd_messages = messages
+                self._sd_system_prompt = system_prompt
                 return scenes
 
             logger.warning(
-                "SD prompt refinement returned wrong count (%d vs %d) — falling back to initial prompts",
-                len(refined),
-                num_scenes,
+                "SD prompt refinement returned wrong count (%d vs %d) — using initial prompts",
+                len(refined), num_scenes,
             )
         except Exception as e:
-            logger.warning(
-                "SD prompt refinement failed (%s) — falling back to initial prompts.\n"
-                "Initial prompts that will be used:\n%s",
-                e,
-                "\n".join(f"  {i + 1}. {p}" for i, p in enumerate(initial_prompts)),
-            )
-            return scenes
+            logger.warning("SD prompt refinement failed (%s) — using initial prompts", e)
 
-        logger.warning(
-            "Falling back to initial prompts:\n%s",
-            "\n".join(f"  {i + 1}. {p}" for i, p in enumerate(initial_prompts)),
-        )
         return scenes
 
     # ------------------------------------------------------------------
@@ -535,143 +534,31 @@ Be strict but fair. If the image is acceptable for social media, scores should b
     # Prompt utilities
     # ------------------------------------------------------------------
 
-    def _extract_visual_anchor(self, prompt: str) -> str:
-        """Extract the main subject / visual anchor from an image prompt."""
-        patterns = [
-            r"(?:close-?up|medium shot|wide shot|extreme close-?up)\s+of\s+([^,]+)",
-            r"^([^,]+?)(?:,|\s+in\s+)",
-        ]
+    def _refine_prompt_from_issues(
+        self, original_prompt: str, issues: List[str], scene_index: int = 1
+    ) -> str:
+        """
+        Turn 3 in the SD session: ask the LLM to fix the prompt given the detected issues.
+        Falls back to the original prompt if the session isn't available or the call fails.
+        """
+        if not self._sd_messages:
+            logger.warning("SD session unavailable for prompt refinement — using original prompt")
+            return original_prompt
 
-        for pattern in patterns:
-            match = re.search(pattern, prompt, re.IGNORECASE)
-            if match:
-                anchor = match.group(1).strip()
-                anchor = re.sub(r"^(a|an|the)\s+", "", anchor, flags=re.IGNORECASE)
-                return anchor
+        turn3_prompt = (
+            f"Scene {scene_index} image had quality issues after generation:\n"
+            f"Issues detected: {', '.join(issues)}\n\n"
+            f"Prompt that was used:\n{original_prompt}\n\n"
+            "Rewrite this single prompt to fix the detected issues, applying your SD render guidance above. "
+            "Return the rewritten prompt text only — no JSON, no explanation."
+        )
 
-        # Fallback: first five words
-        return " ".join(prompt.split()[:5])
+        messages = self._sd_messages + [{"role": "user", "content": turn3_prompt}]
+        try:
+            refined = self.generator._generate_conversation(messages, system_prompt=self._sd_system_prompt)
+            logger.debug("Refined prompt (Turn 3): %s", refined)
+            return refined.strip()
+        except Exception as e:
+            logger.warning("Prompt refinement Turn 3 failed (%s) — using original prompt", e)
+            return original_prompt
 
-    def _refine_prompt_from_issues(self, original_prompt: str, issues: List[str]) -> str:
-        """Targeted prompt rewrite based on actual SD failure modes detected."""
-        prompt = original_prompt
-        issue_text = " ".join(issues).lower()
-
-        # Failure mode: SD rendered a portrait instead of the requested close-up of an object
-        if "composition" in issue_text and (
-            "portrait" in issue_text or "inverse" in issue_text or "person" in issue_text
-        ):
-            prompt = re.sub(
-                r",?\s*young Indian (?:woman|man)[^,]*(?:in [^,]+)?(?:,|$)",
-                "",
-                prompt,
-                flags=re.IGNORECASE,
-            ).strip().strip(",").strip()
-            prompt += ", NO person in frame, object photography, macro detail"
-
-        # Failure mode: SD can't render readable screen content
-        if "screen showing" in prompt.lower() or "dashboard" in prompt.lower():
-            prompt = re.sub(
-                r"screen showing [^,]+",
-                "glowing screen with bokeh",
-                prompt,
-                flags=re.IGNORECASE,
-            )
-            prompt = re.sub(
-                r"\b\w+ dashboard\b",
-                "glowing laptop screen",
-                prompt,
-                flags=re.IGNORECASE,
-            )
-
-        # Failure mode: hands artifacts
-        if "artifact" in issue_text and "hand" in issue_text:
-            prompt += ", arms kept out of frame, NO hands visible"
-
-        if "sharp focus" not in prompt.lower():
-            prompt += ", sharp focus, professional photography"
-
-        return prompt
-
-    # ------------------------------------------------------------------
-    # SD render context (channel-aware guidance for prompt engineering)
-    # ------------------------------------------------------------------
-
-    def _get_sd_render_context(self, channel_config) -> str:
-        """Return channel-appropriate SD render guidance."""
-        name = channel_config.name.lower()
-        theme = channel_config.theme.lower()
-
-        if "fertility" in name or "health" in theme:
-            return """SD RENDERS WELL — USE THESE:
-• Environments: soft-lit consultation room, calm bedroom, peaceful living room, garden with morning light
-• Objects: single flower on windowsill, glass of water, journal on bedside table, warm cup of tea
-• Single person: woman or couple, medium shot, warm/gentle lighting, thoughtful expression
-• Abstract/atmospheric: morning light through curtains, soft bokeh, calming neutral textures
-
-SD RENDERS POORLY — NEVER USE THESE:
-• Medical diagrams, charts, or visible text
-• Hands as the main close-up subject
-• Harsh clinical lighting"""
-
-        elif "book" in name or "page" in name or "book" in theme or "read" in theme:
-            return """SD RENDERS WELL — USE THESE:
-• Environments: cozy reading nook, home study with warm lamp, coffee shop corner, library aisle
-• Objects: open book on wooden table, reading glasses beside coffee, bookmark in pages, notebook and pen
-• Single person: person reading or writing, warm ambient light, contemplative mood
-• Abstract/atmospheric: light through bookshelves, paper textures, warm amber tones, candlelight
-
-SD RENDERS POORLY — NEVER USE THESE:
-• Text on book covers or spines (SD renders it unreadably)
-• Hands holding book as main close-up subject
-• Hands writing as main close-up subject"""
-
-        elif "startup" in name or "founder" in theme:
-            return """SD RENDERS WELL — USE THESE:
-• Environments: minimalist startup office, co-working space, whiteboard wall, cafe meeting setup
-• Objects: open laptop on standing desk, sticky notes on wall, product prototype on table
-• Single person: young founder at desk, thoughtful expression, city view in background
-• Abstract/atmospheric: city skyline through office window, bright open-plan energy
-
-SD RENDERS POORLY — NEVER USE THESE:
-• Screens showing code, metrics, or dashboards
-• Hands writing on whiteboard (hand artifacts)
-• Multiple people in close interaction"""
-
-        elif "psych" in name or "mind" in name or "psych" in theme:
-            return """SD RENDERS WELL — USE THESE:
-• Environments: quiet desk with single lamp, window at dusk, minimal room with one object of focus
-• Objects: journal open on table, single candle, abstract art on wall (no text)
-• Single person: contemplative expression, medium shot, looking away or into distance
-• Abstract/atmospheric: split lighting (one side lit/one shadow), bokeh, cool minimal tones
-
-SD RENDERS POORLY — NEVER USE THESE:
-• Literal brain imagery (renders anatomically distorted)
-• Text overlays, thought bubbles, or speech bubbles
-• Hands as the main close-up subject"""
-
-        elif "rank" in name or "world" in name or "ranking" in theme:
-            return """SD RENDERS WELL — USE THESE:
-• Environments: financial district skyline, global city architecture, modern airport, glass office buildings
-• Objects: globe on desk, world map as wall art, architectural details of iconic buildings
-• People: diverse professionals in global contexts, business settings
-• Abstract/atmospheric: aerial city view at night, glass-and-steel reflections, modern infrastructure
-
-SD RENDERS POORLY — NEVER USE THESE:
-• Maps with text labels or country names
-• Charts, graphs, or numbers as part of the image
-• Hands as the main close-up subject"""
-
-        else:
-            # Default / financial
-            return """SD RENDERS WELL — USE THESE:
-• Environments: modern Indian office, home study, coffee shop, bedroom, city street, apartment balcony
-• Objects in context: smartphone on wooden desk, open laptop, notebook, document, wallet, tea cup, coins
-• Single person in environment: young Indian man/woman seen from mid-body up, clearly in a setting
-• Abstract/atmospheric: light rays through window, bokeh backgrounds, silhouettes, textured surfaces
-
-SD RENDERS POORLY — NEVER USE THESE:
-• Hands as the MAIN CLOSE-UP SUBJECT → always fused fingers, extra limbs, anatomical nightmare
-• Screens showing readable content (analytics, spreadsheets, dashboards) → SD renders blank/blurry screens
-• Multiple people interacting at close range
-• Text, numbers, or charts IN the image"""

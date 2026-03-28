@@ -22,6 +22,25 @@ class VideoComposer:
     REEL_H = 1920
     FPS = 25
 
+    @property
+    def FONT_PATH(self) -> str:
+        return settings.cinematic_font_path
+
+    @property
+    def FONT_BOLD_PATH(self) -> str:
+        return settings.cinematic_font_bold_path
+
+    # Normalize Unicode typographic characters to ASCII before passing to FFmpeg drawtext
+    _UNICODE_NORMALIZE = str.maketrans({
+        '\u2018': "'",    # left single quotation mark
+        '\u2019': "'",    # right single quotation mark
+        '\u201c': '"',    # left double quotation mark
+        '\u201d': '"',    # right double quotation mark
+        '\u2014': ' - ',  # em dash
+        '\u2013': '-',    # en dash
+        '\u2026': '...',  # ellipsis
+    })
+
     # ------------------------------------------------------------------
     # Public interface
     # ------------------------------------------------------------------
@@ -113,6 +132,7 @@ class VideoComposer:
         duration: float,
         index: int = 1,
         total: int = 4,
+        bold: bool = False,
     ) -> str:
         """
         Generate FFmpeg filter_complex string with kinetic text animations.
@@ -140,8 +160,10 @@ class VideoComposer:
         LINE_HEIGHT = int(FONTSIZE * 1.25)  # ~70px per line
         LINE_GAP = 12
         BORDER = 30
+        font = self.FONT_BOLD_PATH if bold else self.FONT_PATH
 
         def _escape(s: str) -> str:
+            s = s.translate(self._UNICODE_NORMALIZE)
             return s.replace('\\', '\\\\').replace('%', '%%').replace("'", "'\\''").replace(':', '\\:')
 
         def _build_stacked(lines: list, alpha_expr: str, x_expr: str = "(w-text_w)/2") -> str:
@@ -154,6 +176,7 @@ class VideoComposer:
                 y = f"({block_top})+{i * (LINE_HEIGHT + LINE_GAP)}"
                 parts.append(
                     f"drawtext=text='{_escape(ln)}':"
+                    f"fontfile='{font}':"
                     f"fontcolor=white:fontsize={FONTSIZE}:"
                     f"x='{x_expr}':y='{y}':"
                     f"box=1:boxcolor=black@0.5:boxborderw={BORDER}:"
@@ -172,7 +195,7 @@ class VideoComposer:
         multiplier = speed_multipliers.get(speed, 1.0)
 
         if style == 'hook':
-            reveal_duration = min(duration * 0.6, 2.0 * multiplier)
+            reveal_duration = 0.5 * multiplier
             return _build_stacked(wrapped_lines, f"if(lt(t,{reveal_duration}),t/{reveal_duration},1)")
 
         elif style == 'main':
@@ -192,6 +215,7 @@ class VideoComposer:
                 y = f"({block_top})+{i * (LINE_HEIGHT + LINE_GAP)}"
                 parts.append(
                     f"drawtext=text='{_escape(ln)}':"
+                    f"fontfile='{font}':"
                     f"fontcolor=white:"
                     f"fontsize='{FONTSIZE}*if(lt(t,{scale_duration}),1+{max_scale-1}*(1-t/{scale_duration}),1)':"
                     f"x='(w-text_w)/2':y='{y}':"
@@ -268,11 +292,12 @@ class VideoComposer:
                         text_style = 'number'
                     else:
                         text_style = 'main'
-                    logger.info("[Clip %d] Scene %d, motion=%s, style=%s", clip_number, scene_idx + 1, motion, text_style)
-                    drawtext_filter = self._create_kinetic_text_overlay(text, text_style, slide_dur, clip_number, total_lines)
+                    use_bold = text_style in ('hook', 'number', 'insight')
+                    logger.info("[Clip %d] Scene %d, motion=%s, style=%s, bold=%s", clip_number, scene_idx + 1, motion, text_style, use_bold)
+                    drawtext_filter = self._create_kinetic_text_overlay(text, text_style, slide_dur, clip_number, total_lines, bold=use_bold)
                 else:
                     # Animation disabled — use same stacked-drawtext approach for consistent wrapping
-                    drawtext_filter = self._create_kinetic_text_overlay(text, 'hook', slide_dur, clip_number, total_lines)
+                    drawtext_filter = self._create_kinetic_text_overlay(text, 'hook', slide_dur, clip_number, total_lines, bold=True)
 
                 # Build FFmpeg command
                 if audio_paths and audio_index < len(audio_paths):
