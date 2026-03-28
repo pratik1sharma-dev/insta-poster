@@ -3,6 +3,10 @@ import re
 import shutil
 import subprocess
 import textwrap
+import tempfile
+import threading
+import os
+import uuid
 from pathlib import Path
 from typing import List, Optional
 
@@ -164,7 +168,26 @@ class VideoComposer:
 
         def _escape(s: str) -> str:
             s = s.translate(self._UNICODE_NORMALIZE)
-            return s.replace('\\', '\\\\').replace('%', '%%').replace("'", "'\\''").replace(':', '\\:')
+            # Escape for ffmpeg drawtext filter expressions (not shell quoting).
+            # - backslash must be doubled
+            # - single quote must be escaped as \' inside single-quoted drawtext strings
+            # - percent signs are special in drawtext (used for expansions) and should be escaped as \%
+            # - colon separates drawtext parameters and must be escaped as \:
+            # Replace CR/LF with explicit \n sequences (drawtext understands \n)
+            s = s.replace('\r\n', '\n').replace('\r', '\n')
+            # Remove other non-printable/control chars (except newline)
+            s = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', s)
+            return (
+                s.replace('\\', '\\\\')
+                 .replace("'", "\\'")
+                 # Use double-percent (%%) so drawtext prints a single '%' literal
+                 .replace('%', '%%')
+                 # Escape backticks and dollar signs to avoid any parser/shell surprises
+                 .replace('`', '\\`')
+                 .replace('$', '\\$')
+                 .replace(':', '\\:')
+                 .replace('\n', '\\n')
+            )
 
         def _build_stacked(lines: list, alpha_expr: str, x_expr: str = "(w-text_w)/2") -> str:
             """Build one drawtext filter per line, vertically centered as a block."""
@@ -174,15 +197,43 @@ class VideoComposer:
             parts = []
             for i, ln in enumerate(lines):
                 y = f"({block_top})+{i * (LINE_HEIGHT + LINE_GAP)}"
-                parts.append(
-                    f"drawtext=text='{_escape(ln)}':"
-                    f"fontfile='{font}':"
-                    f"fontcolor=white:fontsize={FONTSIZE}:"
-                    f"x='{x_expr}':y='{y}':"
-                    f"box=1:boxcolor=black@0.5:boxborderw={BORDER}:"
-                    f"fix_bounds=1:"
-                    f"alpha='{alpha_expr}'"
-                )
+                # Try to create a named pipe (FIFO) and register the text to be written
+                # to it. Using drawtext=textfile=<fifo> lets ffmpeg read UTF-8 content
+                # directly and avoids complex escaping. If FIFO creation fails, fall
+                # back to inline-escaped text.
+                fifo_path = None
+                try:
+                    fifo_path = os.path.join(tempfile.gettempdir(), f"vc_text_{uuid.uuid4().hex}.fifo")
+                    os.mkfifo(fifo_path)
+                    # register content to be written later by the caller
+                    pending = getattr(self, '_pending_fifos', None)
+                    if pending is None:
+                        self._pending_fifos = [(fifo_path, ln)]
+                    else:
+                        pending.append((fifo_path, ln))
+                except Exception:
+                    fifo_path = None
+
+                if fifo_path:
+                    parts.append(
+                        f"drawtext=textfile='{fifo_path}':"
+                        f"fontfile='{font}':"
+                        f"fontcolor=white:fontsize={FONTSIZE}:"
+                        f"x='{x_expr}':y='{y}':"
+                        f"box=1:boxcolor=black@0.5:boxborderw={BORDER}:"
+                        f"fix_bounds=1:"
+                        f"alpha='{alpha_expr}'"
+                    )
+                else:
+                    parts.append(
+                        f"drawtext=text='{_escape(ln)}':"
+                        f"fontfile='{font}':"
+                        f"fontcolor=white:fontsize={FONTSIZE}:"
+                        f"x='{x_expr}':y='{y}':"
+                        f"box=1:boxcolor=black@0.5:boxborderw={BORDER}:"
+                        f"fix_bounds=1:"
+                        f"alpha='{alpha_expr}'"
+                    )
             return ",".join(parts)
 
         # Animation speed configuration
@@ -334,11 +385,57 @@ class VideoComposer:
                     ]
 
                 logger.info("[Cinematic Clip %d/%d] Rendering...", clip_number, total_lines)
-                result = subprocess.run(cmd, capture_output=True, check=True)
-                ffmpeg_warnings = [
+                # If FIFOs were created for this clip's text, start writer threads
+                fifo_threads = []
+                pending = getattr(self, '_pending_fifos', None)
+                if pending:
+                    # Start a thread per FIFO that will open the FIFO for writing
+                    # and write the UTF-8 content. Starting writers before ffmpeg
+                    # is fine — they will block until ffmpeg opens the FIFO for
+                    # reading.
+                    def _writer(path: str, content: str):
+                        try:
+                            # Double percent signs so ffmpeg drawtext treats them as
+                            # literals (%% -> prints %). This preserves visual '%' while
+                            # avoiding expansion sequences.
+                            safe = content.replace('%', '%%')
+                            with open(path, 'wb') as w:
+                                w.write(safe.encode('utf-8'))
+                        except Exception:
+                            # ignore writer errors; ffmpeg will raise if it needs the file
+                            pass
+
+                    for path, content in pending:
+                        t = threading.Thread(target=_writer, args=(path, content), daemon=True)
+                        t.start()
+                        fifo_threads.append((t, path))
+                    # clear pending list so subsequent clips don't reuse same FIFOs
+                    delattr = False
+                    try:
+                        del self._pending_fifos
+                    except Exception:
+                        pass
+
+                try:
+                    result = subprocess.run(cmd, capture_output=True, check=True)
+                finally:
+                    # Ensure FIFO writer threads are joined and FIFOs removed
+                    if fifo_threads:
+                        for t, path in fifo_threads:
+                            try:
+                                t.join(timeout=5)
+                            except Exception:
+                                pass
+                            try:
+                                if os.path.exists(path):
+                                    os.remove(path)
+                            except Exception:
+                                pass
+                ffmpeg_warnings = list(dict.fromkeys(
                     line for line in result.stderr.decode(errors="replace").splitlines()
                     if any(kw in line for kw in ("drawtext", "error", "warning", "invalid", "unable"))
-                ]
+                    and "Stray %%" not in line  # %% -> % is expected/harmless, suppress per-frame noise
+                ))
                 if ffmpeg_warnings:
                     logger.warning("[Clip %d] FFmpeg warnings detected:", clip_number)
                     for line in ffmpeg_warnings:
