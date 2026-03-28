@@ -30,10 +30,12 @@ class VideoComposer:
     def FONT_BOLD_PATH(self) -> str:
         return settings.cinematic_font_bold_path
 
-    # Normalize Unicode typographic characters to ASCII before passing to FFmpeg drawtext
+    # Normalize characters that have special meaning in FFmpeg drawtext / filter graph.
+    # ASCII apostrophe (0x27) is the filter-graph quote delimiter — replace with U+2019
+    # which is visually identical but has no special meaning in FFmpeg.
     _UNICODE_NORMALIZE = str.maketrans({
-        '\u2018': "'",    # left single quotation mark
-        '\u2019': "'",    # right single quotation mark
+        "'": '\u2019',    # ASCII apostrophe → right single quote (safe in FFmpeg)
+        '\u2018': '\u2019',  # left single quotation mark → right single quote
         '\u201c': '"',    # left double quotation mark
         '\u201d': '"',    # right double quotation mark
         '\u2014': ' - ',  # em dash
@@ -123,20 +125,19 @@ class VideoComposer:
     def _escape(self, s: str) -> str:
         """Escape text for safe use in FFmpeg drawtext filter.
 
-        Within single-quoted FFmpeg filter strings:
+        _UNICODE_NORMALIZE converts ASCII apostrophe to U+2019 (right single quote)
+        so no quote escaping is needed here. Documented FFmpeg drawtext escapes only:
         - Backslash must be doubled: \\ -> \\\\
-        - Single quote cannot use \\' (breaks the quoted segment) — use \\x27 instead
-        - Percent sign must be doubled: % -> %%  (drawtext expansion)
-        - Colon must be escaped: : -> \\:  (option separator)
+        - Percent sign: % -> %%  (drawtext text expansion engine)
+        - Colon must be escaped: : -> \\:  (filter graph option separator)
         """
         s = s.translate(self._UNICODE_NORMALIZE)
         s = s.replace('\r\n', '\n').replace('\r', '\n')
         s = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', s)
         return (
             s.replace('\\', '\\\\')
-             .replace("'", "\\x27")   # hex escape — \' breaks FFmpeg quoted string parsing
-             .replace('%', '%%')
-             .replace(':', '\\:')
+             .replace('%', '%%')    # drawtext text expansion escape (documented)
+             .replace(':', '\\:')   # filter graph option separator
              .replace('\n', '\\n')
         )
 
