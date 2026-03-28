@@ -172,7 +172,7 @@ SCENES_FULL_PRODUCTION = [
         "image_path": None,
     },
     {
-        "lines": ["don't follow others' agendas", "you're wasting time"],
+        "lines": ["don't follow others' agendas"],
         "motion": "pan_left",
         "image_path": None,
     },

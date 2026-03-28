@@ -345,6 +345,7 @@ class VideoComposer:
                     if any(kw in line.lower() for kw in
                            ("drawtext", "error", "warning", "invalid", "unable",
                             "no such filter", "option", "failed", "stray"))
+                    and "Stray %" not in line  # benign: %% in drawtext text option
                 ))
                 if ffmpeg_warnings:
                     logger.warning("[Clip %d] FFmpeg warnings/errors:", clip_number)
