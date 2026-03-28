@@ -14,6 +14,12 @@ pagecapsules:
   name: "PageCapsules"
   theme: "Turning powerful book ideas into simple visual insights"
   target_audience: "Ambitious professionals, entrepreneurs, and lifelong learners (22-40)"
+  cultural_context: >
+    Audience is globally minded but primarily Indian. Book insights should be grounded
+    in real-life situations the reader has lived — not abstract summaries.
+    When the book's lesson applies to Indian realities (career pressure, family expectations,
+    first-generation wealth building, workplace dynamics), lean into that context naturally.
+    Never force Hinglish or Indian references — let the insight lead.
   posting_schedule: "1-2x daily"
   tone: "engaging, insightful, actionable, inspiring"
   localization_type: "global"
@@ -61,6 +67,51 @@ pagecapsules:
     RIGHT: "A 1% improvement every day makes you 37x better by year end. A 1% decline makes you nearly zero."
 
     The test: would a reader screenshot this to send to a friend?
+
+  cinematic_hook_examples: |
+    Hooks for PageCapsules take ONE idea from a book and make it feel urgent and personal.
+    The viewer should think: "I need to read this" or "This changes how I see things."
+
+    GOOD (use these as style reference):
+    - "You don't rise to your goals. You fall to your systems." (Atomic Habits — insight first, book second)
+    - "A 1% improvement every day: 37x better by year end. A 1% decline: nearly zero." (number-forward)
+    - "Naval Ravikant built wealth without selling time. Most people never learn the difference."
+    - "Daniel Kahneman spent 40 years studying decisions. His conclusion: you are not as rational as you think."
+
+    BAD (avoid these):
+    - "Here are 5 lessons from Atomic Habits" — listicle framing
+    - "This book will change your life" — vague claim
+    - "Atomic Habits teaches you to build good habits" — summary, not insight
+
+    Lead with the insight itself. Name the book naturally — do not open with it.
+
+  cinematic_story_example: |
+    REFERENCE STORY: "The System"
+    Topic: Atomic Habits — systems beat goals
+
+    Scene 1 [zoom_in]:
+      "You don't rise to your goals. You fall to your systems."
+      "She had the same resolution for three years. Same failure every February."
+      IMAGE: Close-up of a handwritten goal list, partially crossed out, warm desk lamp
+
+    Scene 2 [pan_left]:
+      "Atomic Habits: goals set the direction. Systems are the engine."
+      "She stopped tracking the goal. Started tracking the daily streak."
+      IMAGE: Medium shot of her at desk, checking a habit tracker app, morning light
+
+    Scene 3 [zoom_out]:
+      "90 days later: the goal happened. She had almost forgotten about it."
+      IMAGE: Wide shot of her at the same desk, different energy, sunlight through window
+
+    Scene 4 [static]:
+      "Today: pick one habit. Make it 2 minutes. Do it every day this week."
+      IMAGE: Close-up of a notebook with a single habit written, pen beside it
+
+    STORY RULES FOR THIS CHANNEL:
+    - Always anchor to a real book and a real, specific insight from it
+    - Show the insight applied to a real-life situation — never explained abstractly
+    - Name the book naturally in the story — do not lead with it
+    - End with one specific, doable action drawn from the book's core lesson
 
   curated_topics:
     # Self-improvement
@@ -175,6 +226,50 @@ wealthcapsules:
             The same amount starting at 35? Rs 67 lakh. That gap is just 10 years."
 
     The test: would a 26-year-old share this in a salary WhatsApp group?
+
+  cinematic_hook_examples: |
+    Hooks for WealthCapsules use specific ₹ amounts and Indian financial context.
+    The viewer should think: "I didn't know this — I need to act on it."
+
+    GOOD (use these as style reference):
+    - "Same ₹3,000 SIP at 22: ₹2.3 crore. At 32: ₹67 lakh. Ten years." (number contrast)
+    - "She invested ₹500 a month at 24. Her colleague laughed. He is 45 now." (personal cost)
+    - "Your FD returns 6.5%. Inflation runs at 6.8%. You are losing money safely." (status quo challenge)
+    - "EPF gives 8.25% guaranteed. Most Indians treat it as an emergency fund." (hidden opportunity)
+
+    BAD (avoid these):
+    - "Investing is important for your future" — vague, no number
+    - "Are you saving enough money?" — generic question
+
+    Always use specific ₹ amounts and Indian instruments: SIP, FD, PPF, EPF, Nifty, ELSS.
+
+  cinematic_story_example: |
+    REFERENCE STORY: "The SIP"
+    Topic: Starting SIP at 22 vs 32
+
+    Scene 1 [zoom_in]:
+      "Same ₹3,000 SIP at 22: ₹2.3 crore. At 32: ₹67 lakh."
+      "Rohan laughed at his friend for 'wasting' ₹3,000 a month at 22."
+      IMAGE: Medium shot of young man at laptop in a home office, casual clothes, morning light
+
+    Scene 2 [pan_left]:
+      "At 32, Rohan opened his first Groww account. Same ₹3,000."
+      "Same fund. Same market. Ten years late."
+      IMAGE: Close-up of phone showing mutual fund app, coffee cup on office desk
+
+    Scene 3 [zoom_out]:
+      "The gap by 60: ₹1.63 crore. That is the price of waiting."
+      IMAGE: Wide shot of city skyline at dusk, person looking out window
+
+    Scene 4 [static]:
+      "Today: open Groww or Zerodha. Start a ₹500 SIP. Increase 10% each year."
+      IMAGE: Close-up of phone showing SIP setup screen
+
+    STORY RULES FOR THIS CHANNEL:
+    - Every scene must have at least one specific ₹ figure from VERIFIED DATA
+    - End with one named, concrete action (specific platform, specific amount, specific step)
+    - Use Indian instruments naturally: SIP, Nifty, FD, EPF, Groww, Zerodha
+    - The protagonist can be male or female — match the topic's natural framing
 
   curated_topics:
     # Compounding and Time
@@ -298,6 +393,53 @@ psychecapsules:
 
     The test: does this make the reader think about a specific decision
     they made last week?
+
+  cinematic_hook_examples: |
+    Hooks for MindCapsules create a moment of recognition — the viewer sees their own behavior named.
+    The viewer should think: "Wait, that is exactly what I do."
+
+    GOOD (use these as style reference):
+    - "The more you invest in a bad decision, the harder your brain fights to stay." (sunk cost, no jargon)
+    - "Losing ₹1,000 hurts twice as much as winning ₹1,000 feels good. Your brain is wired this way." (loss aversion + number)
+    - "You do not remember the event. You remember how it ended." (peak-end rule, specific)
+    - "Your brain decided 0.3 seconds before you knew you were deciding." (surprising fact)
+
+    BAD (avoid these):
+    - "Confirmation bias is a cognitive bias where..." — textbook definition, wrong
+    - "Did you know psychology affects decisions?" — too vague
+
+    The hook names the BEHAVIOR before naming the bias. Never lead with the term.
+    Indian workplace and family scenarios resonate most: exam pressure, family expectations, salary decisions.
+
+  cinematic_story_example: |
+    REFERENCE STORY: "The Sunk Cost"
+    Topic: Sunk cost fallacy — why past investment traps future decisions
+
+    Scene 1 [zoom_in]:
+      "The more you invest in something, the harder it is to leave."
+      "Anjali had been in the job for 3 years. Two of them were wrong."
+      IMAGE: Close-up of her face at laptop, late evening, overhead office light, tired expression
+
+    Scene 2 [pan_left]:
+      "Leaving felt like admitting the last two years were wasted."
+      "They were not. Staying was the waste."
+      IMAGE: Medium shot of her desk, empty office around her, colleagues gone home
+
+    Scene 3 [zoom_out]:
+      "Sunk cost fallacy: past investment traps future decisions."
+      "The brain treats sunk costs as debt — even when they are gone."
+      IMAGE: Wide shot of office building exterior, one window lit, blue dusk
+
+    Scene 4 [static]:
+      "Ask yourself: if I started today, would I choose this?"
+      IMAGE: Close-up of her phone with a blank notes app open
+
+    STORY RULES FOR THIS CHANNEL:
+    - Name the bias or concept in Scene 3 or 4 — not in the hook
+    - End with one specific question or reflection the viewer can apply today
+    - Use Indian names, Indian workplace or family settings, Indian scenarios
+    - Include one specific number or study finding per story if available from VERIFIED DATA
+    - Tone: warm and curious, not clinical — like a friend explaining your brain to you
 
   curated_topics:
     # Cognitive Biases -- one clear post each, no duplicates
@@ -432,6 +574,52 @@ startupcapsules:
 
     The test: would a founder share this in their startup WhatsApp group?
 
+  cinematic_hook_examples: |
+    Hooks for StartupCapsules reveal the thing successful founders know that first-timers learn too late.
+    The viewer should think: "Nobody told me this."
+
+    GOOD (use these as style reference):
+    - "Zerodha spent ₹0 on marketing for 5 years. The product was the marketing." (Indian example, counter-intuitive)
+    - "Most founders die between Seed and Series A. Not from competition — from waiting." (specific stage, specific cause)
+    - "You know you have PMF when you cannot keep up with growth even without trying." (direct founder truth)
+    - "Byju's raised ₹41,000 crore. Growth became the product. That is why it failed." (Indian cautionary tale)
+
+    BAD (avoid these):
+    - "Startups are hard but rewarding" — cliché
+    - "Here are 5 growth hacks for your startup" — listicle framing
+
+    Prefer Indian startup examples (Zerodha, Groww, Meesho, CRED, Razorpay, Byju's) over Western ones.
+    Tone: direct, founder-to-founder — not a TED talk.
+
+  cinematic_story_example: |
+    REFERENCE STORY: "The Distribution"
+    Topic: Distribution beats product in the 0-to-1 stage
+
+    Scene 1 [zoom_in]:
+      "Most founders spend 80% of time on product. 20% on distribution."
+      "Meesho flipped it — and reached 150 million users."
+      IMAGE: Medium shot of founder at whiteboard, small team in background, startup office
+
+    Scene 2 [pan_left]:
+      "Meesho's distribution: WhatsApp. Zero CAC. Full trust network."
+      "Product was fine. Distribution was the actual moat."
+      IMAGE: Close-up of phone showing WhatsApp messages with product images being shared
+
+    Scene 3 [zoom_out]:
+      "Groww launched with 3 mutual funds. Distributed via Telegram. Grew 10x."
+      "Your product does not need to be perfect. It needs to reach people."
+      IMAGE: Wide shot of a busy Indian street, people on phones, everyday life
+
+    Scene 4 [static]:
+      "Today: write your distribution strategy before your next feature."
+      IMAGE: Close-up of notebook with "How will people find this?" written at top
+
+    STORY RULES FOR THIS CHANNEL:
+    - Use real Indian startup names and real numbers wherever possible
+    - Always end with one specific founder action — named and concrete, not generic advice
+    - Include at least one real metric (users, growth rate, funding figure) from VERIFIED DATA
+    - Tone: direct, honest, like a senior founder giving advice to a first-timer over chai
+
   curated_topics:
     # Idea and Validation
     - "How to know if your startup idea is actually worth building"
@@ -562,6 +750,51 @@ worldinranks:
     The test: show the hook to someone who knows nothing about the topic.
     Do they want to know more? If not -- rewrite it.
 
+  cinematic_hook_examples: |
+    Hooks for WorldInRanks lead with the data tension — what the number reveals that surprises the viewer.
+    The viewer should think: "That cannot be right — tell me more."
+
+    GOOD (use these as style reference):
+    - "The world spent $2.3 trillion on clean energy last year. Emissions still went up." (data tension)
+    - "India is the 5th largest economy. Its GDP per capita ranks 139th. That gap is the story." (India angle)
+    - "The most profitable company in the world is not Apple, Amazon, or Google." (counter-intuitive)
+    - "The brand ranked #1 by value is not ranked #1 by desirability. Here is why that gap is widening." (hidden tension)
+
+    BAD (avoid these):
+    - "Here are the top 10 richest people" — no tension, no surprise
+    - "India is growing fast" — too vague
+
+    Always lead with the single most counter-intuitive data point.
+    Every number must be sourced from VERIFIED DATA. Never invent figures.
+
+  cinematic_story_example: |
+    NOTE: WorldInRanks is optimized for carousels. If running cinematic, keep it data-led — no fixed character.
+
+    REFERENCE STRUCTURE (data-led cinematic):
+    Scene 1 [zoom_in]:
+      The single most surprising top-line number — stated plainly.
+      The immediate counter-intuitive twist.
+      IMAGE: Abstract visual — city skyline, map, financial district — not a person
+
+    Scene 2 [pan_left]:
+      The context that makes it even more surprising.
+      The comparison or contrast that explains the ranking shift.
+      IMAGE: Relevant environment — factory, tech campus, trading floor
+
+    Scene 3 [zoom_out]:
+      The counter-intuitive explanation: why the ranking is this way.
+      IMAGE: Wide establishing shot showing scale
+
+    Scene 4 [static]:
+      The India angle or direct implication for the viewer.
+      IMAGE: India-relevant visual or direct-to-camera POV shot
+
+    STORY RULES FOR THIS CHANNEL:
+    - Every number must come from a named source in VERIFIED DATA
+    - No invented characters — use abstract or environmental visuals
+    - End with the India angle or a direct implication for the viewer, not a generic action
+    - Find the one fact that makes the viewer question what they assumed
+
   curated_topics:
     # Global Wealth and Business
     - "Richest people in the world -- who topped 2024 and who fell"
@@ -644,7 +877,7 @@ fertilitycapsules:
     Posts that normalize the conversation without being preachy perform best.
   posting_schedule: "1-2x daily"
   tone: "empathetic, scientific, transparent, empowering"
-  localization_type: "global"
+  localization_type: "india"
   voice_id: "en-IN-NeerjaNeural"
 
   style_guidelines: >
@@ -689,6 +922,54 @@ fertilitycapsules:
 
     The test: would a woman who just had a failed IVF cycle feel seen and informed
     -- not more scared? If yes -- it works.
+
+  cinematic_hook_examples: |
+    Hooks for FertilityCapsules lead with empathy or a surprising medical fact — never fear.
+    The viewer should feel: seen, informed, and not more scared than before.
+
+    GOOD (use these as style reference):
+    - "In nearly half of infertility cases, the factor is male. Nobody says this at the dinner table." (myth-bust + empathy)
+    - "IVF works. But not always. And nobody prepares you for when it doesn't." (honest, empathetic)
+    - "She was told to 'just relax'. Her AMH was 0.4. That was not the problem." (specific + empathy-first)
+    - "The biological clock is real. But it does not work the way most people are told." (reframe, not fear)
+
+    BAD (avoid these):
+    - "Fertility declines sharply after 35" — fear-amplifying without context
+    - "Here are 5 IVF myths" — listicle, clinical tone
+    - "Your fertility journey starts here" — vague, marketing-speak
+
+    Lead with the human reality before the medical fact.
+    Indian context: family pressure, stigma around infertility, limited access to plain-language medical info.
+
+  cinematic_story_example: |
+    REFERENCE STORY: "The Number"
+    Topic: AMH explained — what the number actually means
+
+    Scene 1 [zoom_in]:
+      "She was told her AMH was low. She Googled it at 2am."
+      "The internet said: 'very poor prognosis.' She closed the tab."
+      IMAGE: Close-up of her face in bed, phone screen light, night
+
+    Scene 2 [pan_left]:
+      "AMH measures ovarian reserve — how many eggs remain."
+      "Low AMH does not mean zero chance. It means fewer attempts."
+      IMAGE: Medium shot of a doctor's consultation room, warm light, doctor and patient seated
+
+    Scene 3 [zoom_out]:
+      "Her specialist had seen lower numbers result in pregnancies."
+      "The number is one data point. Not a verdict."
+      IMAGE: Wide shot of hospital corridor, woman walking with partner, morning light
+
+    Scene 4 [static]:
+      "Ask your doctor: what does my AMH mean for MY treatment plan?"
+      IMAGE: Close-up of notepad with that exact question written, clinic setting
+
+    STORY RULES FOR THIS CHANNEL:
+    - Always pair a sobering fact with context and agency — empathy before information
+    - End with one specific question the viewer can ask their doctor — not generic life advice
+    - Explain every medical term in plain language in the same sentence it appears
+    - Never invent success rates, statistics, or timelines — cite ICMR, WHO, or peer-reviewed sources
+    - Tone: like a trusted friend who happens to know the medicine — warm, not clinical
 
   curated_topics:
     # IVF Reality vs Myth
@@ -813,6 +1094,54 @@ storycapsules:
     RIGHT: "She cancelled the plan. Made chai. Sat with the silence. That was the whole day. That was enough."
 
     The test: does this feel like a scene from a short film someone made about a woman they know?
+
+  cinematic_hook_examples: |
+    Hooks for StoryCapsules must be a specific, relatable moment — not a stat or abstract idea.
+    The viewer should think: "That is exactly what I do" or "That happened to me."
+
+    GOOD (use these as style reference):
+    - "She had the answer. She didn't say it." (specific moment, 8 words)
+    - "He said she was too much. She almost believed him." (relatable beat)
+    - "The promotion came. Nobody at home knew what to say." (tension without explanation)
+    - "She turned 30. It felt like something. She couldn't explain what." (honest uncertainty)
+    - "She rehearsed the conversation for three years. She never had it." (specific truth)
+
+    BAD (avoid these):
+    - "67% of women feel undervalued at work" — stat, wrong for this channel
+    - "What if ambition is holding you back?" — abstract question
+    - "Society doesn't support ambitious women" — preachy, no specificity
+
+    Scoring priority: RECOGNITION (does the viewer see themselves?) over curiosity gap.
+    Hooks should be 3rd person ("She did X") or felt observation.
+    No percentages, statistics, or research data.
+
+  cinematic_story_example: |
+    REFERENCE STORY: "The Meeting"
+    Topic: She had the right answer and said nothing
+
+    Scene 1 [zoom_in]:
+      "She had the answer. She didn't say it."
+      "Priya's hand stayed under the table the whole meeting."
+      IMAGE: Close-up of her face in a conference room, others blurred in background, soft office light
+
+    Scene 2 [pan_left]:
+      "Afterwards, he said it. Everyone nodded."
+      "She smiled. She took notes. She drove home."
+      IMAGE: Medium shot of her at her desk, end of day, golden light, jacket still on
+
+    Scene 3 [zoom_out]:
+      "That night she wrote: next time I'll say it."
+      IMAGE: Close-up of her hand writing in a notebook, warm lamp light
+
+    STORY RULES FOR THIS CHANNEL:
+    - End with a small, specific action SHE takes — NOT a productivity CTA for the viewer
+      GOOD: "She opened a new doc. Typed her name at the top. Started."
+      BAD: "Subscribe for more career tips" or "Update your LinkedIn today"
+    - Lines are 3rd person ("She did X") or felt observation ("The meeting ended. Nobody noticed.")
+    - No stats, no percentages, no research data needed — emotional truth is the data
+    - The emotion lives in the specific detail, not the explanation
+    - 8-12 words per line. Show the moment, never explain the feeling.
+    - Visual anchor: one recurring element (a bangle, a notebook, a coffee cup) across all scenes
 
   curated_topics:
     # Career and Ambition

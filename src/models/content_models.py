@@ -51,6 +51,7 @@ class ChannelConfig(BaseModel):
     voice_id: Optional[str] = None  # Per-channel Edge-TTS voice ID
     cinematic_hook_examples: Optional[str] = None  # Channel-specific hook examples for cinematic reels
     cinematic_story_example: Optional[str] = None  # Channel-specific story example for cinematic reels
+    strategic_core: Optional[str] = None           # Strategic principles injected into cinematic system prompt
 
     # Character-driven storytelling (LoRA-based consistent character)
     character_lora: Optional[str] = None          # e.g. "Indian-v2:0.8"

@@ -69,6 +69,10 @@ class CinematicScriptGenerator:
                 "Every scene image must feature her as the main subject in a real-life situation.\n"
                 "She is not named. The viewer becomes her.\n"
             )
+        strategic_core_section = (
+            f"\n{channel_config.strategic_core.strip()}\n"
+            if getattr(channel_config, 'strategic_core', None) else ""
+        )
         return (
             f"You are a Story Architect for '{channel_config.name}'.\n"
             f"Channel Theme: {channel_config.theme}\n"
@@ -76,25 +80,33 @@ class CinematicScriptGenerator:
             + (f"Cultural Context: {channel_config.cultural_context}\n" if channel_config.cultural_context else "")
             + (f"Brand Mission: {channel_config.brand_mission}\n" if channel_config.brand_mission else "")
             + character_section
+            + strategic_core_section
             + f"{currency_rule}\n"
             + copy_voice_section
-            + "Your goal: Tell a clear, coherent story across 3-5 visual scenes that the audience can follow, learn from, and act on.\n"
+            + "Your goal: Tell a clear, coherent story across 3-5 visual scenes that the audience can follow and act on.\n"
             "Priority: STORY COHERENCE over shock value. Each line must logically connect to the next.\n"
             "Use concrete examples and specific situations the audience recognizes.\n"
-            "The story MUST end with a clear, explicit action the viewer can take TODAY."
+            "The story MUST end with a specific, concrete final beat — an action, decision, or moment true to this channel's voice."
         )
 
     # ------------------------------------------------------------------
     # Turn 1 — Hook generation
     # ------------------------------------------------------------------
 
-    def _hook_prompt(self, strategy: ContentStrategy) -> str:
+    def _hook_prompt(self, strategy: ContentStrategy, channel_config: ChannelConfig) -> str:
         verified_snippet = f"### VERIFIED DATA: {strategy.verified_data[:500]}" if strategy.verified_data else ""
+        hook_examples_section = ""
+        if getattr(channel_config, 'cinematic_hook_examples', None):
+            hook_examples_section = (
+                f"\n### THIS CHANNEL'S HOOK STYLE — follow this voice and format:\n"
+                f"{channel_config.cinematic_hook_examples.strip()}\n"
+                "Apply the generic patterns below through the lens of this channel's hook style.\n"
+            )
         return f"""### TOPIC: {strategy.topic}
 ### ANGLE: {strategy.angle}
 ### TARGET AUDIENCE: {strategy.target_audience_insight}
 {verified_snippet}
-
+{hook_examples_section}
 ### YOUR TASK:
 Generate 5 distinct hooks using proven psychological patterns. Score each one.
 
@@ -121,7 +133,7 @@ Psychology: Hidden danger + urgency = emotional trigger
 - **emotional_trigger**: Does it create fear, desire, anger, or shock?
 
 ### REQUIREMENTS:
-- Use specific numbers from VERIFIED DATA when available
+- Match this channel's hook style (see above if provided)
 - Keep hooks under 14 words
 - Must be immediately understandable with ZERO prior context
 - Each hook must use a DIFFERENT pattern
@@ -236,6 +248,12 @@ Respond with ONLY valid JSON."""
 - One recurring visual element across ALL scenes for continuity
 - Shot variety: Extreme close-up / Close-up / Medium / Wide"""
 
+        story_example_section = ""
+        if getattr(channel_config, 'cinematic_story_example', None):
+            story_example_section = (
+                f"\n### CHANNEL STORY EXAMPLE — match this structure, tone, and final beat style:\n"
+                f"{channel_config.cinematic_story_example.strip()}\n"
+            )
         return f"""Great. Now write the full cinematic story using your best hook.
 
 ### BEST HOOK: "{best_hook}"
@@ -243,7 +261,7 @@ Use this exactly as Scene 1, Line 1 — no rewording.
 
 ### VERIFIED DATA (use these facts):
 {research_text}
-
+{story_example_section}
 ### YOUR TASK:
 Create a 3-5 scene cinematic story. Total 6-12 caption lines across all scenes.
 Target duration: 30-60 seconds (each line ~4-5 seconds on screen).
@@ -251,9 +269,9 @@ Target duration: 30-60 seconds (each line ~4-5 seconds on screen).
 The story must:
 1. **Open with the hook above** as Scene 1, Line 1 — word for word
 2. **Build logically** — each line follows naturally from the previous
-3. **Use concrete specifics** — real numbers from VERIFIED DATA, real scenarios
+3. **Use concrete specifics** — real scenarios and numbers where appropriate for this channel
 4. **Stay focused** — every line serves the single core insight
-5. **End with action** — last line is one specific, topic-relevant action the viewer can take TODAY. Name the exact behaviour. BAD: "Open a demat account". GOOD: "Set a 15% stop-loss on your worst holding this week".
+5. **End with the final beat** — last line is one specific, concrete action or moment true to this channel's voice. Follow your channel story example for what this looks like.
 {currency_rule}
 ### SCENE DESIGN:
 - Group related narrative beats into the same scene (same location/setting)
@@ -360,7 +378,7 @@ Respond with ONLY valid JSON."""
         logger.info("Cinematic system prompt set for '%s'", channel_config.name)
 
         # ── Turn 1: Hook generation ────────────────────────────────────
-        messages = [{"role": "user", "content": self._hook_prompt(strategy)}]
+        messages = [{"role": "user", "content": self._hook_prompt(strategy, channel_config)}]
         hook_response = self.generator._generate_conversation(messages, system_prompt=system_prompt)
         logger.debug("Hook response (Turn 1): %s", hook_response)
 
