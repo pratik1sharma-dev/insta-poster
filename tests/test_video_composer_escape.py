@@ -109,6 +109,32 @@ def test_combined_problematic_text():
         print(f"  PASS: {t!r} → {result!r}")
 
 
+def test_punchline_number_detection():
+    """Lines with % always trigger 'number' style via _is_punchline_number.
+    Confirms every percent-containing line uses that code path."""
+    import re
+    pattern = re.compile(
+        r'(₹\s*[\d,]+|[\d,]+\s*(lakh|crore|%|percent)|\b\d{5,}\b)',
+        re.IGNORECASE,
+    )
+    percent_lines = [
+        "75% of good decisions",
+        "folks get 60%",
+        "you lose 40% focus",
+    ]
+    for line in percent_lines:
+        assert pattern.search(line), f"Expected punchline match for: {line!r}"
+        print(f"  PASS: {line!r} correctly triggers 'number' style")
+
+    no_percent_lines = [
+        "Overanalyzing costs you",
+        "decisions - distracted",
+    ]
+    for line in no_percent_lines:
+        assert not pattern.search(line), f"Unexpected punchline match for: {line!r}"
+        print(f"  PASS: {line!r} correctly skips 'number' style")
+
+
 # ---------------------------------------------------------------------------
 # FFmpeg integration test: render text to a 1-frame image and check exit code
 # ---------------------------------------------------------------------------
@@ -208,6 +234,7 @@ if __name__ == "__main__":
         test_no_xhh_escapes,
         test_em_dash_converted,
         test_combined_problematic_text,
+        test_punchline_number_detection,
         test_ffmpeg_apostrophe,
         test_ffmpeg_percent,
         test_ffmpeg_combined,

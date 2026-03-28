@@ -205,13 +205,13 @@ class VideoComposer:
             return _build_stacked(wrapped_lines, f"if(lt(t,{fade_duration}),t/{fade_duration},1)", x_expr)
 
         elif style == 'number':
-            scale_duration = 0.4 * multiplier
-            max_scale = 1.15
-            fontsize_expr = f"'{FONTSIZE}*if(lt(t,{scale_duration}),1+{max_scale-1}*(1-t/{scale_duration}),1)'"
+            # Use a static larger fontsize — dynamic fontsize expressions with `t`
+            # can silently fail on some FFmpeg builds, making the entire drawtext
+            # filter invisible. The emphasis effect comes from size + fast fade-in.
             return _build_stacked(
                 wrapped_lines,
                 alpha_expr="if(lt(t,0.2),t/0.2,1)",
-                fontsize_expr=fontsize_expr,
+                fontsize_expr=str(int(FONTSIZE * 1.15)),
             )
 
         elif style == 'insight':
