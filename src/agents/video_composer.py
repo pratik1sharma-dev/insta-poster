@@ -334,7 +334,16 @@ class VideoComposer:
                     ]
 
                 logger.info("[Cinematic Clip %d/%d] Rendering...", clip_number, total_lines)
-                subprocess.run(cmd, capture_output=True, check=True)
+                result = subprocess.run(cmd, capture_output=True, check=True)
+                ffmpeg_warnings = [
+                    line for line in result.stderr.decode(errors="replace").splitlines()
+                    if any(kw in line for kw in ("drawtext", "error", "warning", "invalid", "unable"))
+                ]
+                if ffmpeg_warnings:
+                    logger.warning("[Clip %d] FFmpeg warnings detected:", clip_number)
+                    for line in ffmpeg_warnings:
+                        logger.warning("[Clip %d] FFmpeg: %s", clip_number, line)
+                    logger.warning("[Clip %d] filter_complex: %s", clip_number, filter_complex)
                 clip_paths.append(clip_path)
 
                 audio_index += 1
