@@ -52,6 +52,11 @@ class ChannelConfig(BaseModel):
     cinematic_hook_examples: Optional[str] = None  # Channel-specific hook examples for cinematic reels
     cinematic_story_example: Optional[str] = None  # Channel-specific story example for cinematic reels
 
+    # Character-driven storytelling (LoRA-based consistent character)
+    character_lora: Optional[str] = None          # e.g. "Indian-v2:0.8"
+    character_description: Optional[str] = None   # e.g. "Indian woman, dark hair, brown eyes"
+    character_trigger_words: Optional[str] = None # LoRA trigger words from CivitAI
+
     class Config:
         frozen = False
 

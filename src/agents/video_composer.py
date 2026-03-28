@@ -157,8 +157,16 @@ class VideoComposer:
             - number: Scale + emphasis (zoom in slightly)
             - insight: Word-by-word reveal with pause
         """
-        # Wrap text into lines — width=24 chars at fontsize=56 fits safely in 1080px
-        wrapped_lines = textwrap.wrap(text, width=24) or [text]
+        # If the input contains explicit newlines, preserve the whole block
+        # as a single textfile (FIFO) so the visual text matches the input
+        # exactly (including line breaks). Otherwise fall back to wrapping.
+        normalized_text = text.replace('\r\n', '\n').replace('\r', '\n')
+        if '\n' in normalized_text:
+            wrapped_lines = [normalized_text]
+            preserve_block = True
+        else:
+            wrapped_lines = textwrap.wrap(text, width=24) or [text]
+            preserve_block = False
 
         FONTSIZE = 56
         LINE_HEIGHT = int(FONTSIZE * 1.25)  # ~70px per line
@@ -208,9 +216,17 @@ class VideoComposer:
                     # register content to be written later by the caller
                     pending = getattr(self, '_pending_fifos', None)
                     if pending is None:
-                        self._pending_fifos = [(fifo_path, ln)]
+                        # If preserving the whole block, write the entire normalized
+                        # block into a single FIFO entry so drawtext shows exact input.
+                        if preserve_block:
+                            self._pending_fifos = [(fifo_path, wrapped_lines[0])]
+                        else:
+                            self._pending_fifos = [(fifo_path, ln)]
                     else:
-                        pending.append((fifo_path, ln))
+                        if preserve_block:
+                            pending.append((fifo_path, wrapped_lines[0]))
+                        else:
+                            pending.append((fifo_path, ln))
                 except Exception:
                     fifo_path = None
 
@@ -346,9 +362,18 @@ class VideoComposer:
                     use_bold = text_style in ('hook', 'number', 'insight')
                     logger.info("[Clip %d] Scene %d, motion=%s, style=%s, bold=%s", clip_number, scene_idx + 1, motion, text_style, use_bold)
                     drawtext_filter = self._create_kinetic_text_overlay(text, text_style, slide_dur, clip_number, total_lines, bold=use_bold)
+                    # Log the generated drawtext filter for debugging (trim long filters)
+                    try:
+                        logger.debug("[Clip %d] drawtext_filter: %s", clip_number, (drawtext_filter[:1000] + '...') if len(drawtext_filter) > 1000 else drawtext_filter)
+                    except Exception:
+                        logger.debug("[Clip %d] drawtext_filter: <unprintable>", clip_number)
                 else:
                     # Animation disabled — use same stacked-drawtext approach for consistent wrapping
                     drawtext_filter = self._create_kinetic_text_overlay(text, 'hook', slide_dur, clip_number, total_lines, bold=True)
+                    try:
+                        logger.debug("[Clip %d] drawtext_filter (animation disabled): %s", clip_number, (drawtext_filter[:1000] + '...') if len(drawtext_filter) > 1000 else drawtext_filter)
+                    except Exception:
+                        logger.debug("[Clip %d] drawtext_filter: <unprintable>", clip_number)
 
                 # Build FFmpeg command
                 if audio_paths and audio_index < len(audio_paths):
@@ -406,6 +431,12 @@ class VideoComposer:
                             pass
 
                     for path, content in pending:
+                        # Log FIFO path and a safe preview of content
+                        try:
+                            preview = (content[:200] + '...') if len(content) > 200 else content
+                            logger.debug("[Clip %d] registering FIFO %s -> %r", clip_number, path, preview)
+                        except Exception:
+                            logger.debug("[Clip %d] registering FIFO %s", clip_number, path)
                         t = threading.Thread(target=_writer, args=(path, content), daemon=True)
                         t.start()
                         fifo_threads.append((t, path))
@@ -474,6 +505,56 @@ class VideoComposer:
             return float(r.stdout.strip())
         except ValueError:
             return 5.0
+
+    # ------------------------------------------------------------------
+    # Debug / verification helpers
+    # ------------------------------------------------------------------
+    def simulate_drawtext_output(self, text: str) -> dict:
+        """
+        Simulate what will be written to drawtext (FIFO or inline) and what
+        FFmpeg will visually render. This helps verify that the visible
+        text after drawtext will match the original input.
+
+        Returns a dict with keys:
+            - preserve_block: bool (True when newlines are preserved as a block)
+            - normalized_input: str (CRLF normalized)
+            - wrapped_lines: List[str] (how the text would be wrapped)
+            - simulated_pending_writes: List[str] (what writers will write to FIFOs)
+            - simulated_visible: str (what FFmpeg should render visually)
+            - matches_input: bool (True when simulated_visible == normalized_input)
+        """
+        normalized = text.replace('\r\n', '\n').replace('\r', '\n')
+        if '\n' in normalized:
+            # Whole block preserved in one FIFO/textfile
+            preserve_block = True
+            wrapped_lines = [normalized]
+        else:
+            preserve_block = False
+            wrapped_lines = textwrap.wrap(text, width=24) or [text]
+
+        simulated_pending = []
+        if preserve_block:
+            # Writer doubles percent signs; simulate write content (what gets written)
+            write_content = wrapped_lines[0].replace('%', '%%')
+            simulated_pending.append(write_content)
+            # FFmpeg will render a single '%' for each doubled '%%'
+            simulated_visible = write_content.replace('%%', '%')
+        else:
+            for ln in wrapped_lines:
+                write_content = ln.replace('%', '%%')
+                simulated_pending.append(write_content)
+            # Visible text will be the wrapped pieces joined with newlines
+            simulated_visible = '\n'.join(p.replace('%%', '%') for p in simulated_pending)
+
+        matches = (simulated_visible == normalized)
+        return {
+            'preserve_block': preserve_block,
+            'normalized_input': normalized,
+            'wrapped_lines': wrapped_lines,
+            'simulated_pending_writes': simulated_pending,
+            'simulated_visible': simulated_visible,
+            'matches_input': matches,
+        }
 
     def _blend_clips(self, clip_paths: List[Path], output_dir: Path, transition_dur: float) -> Path:
         if len(clip_paths) == 1:
