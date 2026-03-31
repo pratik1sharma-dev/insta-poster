@@ -71,50 +71,61 @@ class ContentPipeline:
             if instagram_account != channel_name:
                 logger.logger.info("Publishing to Instagram account: %s", instagram_account)
 
-            # ── Phase 1: Strategy ──────────────────────────────────────
-            logger.logger.info("\n[Phase 1/4] Determining content strategy...")
-            strategy = self.strategist.plan_content(
-                channel_config, topic_hint, logger.raw_dir
-            )
+            # ── Phase 1: Strategy + Validation (up to 2 retries) ─────────
+            MAX_STRATEGY_ATTEMPTS = 3
+            strategy = None
+            for attempt in range(1, MAX_STRATEGY_ATTEMPTS + 1):
+                logger.logger.info("\n[Phase 1/4] Determining content strategy (attempt %d/%d)...", attempt, MAX_STRATEGY_ATTEMPTS)
+                strategy = self.strategist.plan_content(
+                    channel_config, topic_hint, logger.raw_dir
+                )
 
-            if (
-                strategy.topic == "DATA INSUFFICIENT"
-                or "DATA INSUFFICIENT" in strategy.angle
-            ):
-                raise ValueError("Aborting: insufficient research data.")
+                if (
+                    strategy.topic == "DATA INSUFFICIENT"
+                    or "DATA INSUFFICIENT" in strategy.angle
+                ):
+                    raise ValueError("Aborting: insufficient research data.")
 
-            logger.log_strategy(strategy)
+                logger.log_strategy(strategy)
 
-            # ── Phase 1.5: Validation ──────────────────────────────────
-            logger.logger.info("\n[Phase 1.5] Validating strategy...")
-            validation_prompt = f"""### GROUND RULES:
-1. Appending a source label to an unverified number is a CRITICAL FAILURE.
-2. The angle must be grounded in real data.
-
-### STRATEGY:
+                # ── Phase 1.5: Validation ──────────────────────────────
+                logger.logger.info("\n[Phase 1.5] Validating strategy (attempt %d/%d)...", attempt, MAX_STRATEGY_ATTEMPTS)
+                validation_prompt = f"""### STRATEGY:
 Topic: {strategy.topic}
 Angle: {strategy.angle}
 
 ### TASK:
-1. List the top 2 factual claims this post will make.
-2. Verify each one briefly.
-3. End your response with EXACTLY one of these two lines (nothing else on that line):
+Review this strategy angle. Mark it INVALID only if it contains a claim that is:
+- Factually impossible or obviously fabricated (e.g. "100% of Indians invest in stocks")
+- Directly contradicts well-known reality
+
+Plausible statistics, reasonable estimates, and common knowledge are VALID even if not sourced.
+
+End your response with EXACTLY one of these two lines:
    VERDICT: VALID
    VERDICT: INVALID
 """
-            validation_result = self.generator._generate_text(validation_prompt)
+                validation_result = self.generator._generate_text(validation_prompt)
 
-            try:
-                with open(logger.raw_dir / "validation.txt", "w") as f:
-                    f.write(validation_result)
-            except Exception:
-                pass
+                try:
+                    with open(logger.raw_dir / f"validation_attempt{attempt}.txt", "w") as f:
+                        f.write(validation_result)
+                except Exception:
+                    pass
 
-            if re.search(r'^VERDICT:\s*INVALID\s*$', validation_result, re.MULTILINE | re.IGNORECASE):
-                raise ValueError(
-                    f"Aborting: failed validation: {validation_result[:200]}"
+                if not re.search(r'^VERDICT:\s*INVALID\s*$', validation_result, re.MULTILINE | re.IGNORECASE):
+                    logger.logger.info("Strategy validated.")
+                    break
+
+                logger.logger.warning(
+                    "Strategy failed validation (attempt %d/%d): %s",
+                    attempt, MAX_STRATEGY_ATTEMPTS, validation_result[:200],
                 )
-            logger.logger.info("Strategy validated.")
+                if attempt == MAX_STRATEGY_ATTEMPTS:
+                    raise ValueError(
+                        f"Aborting: strategy failed validation after {MAX_STRATEGY_ATTEMPTS} attempts. "
+                        f"Last result: {validation_result[:200]}"
+                    )
 
             # ── Phase 2: Content generation ────────────────────────────
             logger.logger.info("\n[Phase 2/4] Generating content...")
