@@ -185,8 +185,8 @@ class DataResearcher:
 
     # Max chars of raw research to send in a single synthesis prompt.
     # qwen/qwen3-32b has a 6000 TPM limit on Groq's on-demand tier; keeping
-    # this at ~14000 chars (~3500 tokens) leaves room for system + output.
-    _MAX_RESEARCH_CHARS = 14_000
+    # this at ~8000 chars (~2000 tokens) leaves ample room for system + output.
+    _MAX_RESEARCH_CHARS = 8_000
 
     def synthesize_research(self, raw_research: str, topic: str, user_conversation: Optional[str] = None) -> str:
         """Process raw search results into a clean, structured data block using the LLM.
