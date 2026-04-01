@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     # ── Groq ───────────────────────────────────────────────────────────
     groq_api_key: str = ""
     groq_model: str = "qwen/qwen3-32b"              # was qwen-2.5-32b — fixed
+    groq_research_model: str = "llama-3.1-8b-instant"  # high-TPM model for research synthesis
 
     # ── Tavily search ──────────────────────────────────────────────────
     tavily_api_key: str = ""

@@ -35,11 +35,13 @@ class ContentStrategist:
         elif self.provider == "groq":
             self.client = Groq(api_key=settings.groq_api_key)
             self.model = settings.groq_model
+            self.research_model = settings.groq_research_model
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
 
-        # Data researcher handles external research and synthesis
-        self.researcher = DataResearcher(self._generate_text)
+        # Data researcher uses a high-TPM model for synthesis to avoid 413 errors
+        research_callable = self._generate_text_research if self.provider == "groq" else self._generate_text
+        self.researcher = DataResearcher(research_callable)
 
     def _clean_ai_response(self, text: str) -> str:
         """Strip <think> blocks and other AI artifacts."""
@@ -124,7 +126,21 @@ class ContentStrategist:
                 raise e
         return ""
 
-    
+    def _generate_text_research(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """Like _generate_text but uses the high-TPM research model to avoid 413 errors."""
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        completion = self.client.chat.completions.create(
+            model=self.research_model,
+            messages=messages,
+            temperature=0.3,
+            max_tokens=1024,
+        )
+        return self._clean_ai_response(completion.choices[0].message.content)
+
+
 
     def plan_content(
         self, channel_config: ChannelConfig, topic_hint: Optional[str] = None, raw_output_dir: Optional[Path] = None
@@ -142,17 +158,17 @@ class ContentStrategist:
         # 2. Dynamic Research Step (delegated to DataResearcher)
         localization = getattr(channel_config, 'localization_type', 'global')
 
-        # Build a compact user conversation/context block for the researcher to
-        # incorporate into search query generation. This may include the channel's
-        # brand mission, target audience, and any strategist persona notes.
-        user_context_parts = [f"Topic: {topic}", f"Channel: {channel_config.name}", f"Theme: {channel_config.theme}"]
+        # Build a minimal context block for the researcher — only what helps
+        # it generate better search queries. Persona and voice examples are for
+        # content generation, not research, and add unnecessary tokens.
+        user_context_parts = [
+            f"Topic: {topic}",
+            f"Channel: {channel_config.name}",
+            f"Theme: {channel_config.theme}",
+            f"Audience: {channel_config.target_audience}",
+        ]
         if channel_config.brand_mission:
             user_context_parts.append(f"Brand mission: {channel_config.brand_mission}")
-        if channel_config.strategist_persona:
-            user_context_parts.append(f"Strategist persona: {channel_config.strategist_persona}")
-        if channel_config.copy_voice_examples:
-            user_context_parts.append(f"Voice examples: {channel_config.copy_voice_examples}")
-        # Include any explicit topic_hint as part of the conversation
         if topic_hint:
             user_context_parts.append(f"User hint: {topic_hint}")
 
