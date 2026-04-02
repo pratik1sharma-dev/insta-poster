@@ -74,12 +74,14 @@ def _run_channel(channel: str, dry_run: bool, post_type_override: Optional[str] 
         }
         post_type = type_map.get(post_type_str, PostType.CINEMATIC)
 
-        logger.info("[%s] ▶ Starting pipeline  type=%s  dry_run=%s", channel, post_type_str, dry_run)
+        with_voice = getattr(cfg, "with_voice", False)
+        logger.info("[%s] ▶ Starting pipeline  type=%s  voice=%s  dry_run=%s", channel, post_type_str, with_voice, dry_run)
         pipeline = ContentPipeline()
         result = pipeline.run(
             channel_name=channel,
             dry_run=dry_run,
             post_types={post_type},
+            with_voice=with_voice,
         )
         logger.info("[%s] ✓ Done  status=%s  post_id=%s", channel, result.status, result.post_id)
     except Exception as e:

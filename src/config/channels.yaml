@@ -23,6 +23,7 @@ pagecapsules:
   posting_schedule: "1-2x daily"
   post_times: ["08:00", "20:00"]
   default_post_type: "cinematic"
+  with_voice: true
   tone: "engaging, insightful, actionable, inspiring"
   localization_type: "global"
   voice_id: "en-IN-NeerjaExpressiveNeural"
@@ -185,6 +186,7 @@ wealthcapsules:
   posting_schedule: "1-2x daily"
   post_times: ["08:30", "20:30"]
   default_post_type: "cinematic"
+  with_voice: true
   tone: "practical, insightful, empowering"
   localization_type: "india"
   voice_id: "en-IN-PrabhatNeural"
@@ -347,6 +349,7 @@ psychecapsules:
   posting_schedule: "1-2x daily"
   post_times: ["09:00", "21:00"]
   default_post_type: "cinematic"
+  with_voice: true
   tone: "thought-provoking, insightful, educational"
   localization_type: "india"
   voice_id: "en-IN-NeerjaExpressiveNeural"
@@ -526,6 +529,7 @@ startupcapsules:
   posting_schedule: "1-2x daily"
   post_times: ["09:30", "21:30"]
   default_post_type: "cinematic"
+  with_voice: true
   tone: "practical, insightful, entrepreneurial, inspiring"
   localization_type: "india"
   voice_id: "en-IN-PrabhatNeural"
@@ -710,6 +714,7 @@ worldinranks:
   posting_schedule: "1-2x daily"
   post_times: ["10:00", "22:00"]
   default_post_type: "cinematic"
+  with_voice: false
   tone: "informative, engaging, curiosity-driven"
   localization_type: "india"
   voice_id: "en-IN-PrabhatNeural"
@@ -888,6 +893,7 @@ fertilitycapsules:
   posting_schedule: "1-2x daily"
   post_times: ["10:30", "22:30"]
   default_post_type: "cinematic"
+  with_voice: false
   tone: "empathetic, scientific, transparent, empowering"
   localization_type: "india"
   voice_id: "en-IN-NeerjaNeural"
@@ -1057,6 +1063,7 @@ storycapsules:
   posting_schedule: "1x daily"
   post_times: ["11:00"]
   default_post_type: "cinematic"
+  with_voice: true
   tone: "warm, honest, relatable, cinematic"
   localization_type: "india"
   voice_id: "en-IN-NeerjaExpressiveNeural"

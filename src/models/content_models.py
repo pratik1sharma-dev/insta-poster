@@ -65,6 +65,7 @@ class ChannelConfig(BaseModel):
     # Scheduler — automated posting times (local HH:MM, 24h) and post type
     post_times: Optional[List[str]] = None        # e.g. ["08:00", "20:00"]
     default_post_type: str = "cinematic"           # cinematic | carousel | reel
+    with_voice: bool = False                       # add TTS narration to cinematic/reel
 
     class Config:
         frozen = False
