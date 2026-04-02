@@ -246,6 +246,32 @@ class PostizClient:
                 image_paths=[str(video_path)],
             )
 
+    def get_post_analytics(self, post_id: str) -> Optional[dict]:
+        """
+        Fetch performance metrics for a post via Postiz API.
+
+        Returns dict with like_count, comments_count, saved, reach — or None on failure.
+        All values may be 0 for new channels with no followers.
+        """
+        try:
+            response = requests.get(
+                f"{self.api_url}/public/v1/posts/{post_id}/analytics",
+                headers=self.headers,
+                timeout=15,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "like_count": data.get("like_count") or data.get("likes") or 0,
+                    "comments_count": data.get("comments_count") or data.get("comments") or 0,
+                    "saved": data.get("saved") or data.get("saves") or 0,
+                    "reach": data.get("reach") or data.get("impressions") or 0,
+                }
+            else:
+                return None
+        except Exception:
+            return None
+
     def _upload_video(self, video_path: Path) -> dict:
         """Upload video file to Postiz."""
         with open(video_path, "rb") as f:

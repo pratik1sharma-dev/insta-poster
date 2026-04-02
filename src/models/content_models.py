@@ -62,6 +62,10 @@ class ChannelConfig(BaseModel):
     # Allows multiple channel configs (e.g. storycapsules) to share one account (e.g. pagecapsules)
     instagram_account: Optional[str] = None
 
+    # Scheduler — automated posting times (local HH:MM, 24h) and post type
+    post_times: Optional[List[str]] = None        # e.g. ["08:00", "20:00"]
+    default_post_type: str = "cinematic"           # cinematic | carousel | reel
+
     class Config:
         frozen = False
 

@@ -120,7 +120,7 @@ class DataResearcher:
                 tool_results = ""
                 if client:
                     try:
-                        logging.getLogger(__name__).info(f"Tool search: {query}")
+                        logger.info("Tool search: %s", query)
                         search_response = client.search(query=query, search_depth="advanced", max_results=3)
                         i = 1
                         for result in search_response.get("results", []):
@@ -129,7 +129,7 @@ class DataResearcher:
                             tool_results += f"EXTRACTED CONTENT: {result.get('content')}\n\n"
                             i += 1
                     except Exception as e:
-                        logging.getLogger(__name__).error(f"Tavily search failed for query '{query}': {e}")
+                        logger.error("Tavily search failed for query '%s': %s", query, e)
                 accumulated += tool_results
                 # continue to next step so LLM can refine or finalize
                 continue
@@ -141,7 +141,7 @@ class DataResearcher:
                     tool_results = ""
                     if client:
                         try:
-                            logging.getLogger(__name__).info(f"Tool search: {q}")
+                            logger.info("Tool search: %s", q)
                             search_response = client.search(query=q, search_depth="advanced", max_results=3)
                             i = 1
                             for result in search_response.get("results", []):
@@ -150,7 +150,7 @@ class DataResearcher:
                                 tool_results += f"EXTRACTED CONTENT: {result.get('content')}\n\n"
                                 i += 1
                         except Exception as e:
-                            logging.getLogger(__name__).error(f"Tavily search failed for query '{q}': {e}")
+                            logger.error("Tavily search failed for query '%s': %s", q, e)
                     accumulated += tool_results
                 continue
 

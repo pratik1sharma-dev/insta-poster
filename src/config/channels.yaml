@@ -21,6 +21,8 @@ pagecapsules:
     first-generation wealth building, workplace dynamics), lean into that context naturally.
     Never force Hinglish or Indian references — let the insight lead.
   posting_schedule: "1-2x daily"
+  post_times: ["08:00", "20:00"]
+  default_post_type: "cinematic"
   tone: "engaging, insightful, actionable, inspiring"
   localization_type: "global"
   voice_id: "en-IN-NeerjaExpressiveNeural"
@@ -181,6 +183,8 @@ wealthcapsules:
     Write like a smart friend in a WhatsApp voice note, not a Western finance blog.
     Never use Hinglish artificially.
   posting_schedule: "1-2x daily"
+  post_times: ["08:30", "20:30"]
+  default_post_type: "cinematic"
   tone: "practical, insightful, empowering"
   localization_type: "india"
   voice_id: "en-IN-PrabhatNeural"
@@ -341,6 +345,8 @@ psychecapsules:
     Write like a smart friend explaining your own brain to you over chai.
     Never force Hinglish.
   posting_schedule: "1-2x daily"
+  post_times: ["09:00", "21:00"]
+  default_post_type: "cinematic"
   tone: "thought-provoking, insightful, educational"
   localization_type: "india"
   voice_id: "en-IN-NeerjaExpressiveNeural"
@@ -518,6 +524,8 @@ startupcapsules:
     Reference Indian investors (Sequoia India, Accel, Blume, Peak XV) where relevant.
     Use Hinglish only when it flows completely naturally.
   posting_schedule: "1-2x daily"
+  post_times: ["09:30", "21:30"]
+  default_post_type: "cinematic"
   tone: "practical, insightful, entrepreneurial, inspiring"
   localization_type: "india"
   voice_id: "en-IN-PrabhatNeural"
@@ -700,6 +708,8 @@ worldinranks:
     Make the data feel personal and impactful.
   target_audience: "Curious learners, professionals, and people interested in global trends, business, technology, and economics (18-40)"
   posting_schedule: "1-2x daily"
+  post_times: ["10:00", "22:00"]
+  default_post_type: "cinematic"
   tone: "informative, engaging, curiosity-driven"
   localization_type: "india"
   voice_id: "en-IN-PrabhatNeural"
@@ -876,6 +886,8 @@ fertilitycapsules:
     Write with deep empathy. Infertility carries shame in many Indian families.
     Posts that normalize the conversation without being preachy perform best.
   posting_schedule: "1-2x daily"
+  post_times: ["10:30", "22:30"]
+  default_post_type: "cinematic"
   tone: "empathetic, scientific, transparent, empowering"
   localization_type: "india"
   voice_id: "en-IN-NeerjaNeural"
@@ -1043,6 +1055,8 @@ storycapsules:
     ambition, friendships, and relationships. Write with warmth and honesty.
     Never preachy. Show, don't tell.
   posting_schedule: "1x daily"
+  post_times: ["11:00"]
+  default_post_type: "cinematic"
   tone: "warm, honest, relatable, cinematic"
   localization_type: "india"
   voice_id: "en-IN-NeerjaExpressiveNeural"

@@ -252,7 +252,7 @@ End your response with EXACTLY one of these two lines:
                 )
                 logger.log_post_result(res)
                 if res.status == "success":
-                    logger.logger.info(f"Carousel posted! ID: {res.post_id}")
+                    logger.logger.info("Carousel posted! ID: %s", res.post_id)
                     final_result.post_id = res.post_id
                 else:
                     final_result.status = "failed"
@@ -270,7 +270,7 @@ End your response with EXACTLY one of these two lines:
                 )
                 logger.log_post_result(res)
                 if res.status == "success":
-                    logger.logger.info(f"Narrated Reel posted! ID: {res.post_id}")
+                    logger.logger.info("Narrated Reel posted! ID: %s", res.post_id)
                     if not final_result.post_id: final_result.post_id = res.post_id
 
             # 3. Post Cinematic Reel
@@ -285,8 +285,28 @@ End your response with EXACTLY one of these two lines:
                 )
                 logger.log_post_result(res)
                 if res.status == "success":
-                    logger.logger.info(f"Cinematic Reel posted! ID: {res.post_id}")
+                    logger.logger.info("Cinematic Reel posted! ID: %s", res.post_id)
                     if not final_result.post_id: final_result.post_id = res.post_id
+
+            # ── Feedback recording (non-fatal) ────────────────────────
+            if not dry_run and final_result.status == "success" and final_result.post_id:
+                try:
+                    from src.utils.feedback_store import init_db, record_post, get_active_config_version
+                    init_db()
+                    _meta = self.cinematic_reel_generator.last_script_meta if cinematic_path else {}
+                    _post_type = "cinematic" if cinematic_path else ("reel" if reel_path else "carousel")
+                    _config_version = get_active_config_version(instagram_account) or "initial"
+                    record_post(
+                        post_result=final_result,
+                        post_type=_post_type,
+                        config_version=_config_version,
+                        hook_text=_meta.get("hook_text") or (content.slides[0].headline if content.slides else ""),
+                        story_spine=_meta.get("story_spine"),
+                        visual_anchor=_meta.get("visual_anchor"),
+                        cinematic_path=str(cinematic_path) if cinematic_path else None,
+                    )
+                except Exception as _fb_err:
+                    logger.logger.warning("Feedback recording failed (non-fatal): %s", _fb_err)
 
             # ── Summary ────────────────────────────────────────────────
             logger.logger.info("\n" + "=" * 80)

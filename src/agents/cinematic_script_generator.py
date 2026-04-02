@@ -33,6 +33,9 @@ class CinematicScriptGenerator:
 
     def __init__(self, generator: ContentGenerator):
         self.generator = generator
+        self.last_hook_text: str = ""
+        self.last_story_spine: str = ""
+        self.last_visual_anchor: str = ""
 
     # ------------------------------------------------------------------
     # Public interface
@@ -460,4 +463,9 @@ Respond with ONLY valid JSON."""
             )
 
         self._validate_story_coherence(all_lines_flat, story_spine)
+
+        self.last_hook_text = hook_result.get('best_hook', '')
+        self.last_story_spine = story_spine
+        self.last_visual_anchor = visual_anchor
+
         return scenes

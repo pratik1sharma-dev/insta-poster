@@ -32,6 +32,7 @@ class CinematicReelGenerator:
         self.image_gen = CinematicImageGenerator(generator)
         self.voice_gen = VoiceGenerator()
         self.video_composer = VideoComposer()
+        self.last_script_meta: dict = {}
 
     def generate(
         self,
@@ -53,6 +54,11 @@ class CinematicReelGenerator:
 
         # 1. Generate scenes (story lines + image prompts + motion effects)
         scenes = self.script_gen.generate_script_and_prompts(strategy, channel_config, num_images)
+        self.last_script_meta = {
+            "hook_text": self.script_gen.last_hook_text,
+            "story_spine": self.script_gen.last_story_spine,
+            "visual_anchor": self.script_gen.last_visual_anchor,
+        }
 
         # 1b. Refine image prompts via dedicated SD-optimized AI call
         scenes = self.image_gen.refine_sd_prompts(scenes, strategy, channel_config)

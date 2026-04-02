@@ -118,7 +118,7 @@ class ContentStrategist:
                 
                 if is_rate_limit and attempt < max_retries - 1:
                     wait_time = retry_delay * (2 ** attempt)
-                    logging.getLogger(__name__).warning(f"Rate limited by {self.provider}. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
+                    logging.getLogger(__name__).warning("Rate limited by %s. Retrying in %ds... (Attempt %d/%d)", self.provider, wait_time, attempt + 1, max_retries)
                     time.sleep(wait_time)
                     continue
                 
@@ -292,7 +292,7 @@ Respond with ONLY the topic name (e.g., "Book Title by Author" or "Concept Name"
                 with open(raw_output_dir / "discovery.txt", "w") as f:
                     f.write(response_text)
             except Exception as e:
-                logging.getLogger(__name__).error(f"Failed to save raw discovery: {e}")
+                logging.getLogger(__name__).error("Failed to save raw discovery: %s", e)
             
         return response_text.strip().strip('"').strip("'")
 
@@ -371,7 +371,7 @@ Respond with ONLY JSON.
             try:
                 data = json.loads(cleaned)
             except json.JSONDecodeError:
-                logger.error(f"Failed to parse strategy JSON: {response_text[:200]}...")
+                logger.error("Failed to parse strategy JSON: %s...", response_text[:200])
                 return self._get_default_strategy(topic, verified_data)
 
         # Create ContentStrategy

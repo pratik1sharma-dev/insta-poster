@@ -47,20 +47,25 @@ class ContentLogger:
         console_handler = logging.StreamHandler()
         console_handler.setLevel(getattr(logging, settings.log_level.upper()))
 
-        # Formatter
+        # Formatter — consistent timestamp + level + name across all modules
         formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
         file_handler.setFormatter(formatter)
         console_handler.setFormatter(formatter)
 
-        # Attach handlers to root logger so all module loggers share them
+        # Attach handlers to root logger so all module loggers share them.
+        # Guard against duplicate handlers when ContentLogger is re-instantiated.
         root_logger = logging.getLogger()
         root_logger.setLevel(getattr(logging, settings.log_level.upper()))
-        root_logger.addHandler(file_handler)
-        root_logger.addHandler(console_handler)
+        existing_types = {type(h) for h in root_logger.handlers}
+        if logging.FileHandler not in existing_types:
+            root_logger.addHandler(file_handler)
+        if logging.StreamHandler not in existing_types:
+            root_logger.addHandler(console_handler)
 
-        self.logger.info(f"Initialized content pipeline for channel: {channel_name}")
+        self.logger.info("Initialized content pipeline for channel: %s", channel_name)
 
     def log_strategy(self, strategy: ContentStrategy) -> None:
         """
@@ -75,12 +80,12 @@ class ContentLogger:
         with open(strategy_path, "w") as f:
             json.dump(strategy_data, f, indent=2)
 
-        self.logger.info(f"Strategy: {strategy.topic}")
-        self.logger.info(f"Hook Type: {strategy.hook_type}")
-        self.logger.info(f"Carousel Length: {strategy.carousel_length}")
-        self.logger.info(f"Color Palette: {strategy.color_palette}")
-        self.logger.info(f"Typography Style: {strategy.typography_style}")
-        self.logger.debug(f"Reasoning: {strategy.reasoning}")
+        self.logger.info("Strategy: %s", strategy.topic)
+        self.logger.info("Hook Type: %s", strategy.hook_type)
+        self.logger.info("Carousel Length: %s", strategy.carousel_length)
+        self.logger.info("Color Palette: %s", strategy.color_palette)
+        self.logger.info("Typography Style: %s", strategy.typography_style)
+        self.logger.debug("Reasoning: %s", strategy.reasoning)
 
     def log_content(self, content: GeneratedContent) -> None:
         """
@@ -95,9 +100,9 @@ class ContentLogger:
         with open(content_path, "w") as f:
             json.dump(content_data, f, indent=2)
 
-        self.logger.info(f"Generated {len(content.slides)} slides")
-        self.logger.info(f"Caption length: {len(content.caption)} characters")
-        self.logger.info(f"Hashtags: {', '.join(content.hashtags[:5])}...")
+        self.logger.info("Generated %d slides", len(content.slides))
+        self.logger.info("Caption length: %d characters", len(content.caption))
+        self.logger.info("Hashtags: %s...", ", ".join(content.hashtags[:5]))
 
         # Save caption separately for easy review
         caption_path = self.base_dir / "caption.txt"
@@ -116,7 +121,7 @@ class ContentLogger:
             slide_number: Slide number
             image_path: Path where image was saved
         """
-        self.logger.info(f"Generated image for slide {slide_number}: {image_path.name}")
+        self.logger.info("Generated image for slide %d: %s", slide_number, image_path.name)
 
     def log_post_result(self, result: PostResult) -> None:
         """
@@ -136,13 +141,13 @@ class ContentLogger:
             json.dump(result_data, f, indent=2)
 
         if result.status == "success":
-            self.logger.info(f"Successfully posted! Post ID: {result.post_id}")
+            self.logger.info("Successfully posted! Post ID: %s", result.post_id)
             if result.performance_tracking_url:
-                self.logger.info(f"Track performance: {result.performance_tracking_url}")
+                self.logger.info("Track performance: %s", result.performance_tracking_url)
         elif result.status == "dry_run":
             self.logger.info("Dry run completed - no actual posting")
         else:
-            self.logger.error(f"Post failed: {result.error_message}")
+            self.logger.error("Post failed: %s", result.error_message)
 
     def log_error(self, error: Exception, context: str) -> None:
         """
@@ -161,7 +166,7 @@ class ContentLogger:
             f.write(f"Error: {type(error).__name__}: {str(error)}\n")
             f.write(f"{'='*80}\n")
 
-        self.logger.error(f"Error in {context}: {error}", exc_info=True)
+        self.logger.error("Error in %s: %s", context, error, exc_info=True)
 
     def get_output_dir(self) -> Path:
         """Get the output directory for this run."""

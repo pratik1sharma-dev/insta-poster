@@ -85,6 +85,11 @@ class Settings(BaseSettings):
     postiz_api_url: str = "http://localhost:3000/api"
     postiz_api_key: str = ""
 
+    # ── Feedback service ──────────────────────────────────────────────
+    feedback_poll_interval: int = 1800        # seconds between polls (default 30min)
+    feedback_min_posts_for_analysis: int = 10  # scored posts needed before config update
+    feedback_metric_delay_hours: int = 24      # hours after post before fetching metrics
+
     # ── Logging & output ──────────────────────────────────────────────
     log_level: str = "INFO"
     output_dir: str = "output"
