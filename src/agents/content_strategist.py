@@ -182,7 +182,7 @@ class ContentStrategist:
             channel_config.theme,
             localization,
             user_conversation=user_conversation,
-            max_steps=3,
+            max_steps=2,
         )
 
         # Research quality is ensured by the interactive research loop. If the

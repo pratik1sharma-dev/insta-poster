@@ -36,6 +36,8 @@ SYSTEM_PROMPT_BASE = (
     "  * For \"synthesize\": request the system to synthesize accumulated results.\n"
     "  * For \"final\": include \"content\" (string) with the final output.\n"
     "- Do NOT include explanatory text, code fences, or any other surrounding text when returning the JSON.\n"
+    "- IMPORTANT: Use search_batch with a MAXIMUM of 3 queries. Do not request more searches than necessary.\n"
+    "- After one search_batch, immediately synthesize or return final. Do not chain multiple searches.\n"
 )
 
 
@@ -135,7 +137,7 @@ class DataResearcher:
                 continue
 
             elif action == "search_batch":
-                queries = action_obj.get("queries", []) or []
+                queries = (action_obj.get("queries", []) or [])[:3]  # cap at 3 per batch
                 for q in queries:
                     seen_queries.append(q)
                     tool_results = ""
