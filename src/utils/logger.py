@@ -56,13 +56,15 @@ class ContentLogger:
         console_handler.setFormatter(formatter)
 
         # Attach handlers to root logger so all module loggers share them.
-        # Guard against duplicate handlers when ContentLogger is re-instantiated.
+        # File handler: always add (each pipeline run gets its own log file).
+        # Console handler: skip if one already exists (e.g. added by scheduler's basicConfig).
         root_logger = logging.getLogger()
         root_logger.setLevel(getattr(logging, settings.log_level.upper()))
-        existing_types = {type(h) for h in root_logger.handlers}
-        if logging.FileHandler not in existing_types:
-            root_logger.addHandler(file_handler)
-        if logging.StreamHandler not in existing_types:
+        root_logger.addHandler(file_handler)
+        has_console = any(
+            type(h) is logging.StreamHandler for h in root_logger.handlers
+        )
+        if not has_console:
             root_logger.addHandler(console_handler)
 
         self.logger.info("Initialized content pipeline for channel: %s", channel_name)

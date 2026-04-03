@@ -175,18 +175,42 @@ def run_scheduler(channels: list, dry_run: bool = False, api_port: int = 8000) -
 
     from src.utils import load_channel_config
 
+    from src.config import settings
+
+    def _mask(val: str) -> str:
+        return (val[:6] + "..." + val[-4:]) if len(val) > 12 else ("SET" if val else "NOT SET")
+
     logger.info("=" * 70)
     logger.info("insta-poster scheduler starting")
     logger.info("=" * 70)
+    logger.info("── Providers ──────────────────────────────────────────")
+    logger.info("  LLM provider     : %s  (model: %s)", settings.llm_provider, settings.groq_model if settings.llm_provider == "groq" else settings.gemini_model)
+    logger.info("  Image provider   : %s", settings.image_provider)
+    logger.info("  TTS provider     : %s  (voice: %s)", settings.tts_provider, settings.edge_tts_voice)
+    logger.info("── API Keys ────────────────────────────────────────────")
+    logger.info("  GROQ_API_KEY     : %s", _mask(settings.groq_api_key))
+    logger.info("  GEMINI_API_KEY   : %s", _mask(settings.gemini_api_key))
+    logger.info("  TAVILY_API_KEY   : %s", _mask(settings.tavily_api_key))
+    logger.info("  POSTIZ_API_KEY   : %s", _mask(settings.postiz_api_key))
+    logger.info("── SD / Infra ───────────────────────────────────────────")
+    logger.info("  SD_API_URL       : %s", settings.sd_api_url)
+    logger.info("  POSTIZ_API_URL   : %s", settings.postiz_api_url)
+    logger.info("── Channels ────────────────────────────────────────────")
     for ch in channels:
         try:
             cfg = load_channel_config(ch)
             times = getattr(cfg, "post_times", None) or []
             ptype = getattr(cfg, "default_post_type", "cinematic")
-            logger.info("  %-22s %s  [%s]", ch, times if times else "(no times set)", ptype)
+            voice = getattr(cfg, "with_voice", False)
+            logger.info("  %-22s %s  [%s]  voice=%s", ch, times if times else "(no times)", ptype, voice)
         except Exception:
             logger.warning("  %-22s (config load failed)", ch)
-    logger.info("API  →  http://localhost:%d/docs", api_port)
+    logger.info("── Feedback ────────────────────────────────────────────")
+    logger.info("  Poll interval    : %ds", settings.feedback_poll_interval)
+    logger.info("  Min posts        : %d", settings.feedback_min_posts_for_analysis)
+    logger.info("  Metric delay     : %dh", settings.feedback_metric_delay_hours)
+    logger.info("── API ─────────────────────────────────────────────────")
+    logger.info("  http://localhost:%d/docs", api_port)
     logger.info("=" * 70)
 
     # Feedback loop
