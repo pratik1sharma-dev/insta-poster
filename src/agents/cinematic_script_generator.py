@@ -360,9 +360,9 @@ Respond with ONLY valid JSON."""
         num_images: int,
     ) -> List[dict]:
         if not strategy.verified_data or len(strategy.verified_data) < 100:
-            raise ValueError(
-                f"Cannot generate cinematic reel without research data. "
-                f"Topic: {strategy.topic} - Enable Tavily API or provide manual data."
+            logger.warning(
+                "No verified research data for '%s' — proceeding with best-effort script (no sourced numbers).",
+                strategy.topic,
             )
 
         is_india = getattr(channel_config, 'localization_type', 'global').lower() == 'india'
