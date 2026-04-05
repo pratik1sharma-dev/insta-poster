@@ -220,15 +220,16 @@ class FeedbackLoop:
 
     def _build_scoring_prompt(self, hook_text: str, story_spine: str, channel: str, has_frame: bool) -> str:
         visual_note = "The attached image is the first frame of the reel." if has_frame else "No video frame available — score visual_quality as 5."
+        story_line = f"Story spine: \"{story_spine}\"" if story_spine and story_spine.strip() else "Story spine: not available — score story_clarity as 5."
         return (
-            f"You are evaluating an Instagram Reel for the channel '{channel}'.\n"
+            f"You are evaluating an Instagram post for the channel '{channel}'.\n"
             f"{visual_note}\n\n"
             f"Hook text: \"{hook_text}\"\n"
-            f"Story spine: \"{story_spine}\"\n\n"
+            f"{story_line}\n\n"
             "Score each dimension from 0 to 10:\n"
             "- hook_quality: Does the hook immediately grab attention and create curiosity?\n"
-            "- story_clarity: Is the narrative clear, coherent, and easy to follow?\n"
-            "- visual_quality: Are the visuals compelling and on-brand?\n\n"
+            "- story_clarity: Is the narrative clear, coherent, and easy to follow? Score 5 if story spine is unavailable.\n"
+            "- visual_quality: Are the visuals compelling and on-brand? Score 5 if no frame available.\n\n"
             "Respond with ONLY valid JSON:\n"
             "{\"hook_quality\": <0-10>, \"story_clarity\": <0-10>, \"visual_quality\": <0-10>, \"scoring_notes\": \"1-2 sentence assessment\"}"
         )

@@ -301,7 +301,7 @@ End your response with EXACTLY one of these two lines:
                         post_type=_post_type,
                         config_version=_config_version,
                         hook_text=_meta.get("hook_text") or (content.slides[0].headline if content.slides else ""),
-                        story_spine=_meta.get("story_spine"),
+                        story_spine=_meta.get("story_spine") or strategy.angle,
                         visual_anchor=_meta.get("visual_anchor"),
                         cinematic_path=str(cinematic_path) if cinematic_path else None,
                     )
