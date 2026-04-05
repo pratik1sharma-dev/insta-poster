@@ -59,7 +59,12 @@ def _prune_fired(fired: set) -> set:
 
 # ── Channel pipeline runner ─────────────────────────────────────────────────
 
-def _run_channel(channel: str, dry_run: bool, post_type_override: Optional[str] = None) -> None:
+def _run_channel(
+    channel: str,
+    dry_run: bool,
+    post_type_override: Optional[str] = None,
+    with_voice_override: Optional[bool] = None,
+) -> None:
     """Run the full content pipeline for one channel. Called in its own thread."""
     from src.pipelines.ContentPipeline import ContentPipeline, PostType
     from src.utils import load_channel_config
@@ -74,7 +79,7 @@ def _run_channel(channel: str, dry_run: bool, post_type_override: Optional[str] 
         }
         post_type = type_map.get(post_type_str, PostType.CINEMATIC)
 
-        with_voice = getattr(cfg, "with_voice", False)
+        with_voice = with_voice_override if with_voice_override is not None else getattr(cfg, "with_voice", False)
         logger.info("[%s] ▶ Starting pipeline  type=%s  voice=%s  dry_run=%s", channel, post_type_str, with_voice, dry_run)
         pipeline = ContentPipeline()
         result = pipeline.run(
@@ -120,10 +125,12 @@ def _build_api():
         for ch in _scheduled_channels:
             try:
                 cfg = load_channel_config(ch)
-                times = getattr(cfg, "post_times", None) or []
-                ptype = getattr(cfg, "default_post_type", "cinematic")
-                schedule.append({"channel": ch, "post_times": times, "post_type": ptype,
-                                  "running": ch in running})
+                entries = getattr(cfg, "post_schedule", None) or []
+                schedule.append({
+                    "channel": ch,
+                    "post_schedule": [{"time": e.time, "post_type": e.post_type, "with_voice": e.with_voice} for e in entries],
+                    "running": ch in running,
+                })
             except Exception:
                 schedule.append({"channel": ch, "error": "config load failed"})
 
@@ -199,10 +206,12 @@ def run_scheduler(channels: list, dry_run: bool = False, api_port: int = 8000) -
     for ch in channels:
         try:
             cfg = load_channel_config(ch)
-            times = getattr(cfg, "post_times", None) or []
-            ptype = getattr(cfg, "default_post_type", "cinematic")
-            voice = getattr(cfg, "with_voice", False)
-            logger.info("  %-22s %s  [%s]  voice=%s", ch, times if times else "(no times)", ptype, voice)
+            schedule = getattr(cfg, "post_schedule", None) or []
+            if schedule:
+                slots = "  ".join(f"{e.time}:{e.post_type}" + ("+voice" if e.with_voice else "") for e in schedule)
+                logger.info("  %-22s %s", ch, slots)
+            else:
+                logger.info("  %-22s (no schedule)", ch)
         except Exception:
             logger.warning("  %-22s (config load failed)", ch)
     logger.info("── Feedback ────────────────────────────────────────────")
@@ -246,15 +255,17 @@ def run_scheduler(channels: list, dry_run: bool = False, api_port: int = 8000) -
                 logger.error("Config load failed for %s: %s", channel, e)
                 continue
 
-            for slot in (getattr(cfg, "post_times", None) or []):
-                job_key = f"{channel}_{today}_{slot}"
+            for entry in (getattr(cfg, "post_schedule", None) or []):
+                slot = entry.time
+                job_key = f"{channel}_{today}_{slot}_{entry.post_type}"
                 if slot == current_hhmm and job_key not in fired:
                     _mark_fired(job_key, fired)
-                    logger.info("[%s] ⏰ Firing scheduled post (slot=%s)", channel, slot)
+                    voice = entry.with_voice if entry.with_voice is not None else getattr(cfg, "with_voice", False)
+                    logger.info("[%s] ⏰ Firing scheduled post (slot=%s  type=%s  voice=%s)", channel, slot, entry.post_type, voice)
                     t = threading.Thread(
                         target=_run_channel,
-                        args=(channel, dry_run),
-                        name=f"pipeline-{channel}",
+                        args=(channel, dry_run, entry.post_type, voice),
+                        name=f"pipeline-{channel}-{entry.post_type}",
                         daemon=True,
                     )
                     t.start()

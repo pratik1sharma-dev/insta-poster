@@ -4,7 +4,14 @@ Pydantic models for content generation and publishing.
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union, Dict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+
+class PostScheduleEntry(BaseModel):
+    """A single scheduled slot: time + post type + optional voice override."""
+    time: str                        # "HH:MM" 24h
+    post_type: str = "cinematic"     # cinematic | carousel | reel
+    with_voice: Optional[bool] = None  # None = inherit channel default
 
 
 class HookType(str, Enum):
@@ -62,10 +69,21 @@ class ChannelConfig(BaseModel):
     # Allows multiple channel configs (e.g. storycapsules) to share one account (e.g. pagecapsules)
     instagram_account: Optional[str] = None
 
-    # Scheduler — automated posting times (local HH:MM, 24h) and post type
-    post_times: Optional[List[str]] = None        # e.g. ["08:00", "20:00"]
-    default_post_type: str = "cinematic"           # cinematic | carousel | reel
-    with_voice: bool = False                       # add TTS narration to cinematic/reel
+    # Scheduler — per-slot schedule (preferred) or legacy flat fields
+    post_schedule: Optional[List[PostScheduleEntry]] = None  # new: per-slot type + voice
+    post_times: Optional[List[str]] = None        # legacy: e.g. ["08:00", "20:00"]
+    default_post_type: str = "cinematic"           # legacy: cinematic | carousel | reel
+    with_voice: bool = False                       # channel-level TTS default
+
+    @model_validator(mode="after")
+    def _coerce_legacy_schedule(self) -> "ChannelConfig":
+        """If post_schedule not set, build it from legacy post_times + default_post_type."""
+        if not self.post_schedule and self.post_times:
+            self.post_schedule = [
+                PostScheduleEntry(time=t, post_type=self.default_post_type, with_voice=self.with_voice)
+                for t in self.post_times
+            ]
+        return self
 
     class Config:
         frozen = False
