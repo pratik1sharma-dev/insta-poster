@@ -27,7 +27,7 @@ pagecapsules:
       post_type: "cinematic"
       with_voice: true
     - time: "20:00"
-      post_type: "carousel"
+      post_type: "reel"
       with_voice: false
   tone: "engaging, insightful, actionable, inspiring"
   localization_type: "global"
@@ -195,7 +195,7 @@ wealthcapsules:
       post_type: "cinematic"
       with_voice: true
     - time: "20:30"
-      post_type: "carousel"
+      post_type: "reel"
       with_voice: false
   tone: "practical, insightful, empowering"
   localization_type: "india"
@@ -363,7 +363,7 @@ psychecapsules:
       post_type: "cinematic"
       with_voice: true
     - time: "21:00"
-      post_type: "carousel"
+      post_type: "reel"
       with_voice: false
   tone: "thought-provoking, insightful, educational"
   localization_type: "india"
@@ -548,7 +548,7 @@ startupcapsules:
       post_type: "cinematic"
       with_voice: true
     - time: "21:30"
-      post_type: "carousel"
+      post_type: "reel"
       with_voice: false
   tone: "practical, insightful, entrepreneurial, inspiring"
   localization_type: "india"
@@ -738,7 +738,7 @@ worldinranks:
       post_type: "cinematic"
       with_voice: false
     - time: "22:00"
-      post_type: "carousel"
+      post_type: "reel"
       with_voice: false
   tone: "informative, engaging, curiosity-driven"
   localization_type: "india"
@@ -922,7 +922,7 @@ fertilitycapsules:
       post_type: "cinematic"
       with_voice: false
     - time: "22:30"
-      post_type: "carousel"
+      post_type: "reel"
       with_voice: false
   tone: "empathetic, scientific, transparent, empowering"
   localization_type: "india"
