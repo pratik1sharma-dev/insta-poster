@@ -26,10 +26,18 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    log_level = getattr(logging, args.log_level.upper(), logging.INFO)
+    log_file = "output/feedback/feedback_service.log"
+    import pathlib; pathlib.Path("output/feedback").mkdir(parents=True, exist_ok=True)
+
     logging.basicConfig(
-        level=getattr(logging, args.log_level.upper(), logging.INFO),
+        level=log_level,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(log_file),
+        ],
     )
 
     if args.channels:

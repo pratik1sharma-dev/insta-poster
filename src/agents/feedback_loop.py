@@ -132,6 +132,9 @@ class FeedbackLoop:
                 record_id, scores["hook_quality"], scores["story_clarity"], scores["visual_quality"],
             )
 
+    # Groq vision model — supports image input, free tier, no quota issues
+    _GROQ_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+
     def _score_with_gemini(
         self,
         cinematic_path: Optional[str],
@@ -140,53 +143,102 @@ class FeedbackLoop:
         channel: str,
     ) -> dict:
         """
-        Score a post using Gemini vision (if video exists) or text-only fallback.
+        Score a post using vision AI (frame + text) with Groq vision as primary,
+        Gemini vision as secondary, and Groq text-only as final fallback.
 
         Returns dict: hook_quality, story_clarity, visual_quality, scoring_notes (all 0-10).
         """
-        default_scores = {"hook_quality": 5.0, "story_clarity": 5.0, "visual_quality": 5.0, "scoring_notes": "default"}
+        # Extract frame once — reused across providers
+        frame_data = None
+        if cinematic_path and Path(cinematic_path).exists():
+            frame_data = self._extract_frame(cinematic_path)
 
+        # 1. Try Groq vision (Llama 4 Scout — free, no daily quota)
+        if settings.groq_api_key:
+            result = self._score_with_groq_vision(hook_text, story_spine, channel, frame_data)
+            if result:
+                return result
+
+        # 2. Try Gemini vision (if API key set and quota available)
+        if settings.gemini_api_key:
+            try:
+                from google import genai
+                from google.genai import types
+                client = genai.Client(api_key=settings.gemini_api_key)
+                prompt = self._build_scoring_prompt(hook_text, story_spine, channel, has_frame=bool(frame_data))
+                contents = []
+                if frame_data:
+                    contents.append(types.Part.from_bytes(data=frame_data, mime_type="image/jpeg"))
+                contents.append(prompt)
+                response = client.models.generate_content(model="gemini-2.0-flash", contents=contents)
+                result = self._parse_score_json(response.text)
+                if result:
+                    return result
+            except Exception as e:
+                err_str = str(e)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
+                    logger.warning("Gemini quota exhausted for scoring — already using Groq, check Groq key")
+                else:
+                    logger.error("Gemini scoring failed: %s", e)
+
+        # 3. Groq text-only (no image — visual_quality fixed at 5.0)
+        return self._score_text_only(hook_text, story_spine, channel)
+
+    def _score_with_groq_vision(
+        self,
+        hook_text: str,
+        story_spine: str,
+        channel: str,
+        frame_data: Optional[bytes],
+    ) -> Optional[dict]:
+        """Score using Groq vision model. Returns None if unavailable or parse fails."""
+        import base64
         try:
-            from google import genai
-            from google.genai import types
+            from groq import Groq
+            client = Groq(api_key=settings.groq_api_key)
+            prompt = self._build_scoring_prompt(hook_text, story_spine, channel, has_frame=bool(frame_data))
 
-            if not settings.gemini_api_key:
-                logger.warning("No GEMINI_API_KEY — using text-only scoring")
-                return self._score_text_only(hook_text, story_spine, channel)
-
-            client = genai.Client(api_key=settings.gemini_api_key)
-            model = "gemini-2.0-flash"
-
-            # Try to extract a frame from the video
-            frame_data = None
-            if cinematic_path and Path(cinematic_path).exists():
-                frame_data = self._extract_frame(cinematic_path)
-
-            prompt = f"""You are evaluating an Instagram Reel for the channel '{channel}'.
-
-Hook text: "{hook_text}"
-Story spine: "{story_spine}"
-
-Score each dimension from 0 to 10:
-- hook_quality: Does the hook immediately grab attention and create curiosity?
-- story_clarity: Is the narrative clear, coherent, and easy to follow?
-- visual_quality: Are the visuals compelling and on-brand? (score 5 if no video available)
-
-Respond with ONLY valid JSON:
-{{"hook_quality": 0-10, "story_clarity": 0-10, "visual_quality": 0-10, "scoring_notes": "1-2 sentence assessment"}}"""
-
-            contents = []
             if frame_data:
-                contents.append(types.Part.from_bytes(data=frame_data, mime_type="image/jpeg"))
-            contents.append(prompt)
+                b64 = base64.b64encode(frame_data).decode()
+                messages = [{"role": "user", "content": [
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                    {"type": "text", "text": prompt},
+                ]}]
+            else:
+                messages = [{"role": "user", "content": prompt}]
 
-            response = client.models.generate_content(model=model, contents=contents)
-            raw = response.text
+            completion = client.chat.completions.create(
+                model=self._GROQ_VISION_MODEL,
+                messages=messages,
+                temperature=0.3,
+                max_tokens=256,
+            )
+            return self._parse_score_json(completion.choices[0].message.content)
+        except Exception as e:
+            logger.warning("Groq vision scoring failed: %s — will try text-only", e)
+            return None
 
-            # Parse JSON from response
-            import re
-            match = re.search(r'\{.*\}', raw, re.DOTALL)
-            if match:
+    def _build_scoring_prompt(self, hook_text: str, story_spine: str, channel: str, has_frame: bool) -> str:
+        visual_note = "The attached image is the first frame of the reel." if has_frame else "No video frame available — score visual_quality as 5."
+        return (
+            f"You are evaluating an Instagram Reel for the channel '{channel}'.\n"
+            f"{visual_note}\n\n"
+            f"Hook text: \"{hook_text}\"\n"
+            f"Story spine: \"{story_spine}\"\n\n"
+            "Score each dimension from 0 to 10:\n"
+            "- hook_quality: Does the hook immediately grab attention and create curiosity?\n"
+            "- story_clarity: Is the narrative clear, coherent, and easy to follow?\n"
+            "- visual_quality: Are the visuals compelling and on-brand?\n\n"
+            "Respond with ONLY valid JSON:\n"
+            "{\"hook_quality\": <0-10>, \"story_clarity\": <0-10>, \"visual_quality\": <0-10>, \"scoring_notes\": \"1-2 sentence assessment\"}"
+        )
+
+    def _parse_score_json(self, raw: str) -> Optional[dict]:
+        """Parse scoring JSON from LLM response. Returns None if unparseable."""
+        import re
+        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        if match:
+            try:
                 data = json.loads(match.group())
                 return {
                     "hook_quality": float(data.get("hook_quality", 5)),
@@ -194,34 +246,42 @@ Respond with ONLY valid JSON:
                     "visual_quality": float(data.get("visual_quality", 5)),
                     "scoring_notes": str(data.get("scoring_notes", "")),
                 }
-        except Exception as e:
-            logger.error("Gemini scoring failed: %s — using defaults", e)
-
-        return default_scores
+            except (json.JSONDecodeError, ValueError):
+                pass
+        return None
 
     def _score_text_only(self, hook_text: str, story_spine: str, channel: str) -> dict:
-        """Fallback: score using text-only Gemini call (no vision)."""
+        """Fallback: score using Groq text-only (no vision, no Gemini quota needed)."""
+        import re
+        prompt = (
+            f"Score this Instagram Reel content for the channel '{channel}'.\n\n"
+            f"Hook: \"{hook_text}\"\n"
+            f"Story: \"{story_spine}\"\n\n"
+            "Rate each dimension from 0 to 10 and respond with ONLY valid JSON:\n"
+            "{\"hook_quality\": <0-10>, \"story_clarity\": <0-10>, \"visual_quality\": 5, \"scoring_notes\": \"1 sentence\"}"
+        )
         try:
-            from google import genai
-            client = genai.Client(api_key=settings.gemini_api_key)
-            prompt = (
-                f"Score this Instagram hook (0-10) for channel '{channel}'.\n"
-                f"Hook: \"{hook_text}\"\nStory: \"{story_spine}\"\n\n"
-                '{"hook_quality": 0-10, "story_clarity": 0-10, "visual_quality": 5, "scoring_notes": "text-only"}'
-            )
-            response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-            import re, json as _json
-            m = re.search(r'\{.*\}', response.text, re.DOTALL)
-            if m:
-                data = _json.loads(m.group())
-                return {
-                    "hook_quality": float(data.get("hook_quality", 5)),
-                    "story_clarity": float(data.get("story_clarity", 5)),
-                    "visual_quality": 5.0,
-                    "scoring_notes": str(data.get("scoring_notes", "text-only")),
-                }
+            if settings.groq_api_key:
+                from groq import Groq
+                client = Groq(api_key=settings.groq_api_key)
+                completion = client.chat.completions.create(
+                    model=settings.groq_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    max_tokens=256,
+                )
+                raw = completion.choices[0].message.content
+                m = re.search(r'\{.*\}', raw, re.DOTALL)
+                if m:
+                    data = json.loads(m.group())
+                    return {
+                        "hook_quality": float(data.get("hook_quality", 5)),
+                        "story_clarity": float(data.get("story_clarity", 5)),
+                        "visual_quality": 5.0,
+                        "scoring_notes": str(data.get("scoring_notes", "groq-text-only")),
+                    }
         except Exception as e:
-            logger.error("Text-only scoring failed: %s", e)
+            logger.error("Groq text-only scoring failed: %s", e)
         return {"hook_quality": 5.0, "story_clarity": 5.0, "visual_quality": 5.0, "scoring_notes": "scoring unavailable"}
 
     def _extract_frame(self, video_path: str) -> Optional[bytes]:

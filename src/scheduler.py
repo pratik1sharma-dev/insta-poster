@@ -282,10 +282,15 @@ def main() -> None:
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     args = parser.parse_args()
 
+    import pathlib; pathlib.Path("output").mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         level=getattr(logging, args.log_level),
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler("output/scheduler.log"),
+        ],
     )
 
     if args.channels:
