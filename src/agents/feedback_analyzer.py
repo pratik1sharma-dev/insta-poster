@@ -7,6 +7,7 @@ import logging
 from typing import Optional
 
 from src.agents.content_generator import ContentGenerator
+from src.config import settings
 from src.models import ChannelConfig
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,27 @@ class FeedbackAnalyzer:
       - triggered_by (list of record_ids)
     """
 
+    # Max chars for each existing config field shown in the prompt.
+    _MAX_FIELD_CHARS = 400
+
     def __init__(self):
         self.generator = ContentGenerator()
+
+    def _generate_text(self, prompt: str, system_prompt: str) -> str:
+        """Generate text using the high-TPM research model to avoid 413 errors."""
+        if settings.llm_provider == "groq" and settings.groq_api_key:
+            from groq import Groq
+            client = Groq(api_key=settings.groq_api_key)
+            messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}]
+            completion = client.chat.completions.create(
+                model=settings.groq_research_model,
+                messages=messages,
+                temperature=0.4,
+                max_tokens=1024,
+            )
+            return completion.choices[0].message.content
+        # Fallback to ContentGenerator for other providers
+        return self.generator._generate_text(prompt, system_prompt=system_prompt)
 
     def analyze(
         self,
@@ -89,19 +109,24 @@ class FeedbackAnalyzer:
             "Be specific — quote actual hook text and story structures from top performers.\n"
         )
 
+        def _trunc(val: str | None) -> str:
+            if not val:
+                return "(not set)"
+            return val[:self._MAX_FIELD_CHARS] + ("..." if len(val) > self._MAX_FIELD_CHARS else "")
+
         prompt = f"""CHANNEL: {channel}
 {maturity_note}
 {version_history}
 
 CURRENT CONFIG VALUES:
 cinematic_hook_examples:
-{channel_config.cinematic_hook_examples or '(not set)'}
+{_trunc(channel_config.cinematic_hook_examples)}
 
 cinematic_story_example:
-{channel_config.cinematic_story_example or '(not set)'}
+{_trunc(channel_config.cinematic_story_example)}
 
 copy_voice_examples:
-{channel_config.copy_voice_examples or '(not set)'}
+{_trunc(channel_config.copy_voice_examples)}
 
 PERFORMANCE DATA (most recent {len(records)} scored posts):
 {performance_table}
@@ -124,7 +149,7 @@ OUTPUT (JSON only):
 
 Respond with ONLY valid JSON."""
 
-        response = self.generator._generate_text(prompt, system_prompt=system_prompt)
+        response = self._generate_text(prompt, system_prompt=system_prompt)
 
         try:
             data = self.generator._parse_json_response(response)
