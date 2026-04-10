@@ -138,16 +138,21 @@ TASK:
 4. Update copy_voice_examples: if a top performer used a notably effective copy style, add it as an example.
 5. Update cinematic_story_example ONLY if a top performer had a significantly better story structure than the current example (otherwise set to null).
 
+OUTPUT RULES (CRITICAL):
+- All values MUST be plain strings — never arrays or lists.
+- Use newlines (\\n) inside strings to separate multiple examples.
+- Preserve the style and formatting of the current config values shown above.
+
 OUTPUT (JSON only):
 {{
-  "cinematic_hook_examples": "full updated value (preserve existing good examples, add new ones)",
-  "cinematic_story_example": "full updated value OR null if no change needed",
-  "copy_voice_examples": "full updated value OR null if no change needed",
+  "cinematic_hook_examples": "PLAIN STRING — updated examples separated by newlines, preserving existing good ones",
+  "cinematic_story_example": "PLAIN STRING — updated story example OR null if no change needed",
+  "copy_voice_examples": "PLAIN STRING — updated voice examples separated by newlines OR null if no change needed",
   "reasoning": "1-2 sentences explaining what changed and why",
   "triggered_by": ["record_id_1", "record_id_2"]
 }}
 
-Respond with ONLY valid JSON."""
+Respond with ONLY valid JSON. All text fields must be strings, not arrays."""
 
         response = self._generate_text(prompt, system_prompt=system_prompt)
 
