@@ -157,10 +157,17 @@ Respond with ONLY valid JSON."""
             logger.error("FeedbackAnalyzer: failed to parse LLM response: %s | raw: %s", e, response[:300])
             return {}
 
+        def _to_str(val) -> str | None:
+            if val is None:
+                return None
+            if isinstance(val, list):
+                return "\n".join(str(item) for item in val)
+            return str(val) if not isinstance(val, str) else val
+
         return {
-            "cinematic_hook_examples": data.get("cinematic_hook_examples"),
-            "cinematic_story_example": data.get("cinematic_story_example"),
-            "copy_voice_examples": data.get("copy_voice_examples"),
+            "cinematic_hook_examples": _to_str(data.get("cinematic_hook_examples")),
+            "cinematic_story_example": _to_str(data.get("cinematic_story_example")),
+            "copy_voice_examples": _to_str(data.get("copy_voice_examples")),
             "reasoning": data.get("reasoning", ""),
             "triggered_by": data.get("triggered_by", [r["record_id"] for r in records]),
         }

@@ -315,8 +315,16 @@ def apply_config_patch(channel: str, patch: dict) -> None:
         raise KeyError(f"Channel '{channel}' not found in channels.yaml")
 
     for key, value in patch.items():
-        if value is not None:
-            all_configs[channel][key] = value
+        if value is None:
+            continue
+        # LLM occasionally returns lists instead of strings — coerce to string
+        if isinstance(value, list):
+            value = "\n".join(str(item) for item in value)
+            logger.warning("apply_config_patch: field '%s' was a list — coerced to string", key)
+        if not isinstance(value, str):
+            logger.warning("apply_config_patch: field '%s' has unexpected type %s — skipping", key, type(value).__name__)
+            continue
+        all_configs[channel][key] = value
 
     with open(CHANNELS_YAML, "w") as f:
         yaml.dump(all_configs, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
