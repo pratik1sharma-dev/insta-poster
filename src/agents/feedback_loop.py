@@ -331,8 +331,28 @@ class FeedbackLoop:
         analyzer = FeedbackAnalyzer()
         patch = analyzer.analyze(channel, records, channel_config, version_stats)
 
-        if not patch or not patch.get("cinematic_hook_examples"):
+        if not patch or not patch.get("new_hook_examples"):
             logger.warning("Analyzer returned empty patch for '%s' — skipping config update", channel)
+            return
+
+        # Build the config patch by appending new additions to existing field values.
+        # This preserves all original WRONG/BAD examples — the LLM only adds new content.
+        config_patch = {}
+
+        if patch.get("new_hook_examples"):
+            existing = channel_config.cinematic_hook_examples or ""
+            config_patch["cinematic_hook_examples"] = existing.rstrip() + "\n\n" + patch["new_hook_examples"].strip()
+
+        if patch.get("new_copy_examples"):
+            existing = channel_config.copy_voice_examples or ""
+            config_patch["copy_voice_examples"] = existing.rstrip() + "\n\n" + patch["new_copy_examples"].strip()
+
+        # story_example is a full replacement (single reference story), not appended
+        if patch.get("new_story_example"):
+            config_patch["cinematic_story_example"] = patch["new_story_example"]
+
+        if not config_patch:
+            logger.warning("No config fields to update for '%s' — skipping", channel)
             return
 
         # Backup + apply
@@ -345,10 +365,7 @@ class FeedbackLoop:
             avg_before=avg_before,
         )
 
-        apply_config_patch(channel, {
-            k: patch[k] for k in ("cinematic_hook_examples", "cinematic_story_example", "copy_voice_examples")
-            if patch.get(k) is not None
-        })
+        apply_config_patch(channel, config_patch)
 
         # Write change log
         self._write_change_log(channel, version, patch, avg_before)
@@ -370,6 +387,6 @@ class FeedbackLoop:
                     f"hook_quality={avg_before.get('hook_quality', 0):.1f} "
                     f"likes={avg_before.get('likes', 0):.1f}\n\n")
             f.write("## Changes\n\n")
-            for key in ("cinematic_hook_examples", "cinematic_story_example", "copy_voice_examples"):
+            for key in ("new_hook_examples", "new_story_example", "new_copy_examples"):
                 if patch.get(key):
                     f.write(f"### {key}\n```\n{patch[key]}\n```\n\n")

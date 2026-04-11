@@ -134,25 +134,26 @@ PERFORMANCE DATA (most recent {len(records)} scored posts):
 TASK:
 1. Identify the top-performing posts (highest hook_quality + reach).
 2. Identify the bottom-performing posts (lowest hook_quality or reach).
-3. Update cinematic_hook_examples: add 1-2 GOOD examples from top performers with their hook text. Mark 1 bottom performer as a pattern to AVOID.
-4. Update copy_voice_examples: if a top performer used a notably effective copy style, add it as an example.
-5. Update cinematic_story_example ONLY if a top performer had a significantly better story structure than the current example (otherwise set to null).
+3. Generate new_hook_examples: 1-2 new GOOD hook examples from top performers. Also include 1 AVOID pattern from a bottom performer.
+4. Generate new_copy_examples: if a top performer used a notably effective copy style not already in the examples above, add it. Otherwise null.
+5. Generate new_story_example: ONLY if a top performer had a significantly better story structure than the current example shown above. Otherwise null.
+
+IMPORTANT: These are ADDITIONS to be appended to the existing examples — do NOT repeat or rewrite existing content shown above.
 
 OUTPUT RULES (CRITICAL):
 - All values MUST be plain strings — never arrays or lists.
 - Use newlines (\\n) inside strings to separate multiple examples.
-- Preserve the style and formatting of the current config values shown above.
 
 OUTPUT (JSON only):
 {{
-  "cinematic_hook_examples": "PLAIN STRING — updated examples separated by newlines, preserving existing good ones",
-  "cinematic_story_example": "PLAIN STRING — updated story example OR null if no change needed",
-  "copy_voice_examples": "PLAIN STRING — updated voice examples separated by newlines OR null if no change needed",
+  "new_hook_examples": "PLAIN STRING — only the new additions, not existing ones",
+  "new_story_example": null,
+  "new_copy_examples": null,
   "reasoning": "1-2 sentences explaining what changed and why",
   "triggered_by": ["record_id_1", "record_id_2"]
 }}
 
-Respond with ONLY valid JSON. All text fields must be strings, not arrays."""
+Respond with ONLY valid JSON. All text fields must be strings or JSON null (not the string "null")."""
 
         response = self._generate_text(prompt, system_prompt=system_prompt)
 
@@ -170,9 +171,9 @@ Respond with ONLY valid JSON. All text fields must be strings, not arrays."""
             return str(val) if not isinstance(val, str) else val
 
         return {
-            "cinematic_hook_examples": _to_str(data.get("cinematic_hook_examples")),
-            "cinematic_story_example": _to_str(data.get("cinematic_story_example")),
-            "copy_voice_examples": _to_str(data.get("copy_voice_examples")),
+            "new_hook_examples": _to_str(data.get("new_hook_examples")),
+            "new_story_example": _to_str(data.get("new_story_example")),
+            "new_copy_examples": _to_str(data.get("new_copy_examples")),
             "reasoning": data.get("reasoning", ""),
             "triggered_by": data.get("triggered_by", [r["record_id"] for r in records]),
         }
