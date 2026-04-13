@@ -66,7 +66,7 @@ class CinematicScriptGenerator:
         copy_voice_section: str,
     ) -> str:
         character_section = ""
-        if channel_config.character_lora:
+        if channel_config.character_description:
             character_section = (
                 f"\nPROTAGONIST: This channel has a fixed character — {channel_config.character_description}.\n"
                 "Every scene image must feature her as the main subject in a real-life situation.\n"
@@ -77,7 +77,7 @@ class CinematicScriptGenerator:
             if getattr(channel_config, 'strategic_core', None) else ""
         )
         return (
-            f"You are a Story Architect for '{channel_config.name}'.\n"
+            f"You are a content writer for '{channel_config.name}'.\n"
             f"Channel Theme: {channel_config.theme}\n"
             f"Target Audience: {channel_config.target_audience}\n"
             + (f"Cultural Context: {channel_config.cultural_context}\n" if channel_config.cultural_context else "")
@@ -86,10 +86,11 @@ class CinematicScriptGenerator:
             + strategic_core_section
             + f"{currency_rule}\n"
             + copy_voice_section
-            + "Your goal: Tell a clear, coherent story across 3-5 visual scenes that the audience can follow and act on.\n"
-            "Priority: STORY COHERENCE over shock value. Each line must logically connect to the next.\n"
-            "Use concrete examples and specific situations the audience recognizes.\n"
-            "The story MUST end with a specific, concrete final beat — an action, decision, or moment true to this channel's voice."
+            + "Your goal: Explain one useful idea clearly across 3-5 short visual scenes.\n"
+            "Priority: CLARITY and SIMPLICITY. Simple and direct beats dramatic and poetic every time.\n"
+            "Write like you are explaining this to a friend — not writing a movie script.\n"
+            "Each line must be immediately understood by someone with zero prior knowledge of the topic.\n"
+            "End with one concrete action or takeaway the viewer can use today."
         )
 
     # ------------------------------------------------------------------
@@ -228,7 +229,7 @@ Respond with ONLY valid JSON."""
     ) -> str:
         best_hook = hook_result['best_hook']
         research_text = strategy.verified_data or ""
-        is_character_channel = bool(channel_config.character_lora)
+        is_character_channel = bool(channel_config.character_description)
         character_desc = channel_config.character_description or ""
 
         if is_character_channel:
@@ -282,10 +283,12 @@ The story must:
 - Prefer 2 lines per scene; 1 line only for a punchline moment
 - Motion effect: pick what serves the emotional moment
 
-### CAPTION RULES (8-14 words each):
-- Conversational — like explaining to a friend over chai
-- Specific numbers from VERIFIED DATA where relevant
-- No abstract philosophical statements, no unexplained jargon
+### LINE RULES (8-14 words each):
+- Simple and direct. If it sounds like a movie trailer, rewrite it.
+- One idea per line. If a line needs to be explained, it failed — rewrite it.
+- No metaphors, no jargon, no abstract concepts ("weaponize", "unlock", "journey", "signal")
+- Conversational — like texting a smart friend, not writing an essay
+- Specific situations and facts, not general observations about life
 
 {image_prompt_rules}
 

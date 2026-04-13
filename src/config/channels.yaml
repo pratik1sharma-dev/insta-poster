@@ -22,7 +22,6 @@ pagecapsules:
   tone: engaging, insightful, actionable, inspiring
   localization_type: global
   voice_id: en-IN-NeerjaExpressiveNeural
-  character_lora: Indian-v2:0.8
   character_description: young Indian woman, dark hair, brown eyes, natural skin tone
   character_trigger_words: Indian woman, realistic, authentic face, natural skin tone
   style_guidelines: 'Clear and concise text overlays with minimal modern design. Every
@@ -65,18 +64,23 @@ pagecapsules:
     \ goals. You fall to your systems.\"\n  \"She had the same resolution for three\
     \ years. Same failure every February.\"\n  IMAGE: Close-up of a handwritten goal\
     \ list, partially crossed out, warm desk lamp\n\nScene 2 [pan_left]:\n  \"Atomic\
-    \ Habits: goals set the direction. Systems are the engine.\"\n  \"She stopped\
-    \ tracking the goal. Started tracking the daily streak.\"\n  IMAGE: Medium shot\
-    \ of her at desk, checking a habit tracker app, morning light\n\nScene 3 [zoom_out]:\n\
-    \  \"90 days later: the goal happened. She had almost forgotten about it.\"\n \
-    \ IMAGE: Wide shot of her at the same desk, different energy, sunlight through\
+    \ Habits says: stop tracking the goal. Track the daily streak instead.\"\n  \"\
+    She tried it. Two minutes a day. Every day.\"\n  IMAGE: Medium shot of her at\
+    \ desk, checking a habit tracker app, morning light\n\nScene 3 [zoom_out]:\n \
+    \ \"90 days later: the goal happened. She had almost forgotten about it.\"\n  \
+    IMAGE: Wide shot of her at the same desk, different energy, sunlight through\n\
     \ window\n\nScene 4 [static]:\n  \"Today: pick one habit. Make it 2 minutes. Do\
     \ it every day this week.\"\n  IMAGE: Close-up of a notebook with a single habit\
-    \ written, pen beside it\n\nSTORY RULES FOR THIS CHANNEL:\n- Always anchor to\
-    \ a real book and a real, specific insight from it\n- Show the insight applied\
-    \ to a real-life situation \u2014 never explained abstractly\n- Name the book\
-    \ naturally in the story \u2014 do not lead with it\n- End with one specific,\
-    \ doable action drawn from the book's core lesson\n"
+    \ written, pen beside it\n\nSTORY RULES FOR THIS CHANNEL:\n- One book, one insight,\
+    \ shown through one specific situation\n- Show what the character DOES, not what\
+    \ the concept MEANS\n  GOOD: \"She stopped tracking the goal. Started tracking\
+    \ the streak.\"\n  BAD: \"She embraced a systems-based mindset transformation.\"\
+    \n- For abstract topics (culture, psychology, mindset): show a single moment that\
+    \ proves the point\n  GOOD: \"She said 'I don't know' in the meeting. Three hands\
+    \ went up.\"\n  BAD: \"Psychological safety became the team's operating principle.\"\
+    \n- Name the book simply in one line — do not open with it, do not quote it dramatically\n\
+    - Keep it simple. If a line sounds like a TED talk, rewrite it as a WhatsApp message.\n\
+    - End with one specific, doable action from the book's core lesson\n"
   curated_topics:
   - Atomic Habits by James Clear
   - Deep Work by Cal Newport
@@ -705,21 +709,24 @@ worldinranks:
     Every number must be sourced from VERIFIED DATA. Never invent figures.
 
     '
-  cinematic_story_example: "NOTE: WorldInRanks is optimized for carousels. If running\
-    \ cinematic, keep it data-led — no fixed character.\n\nREFERENCE STRUCTURE (data-led\
-    \ cinematic):\nScene 1 [zoom_in]:\n  The single most surprising top-line number\
-    \ — stated plainly.\n  The immediate counter-intuitive twist.\n  IMAGE: Abstract\
-    \ visual — city skyline, map, financial district — not a person\n\nScene 2 [pan_left]:\n\
-    \  The context that makes it even more surprising.\n  The comparison or contrast\
-    \ that explains the ranking shift.\n  IMAGE: Relevant environment — factory, tech\
-    \ campus, trading floor\n\nScene 3 [zoom_out]:\n  The counter-intuitive explanation:\
-    \ why the ranking is this way.\n  IMAGE: Wide establishing shot showing scale\n\
-    \nScene 4 [static]:\n  The India angle or direct implication for the viewer.\n\
-    \  IMAGE: India-relevant visual or direct-to-camera POV shot\n\nSTORY RULES FOR\
-    \ THIS CHANNEL:\n- Every number must come from a named source in VERIFIED DATA\n\
-    - No invented characters — use abstract or environmental visuals\n- End with the\
-    \ India angle or a direct implication for the viewer, not a generic action\n-\
-    \ Find the one fact that makes the viewer question what they assumed\n"
+  cinematic_story_example: "REFERENCE STORY: \"The Gap\"\nTopic: India vs China GDP\
+    \ comparison\n\nScene 1 [zoom_in]:\n  \"China's economy is 5x the size of India's.\
+    \ That is the headline.\"\n  \"Here is what the headline leaves out.\"\n  IMAGE:\
+    \ Wide shot of a busy Indian city street, traffic, people, daytime\n\nScene 2\
+    \ [pan_left]:\n  \"In 2000, China was only 2x the size. The gap grew in 20 years.\"\
+    \n  \"India was growing too. China was growing faster.\"\n  IMAGE: Split-tone cityscape,\
+    \ financial district buildings, dusk light\n\nScene 3 [zoom_out]:\n  \"China's\
+    \ GDP per person: $13,000. India's: $2,500.\"\n  \"The country's total size tells\
+    \ you one thing. What people earn tells you another.\"\n  IMAGE: Aerial wide shot\
+    \ of a dense Indian metro, roads and rooftops\n\nScene 4 [static]:\n  \"India\
+    \ is on track to be the 3rd largest economy by 2030. The gap is still real.\"\n\
+    \  IMAGE: Close-up of a newspaper or screen showing India GDP headline\n\nSTORY\
+    \ RULES FOR THIS CHANNEL:\n- Lead with one surprising number stated plainly —\
+    \ no dramatic setup\n- Every number must come from VERIFIED DATA\n- No invented\
+    \ characters — use environmental or abstract visuals only\n- Each scene adds one\
+    \ new fact that changes or deepens the previous one\n- End with the India angle\
+    \ or what this means for the viewer directly\n- Keep it simple: state the fact,\
+    \ give the context, move on\n"
   curated_topics:
   - Richest people in the world -- who topped 2024 and who fell
   - Most valuable companies -- how the top 10 reshuffled in 5 years
@@ -965,7 +972,6 @@ storycapsules:
   localization_type: india
   voice_id: en-IN-NeerjaExpressiveNeural
   instagram_account: pagecapsules
-  character_lora: Indian-v2:0.8
   character_description: young Indian woman, dark hair, brown eyes, natural skin tone
   character_trigger_words: Indian woman, realistic, authentic face, natural skin tone
   style_guidelines: 'Every reel is a short cinematic story featuring the same protagonist.

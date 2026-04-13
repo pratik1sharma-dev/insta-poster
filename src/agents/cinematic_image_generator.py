@@ -300,15 +300,19 @@ class CinematicImageGenerator:
         return p
 
     def _generate_sd_image(self, prompt: str, index: int, output_dir: Path, negative_prompt: str = "") -> Optional[Path]:
-        # Inject LoRA + trigger words for character-driven channels
-        if self._character_lora:
-            parts = [f"<lora:{self._character_lora}>"]
+        # Inject character description/trigger words for character-driven channels
+        # LoRA tag is only added if explicitly configured — base SD model is used otherwise
+        if self._character_trigger_words or self._character_description:
+            parts = []
+            if self._character_lora:
+                parts.append(f"<lora:{self._character_lora}>")
+                logger.info("SD Character LoRA injected: %s", self._character_lora)
             if self._character_trigger_words:
                 parts.append(self._character_trigger_words)
             if self._character_description:
                 parts.append(self._character_description)
             prompt = ", ".join(parts) + ", " + prompt
-            logger.info("SD Character LoRA injected: %s", self._character_lora)
+            logger.info("SD Character description injected: %s", self._character_description)
 
         # 640x1120 at 20 steps ≈ same compute as 768x1344 at 15 steps, better quality
         gen_w, gen_h = 640, 1120
